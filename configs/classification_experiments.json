@@ -1,0 +1,65 @@
+{
+  "task_type": "classification",
+  "input_dimension": 4,
+  "loss": "bce",
+  "preprocessing": {
+    "enabled": true,
+    "scale_features": true
+  },
+  "architectures": {
+    "A1": [
+      {
+        "type": "dense",
+        "units": 32,
+        "activation": "sigmoid"
+      },
+      {
+        "type": "dense",
+        "units": 1,
+        "activation": "sigmoid"
+      }
+    ],
+    "A2": [
+      {
+        "type": "dense",
+        "units": 32,
+        "activation": "relu"
+      },
+      {
+        "type": "dense",
+        "units": 32,
+        "activation": "relu"
+      },
+      {
+        "type": "dense",
+        "units": 32,
+        "activation": "relu"
+      },
+      {
+        "type": "dense",
+        "units": 1,
+        "activation": "sigmoid"
+      }
+    ]
+  },
+  "experiments": {
+    "optimizers": [
+      "sgd",
+      "momentum",
+      "adabelief"
+    ],
+    "learning_rates": [
+      0.1,
+      0.001
+    ],
+    "batch_sizes": [
+      16,
+      64
+    ],
+    "epochs": 100,
+    "early_stopping": true,
+    "patience": 10,
+    "min_delta": 0.0001,
+    "min_epochs_before_early_stop": 20
+  }
+}
