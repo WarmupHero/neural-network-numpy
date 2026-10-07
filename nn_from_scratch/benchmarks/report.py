@@ -39,14 +39,18 @@ from nn_from_scratch.config import (
 )
 
 # Libraries whose results the report looks for, in display order.
-LIBRARIES = ["sklearn", "tensorflow"]
+LIBRARIES = ["sklearn", "tensorflow", "pytorch"]
 
 # Display names for libraries and models.
-LIBRARY_LABELS = {"sklearn": "scikit-learn", "tensorflow": "TensorFlow (Keras)"}
+LIBRARY_LABELS = {
+    "sklearn": "scikit-learn",
+    "tensorflow": "TensorFlow (Keras)",
+    "pytorch": "PyTorch",
+}
 
 # Libraries that rebuild the NumPy network's own architectures (as opposed
 # to scikit-learn's different model families).
-FRAMEWORKS = ["tensorflow"]
+FRAMEWORKS = ["tensorflow", "pytorch"]
 MODEL_LABELS = {
     "logistic_regression": "logistic regression",
     "ridge": "ridge regression",

@@ -32,6 +32,7 @@ benchmarks = [
     "scikit-learn==1.9.1",
     "scipy==1.17.1",
     "tensorflow==2.21.0",
+    "torch==2.14.1",
 ]
 
 [tool.setuptools.packages.find]

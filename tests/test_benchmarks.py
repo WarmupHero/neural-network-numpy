@@ -382,3 +382,167 @@ def test_keras_runs_are_reproducible():
     first = run_model("classification", "A1", grid, splits, 9, 0.5, training=QUICK_TRAINING)
     second = run_model("classification", "A1", grid, splits, 9, 0.5, training=QUICK_TRAINING)
     assert first[0]["test_metric"] == second[0]["test_metric"]
+
+
+# ------------------------------------------------------------------
+# PyTorch wrappers
+# ------------------------------------------------------------------
+
+# Short training so the tests stay fast.
+QUICK_TORCH_TRAINING = {
+    "epochs": 3,
+    "early_stopping": {"patience": 2, "min_epochs_before_early_stop": 0},
+}
+
+
+def test_torch_network_mirrors_the_architecture_config():
+    """
+    build_network creates the same layer sequence as the NumPy architecture.
+
+    Notes
+    -----
+    A2-bn (3 hidden ReLU layers with batch norm, no bias) must become, per
+    hidden layer, Linear (without bias) -> BatchNorm1d -> ReLU, followed by
+    the output Linear -> Identity (linear output for regression).
+    """
+    pytest.importorskip("torch")
+    from nn_from_scratch.benchmarks.data import load_problem_config
+    from nn_from_scratch.benchmarks.torch_models import build_network
+
+    config = load_problem_config("regression")
+    model = build_network(config["architectures"]["A2-bn"], config["input_dimension"], seed=0)
+    kinds = [type(module).__name__ for module in model]
+    assert kinds == ["Linear", "BatchNorm1d", "ReLU"] * 3 + ["Linear", "Identity"]
+    assert all(module.bias is None for module in model if type(module).__name__ == "Linear")
+    assert model[0].in_features == config["input_dimension"]
+
+
+@pytest.mark.parametrize("name", ["sgd", "momentum", "adam"])
+def test_torch_optimizers(name):
+    """
+    build_optimizer returns the matching torch.optim optimizer.
+
+    Parameters
+    ----------
+    name : str
+        Optimizer name from the benchmark config.
+
+    Notes
+    -----
+    "momentum" must be SGD with momentum 0.9; unknown names are rejected.
+    """
+    torch = pytest.importorskip("torch")
+    from nn_from_scratch.benchmarks.torch_models import build_optimizer
+
+    parameters = [torch.nn.Parameter(torch.zeros(2))]
+    optimizer = build_optimizer(name, parameters, 0.01)
+    expected = {"sgd": "SGD", "momentum": "SGD", "adam": "Adam"}[name]
+    assert type(optimizer).__name__ == expected
+    assert optimizer.defaults["lr"] == pytest.approx(0.01)
+    if name == "momentum":
+        assert optimizer.defaults["momentum"] == pytest.approx(0.9)
+    with pytest.raises(ValueError):
+        build_optimizer("adabelief", parameters, 0.01)
+
+
+@pytest.mark.parametrize("problem_name, n_features", [("classification", 4), ("regression", 8)])
+def test_torch_run_model_records_every_combination(problem_name, n_features):
+    """
+    run_model trains each grid combination and records finite metrics.
+
+    Parameters
+    ----------
+    problem_name : str
+        Problem type; its config fixes the architecture's input size.
+    n_features : int
+        Number of features matching that config (4 or 8).
+
+    Notes
+    -----
+    Two combinations of A1, trained for 3 epochs on synthetic data, must
+    each produce a record with finite metrics, the loss histories and the
+    run's settings.
+    """
+    pytest.importorskip("torch")
+    from nn_from_scratch.benchmarks.torch_models import run_model
+
+    splits = make_splits(problem_name, n_features=n_features)
+    grid = {"optimizer": ["adam"], "learning_rate": [0.01], "batch_size": [16, 32]}
+    records = run_model(problem_name, "A1", grid, splits, 5, 0.5, training=QUICK_TORCH_TRAINING)
+    assert len(records) == 2
+    for record in records:
+        assert record["library"] == "pytorch" and record["model"] == "A1"
+        assert not record["diverged"]
+        assert record["epochs_ran"] == len(record["train_loss_history"]) == 3
+        for key in ("val_metric", "test_metric", "train_metric", "train_seconds"):
+            assert math.isfinite(record[key])
+
+
+def test_torch_runs_are_reproducible():
+    """
+    The same seed gives the same PyTorch result twice.
+
+    Notes
+    -----
+    torch.manual_seed fixes the initial weights, a seeded generator fixes
+    the shuffling, and deterministic algorithms fix the arithmetic.
+    """
+    pytest.importorskip("torch")
+    from nn_from_scratch.benchmarks.torch_models import run_model
+
+    splits = make_splits("classification", n_features=4)
+    grid = {"optimizer": ["sgd"], "learning_rate": [0.1], "batch_size": [16]}
+    first = run_model("classification", "A1", grid, splits, 9, 0.5, training=QUICK_TORCH_TRAINING)
+    second = run_model("classification", "A1", grid, splits, 9, 0.5, training=QUICK_TORCH_TRAINING)
+    assert first[0]["test_metric"] == second[0]["test_metric"]
+    assert first[0]["train_loss_history"] == second[0]["train_loss_history"]
+
+
+def test_torch_early_stopping_waits_for_the_guard_and_restores_the_best_epoch():
+    """
+    Early stopping follows the NumPy trainer's rule and restores the best
+    checkpoint.
+
+    Notes
+    -----
+    With a min_delta so large that only the first epoch counts as an
+    improvement, the best epoch is 1. Epochs without improvement only count
+    after the 5-epoch guard, so with patience 2 training stops after epoch
+    7. The restored model must give the first epoch's validation loss.
+    """
+    pytest.importorskip("torch")
+    from nn_from_scratch.benchmarks.torch_models import run_model
+
+    splits = make_splits("regression", n_features=8)
+    grid = {"optimizer": ["adam"], "learning_rate": [0.01], "batch_size": [16]}
+    training = {
+        "epochs": 50,
+        "early_stopping": {"patience": 2, "min_delta": 1e9, "min_epochs_before_early_stop": 5},
+    }
+    (record,) = run_model("regression", "A1", grid, splits, 3, 0.5, training=training)
+    assert record["best_epoch"] == 1
+    assert record["epochs_ran"] == 7
+    assert record["val_metric"] == pytest.approx(record["val_loss_history"][0], rel=1e-5)
+
+
+def test_torch_divergence_is_flagged_and_never_selected():
+    """
+    A run whose loss overflows is marked diverged with a NaN validation
+    metric.
+
+    Notes
+    -----
+    Plain SGD at learning rate 1e3 on the deep ReLU regression network
+    blows up within a few epochs; such a run must stop, be flagged, and
+    have a NaN validation metric so model selection skips it.
+    """
+    pytest.importorskip("torch")
+    from nn_from_scratch.benchmarks.torch_models import run_model
+
+    splits = make_splits("regression", n_features=8)
+    grid = {"optimizer": ["sgd"], "learning_rate": [1e3], "batch_size": [16]}
+    training = {"epochs": 30, "early_stopping": {"min_epochs_before_early_stop": 30}}
+    (record,) = run_model("regression", "A2", grid, splits, 3, 0.5, training=training)
+    assert record["diverged"]
+    assert math.isnan(record["val_metric"])
+    assert record["epochs_ran"] < 30

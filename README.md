@@ -5,7 +5,7 @@ A feed-forward neural network built with **NumPy only**, with no TensorFlow, PyT
 - **Binary classification:** detecting forged banknotes (UCI Banknote Authentication)
 - **Regression:** predicting a building's heating load (UCI Energy Efficiency)
 
-Each task is benchmarked across a grid of 8 architectures × 3 optimizers × 2 learning rates × 2 batch sizes, and every configuration is repeated with 5 random seeds: 960 training runs in total. The results are then [compared with scikit-learn and TensorFlow](#comparison-with-standard-libraries) on exactly the same data.
+Each task is benchmarked across a grid of 8 architectures × 3 optimizers × 2 learning rates × 2 batch sizes, and every configuration is repeated with 5 random seeds: 960 training runs in total. The results are then [compared with scikit-learn, TensorFlow and PyTorch](#comparison-with-standard-libraries) on exactly the same data.
 
 ![Python](https://img.shields.io/badge/python-3.12-blue)
 ![NumPy only](https://img.shields.io/badge/built%20with-NumPy%20only-informational)
@@ -21,10 +21,10 @@ Each task is benchmarked across a grid of 8 architectures × 3 optimizers × 2 l
 - **Weight initialization.** He, Xavier, and a fixed-scale normal initialization, selectable per layer.
 - **Three optimizers.** SGD, SGD with momentum, and [AdaBelief](https://arxiv.org/abs/2010.07468) with bias correction. All three update every parameter of every layer: weights, biases, and batch norm's scale and shift.
 - **Training loop.** Mini-batching with per-epoch shuffling, validation tracking, early stopping with patience and `min_delta`, restoration of the best model (including batch-norm statistics), and detection of runs whose loss diverges.
-- **Verified correctness.** Every analytic gradient (activations, losses, batch norm in both modes, and whole networks with and without bias and batch norm) is checked against central finite differences with `pytest`. The suite has 129 tests in total.
+- **Verified correctness.** Every analytic gradient (activations, losses, batch norm in both modes, and whole networks with and without bias and batch norm) is checked against central finite differences with `pytest`. The suite has 138 tests in total.
 - **Multi-seed results.** Every configuration runs with 5 seeds, and each seed changes the data split, the initial weights, the dropout masks and the shuffling. Results are reported as mean ± standard deviation, so they don't rest on one lucky draw.
 - **Leak-free preprocessing, also in NumPy.** Duplicates are removed, the data gets a 60 / 20 / 20 train / validation / test split (stratified by class for classification), and the standard scaler is fit on the training split only.
-- **Compared with standard practice.** Five scikit-learn models per task, and the same architectures rebuilt in TensorFlow (Keras), are trained on the same splits and selected by the same validation rule. This puts the from-scratch network's results in context.
+- **Compared with standard practice.** Five scikit-learn models per task, and the same architectures rebuilt in TensorFlow (Keras) and PyTorch, are trained on the same splits and selected by the same validation rule. This puts the from-scratch network's results in context.
 - **Config-driven experiments.** Architectures (including bias, initialization, batch norm and dropout per layer), optimizers, learning rates, batch sizes, seeds and early-stopping settings are defined in JSON. One command runs the whole sweep.
 
 ## Results
@@ -85,11 +85,13 @@ The plots show seed 42. More plots, including the dropout comparison, EDA, scali
 How does a network written from scratch compare with standard practice? Two comparisons answer this:
 
 - **scikit-learn:** five model families per task (linear, SVM, random forest, gradient boosting, MLP).
-- **TensorFlow (Keras):** the network's own architectures A1, A2, A2-bias and A2-bn, rebuilt layer for layer.
+- **TensorFlow (Keras) and PyTorch:** the network's own architectures A1, A2, A2-bias and A2-bn, rebuilt layer for layer.
 
 Every library model was trained on **exactly the same splits** (same 5 seeds), scored with **the same NumPy metric functions**, and selected with **the same rule**: for every model, the configuration with the lowest validation loss on each seed, then its test score. The from-scratch network itself stays NumPy-only; the libraries are an optional install used only for these comparisons.
 
 ### Against scikit-learn
+
+The table also lists each framework's best model; the next section compares the frameworks architecture by architecture.
 
 | Model | Classification: test BCE | Accuracy | Regression: test MSE | R² |
 |---|---|---|---|---|
@@ -101,6 +103,7 @@ Every library model was trained on **exactly the same splits** (same 5 seeds), s
 | scikit-learn random forest | 0.038 ± 0.009 | 99.4% | 0.27 ± 0.06 | 0.997 |
 | scikit-learn logistic / ridge regression | 0.011 ± 0.010 | 99.6% | 9.21 ± 0.96 | 0.908 |
 | TensorFlow (Keras), best of A1 / A2 / A2-bias / A2-bn | **0.00005 ± 0.00010** | 100% | 0.51 ± 0.10 | 0.995 |
+| PyTorch, best of A1 / A2 / A2-bias / A2-bn | 0.0011 ± 0.0024 | 99.9% | 0.42 ± 0.15 | 0.996 |
 
 Mean ± standard deviation over 5 seeds. Lower BCE / MSE is better, and higher accuracy / R² is better.
 
@@ -109,33 +112,37 @@ Mean ± standard deviation over 5 seeds. Lower BCE / MSE is better, and higher a
 - **The from-scratch network matches scikit-learn's own neural network.** On regression, its MSE (0.52 for A1 / A2) is in line with scikit-learn's MLP (0.54), which suggests the implementation performs like a standard library one.
 - **Training cost is comparable.** The selected configurations train in about 0.2–0.3 s for the NumPy network and from a few milliseconds to 1.2 s for the scikit-learn models, per seed, on one CPU.
 
-### Against TensorFlow: same architecture, different implementation
+### Against TensorFlow and PyTorch: same architecture, different implementation
 
-Each architecture was rebuilt in Keras and trained over the same grid shape: 3 optimizers × 2 learning rates (0.1, 0.001) × 2 batch sizes (16, 64), up to 100 epochs with early stopping. The optimizers deliberately don't match: Keras uses what it provides (SGD, classical momentum, **Adam**), the NumPy network its own (SGD, moving-average momentum, **AdaBelief**). Keras also keeps its own defaults: Glorot initialization, float32, and batch-norm momentum 0.99. The full list of differences is in [`docs/DETAILS.md`](docs/DETAILS.md#4-library-comparison).
+Each architecture was rebuilt in Keras and in PyTorch and trained over the same grid shape: 3 optimizers × 2 learning rates (0.1, 0.001) × 2 batch sizes (16, 64), up to 100 epochs with early stopping. The optimizers deliberately don't match: each framework uses what it provides (SGD, classical momentum, **Adam**), and the NumPy network uses its own (SGD, moving-average momentum, **AdaBelief**). The frameworks also keep their own defaults for weight initialization and batch norm, and compute in float32. PyTorch has no built-in training loop, so its loop is written out and uses the NumPy trainer's exact early-stopping rule. The full list of differences is in [`docs/DETAILS.md`](docs/DETAILS.md#4-library-comparison).
 
-| Architecture | Classification BCE: NumPy | Keras | Regression MSE: NumPy | Keras | Regression runs diverged: NumPy / Keras |
-|---|---|---|---|---|---|
-| `A1` | 0.0017 ± 0.0021 | 0.0017 ± 0.0032 | **0.52 ± 0.19** | 0.98 ± 0.86 | 0 / 0 of 60 |
-| `A2` | 0.0057 ± 0.0040 | 0.0046 ± 0.0049 | 1.79 ± 0.80 | 1.54 ± 0.63 | 8 / 19 of 60 |
-| `A2-bias` | 0.00014 ± 0.00017 | **0.00001 ± 0.00001** | 0.70 ± 0.18 | **0.51 ± 0.10** | 12 / 20 of 60 |
-| `A2-bn` | 0.00029 ± 0.00023 | 0.00024 ± 0.00025 | 1.44 ± 0.28 | 1.99 ± 1.10 | 10 / 20 of 60 |
+| Architecture | Classification BCE: NumPy | Keras | PyTorch | Regression MSE: NumPy | Keras | PyTorch |
+|---|---|---|---|---|---|---|
+| `A1` | **0.0017 ± 0.0021** | **0.0017 ± 0.0032** | 0.0061 ± 0.0100 | **0.52 ± 0.19** | 0.98 ± 0.86 | 0.63 ± 0.28 |
+| `A2` | 0.0057 ± 0.0040 | **0.0046 ± 0.0049** | 0.0057 ± 0.0043 | 1.79 ± 0.80 | **1.54 ± 0.63** | 2.64 ± 1.04 |
+| `A2-bias` | 0.00014 ± 0.00017 | **0.00001 ± 0.00001** | 0.0011 ± 0.0024 | 0.70 ± 0.18 | 0.51 ± 0.10 | **0.42 ± 0.15** |
+| `A2-bn` | 0.00029 ± 0.00023 | 0.00024 ± 0.00025 | **0.00020 ± 0.00028** | **1.44 ± 0.28** | 1.99 ± 1.10 | 1.84 ± 0.61 |
 
-Each cell is the best configuration per seed (selected on validation), mean ± standard deviation over 5 seeds. No classification run diverged in either implementation.
+Each cell is the best configuration per seed (selected on validation), mean ± standard deviation over 5 seeds. Lower is better; the best implementation per row and task is in bold.
 
-- **Neither implementation is consistently better.** Pairing the two seed by seed, the NumPy network has the lower test error in 17 of the 40 architecture-and-seed comparisons. Most gaps are within the spread across seeds. The clear exceptions: the NumPy A1 is better on regression (4 of 5 seeds; Keras's A1 varies a lot between seeds), and Keras's A2-bias is better on regression (5 of 5 seeds). Selecting over all four architectures, Keras's best model beats the NumPy network's best (over all 8 architectures) on 3 of 5 classification seeds, and the NumPy network wins on 4 of 5 regression seeds.
-- **The NumPy network's failure mode is real, not a bug.** In the NumPy network, the deep ReLU network on regression at LR 0.1 never learns with SGD or momentum. Keras reproduces this: 39 of the 40 Keras A2 and A2-bias runs at those settings diverge, and the remaining one collapses to a test MSE of 577, the same constant-output failure as in the NumPy network. Keras's batch norm doesn't rescue them either (all 20 A2-bn runs diverge), whereas the NumPy batch norm let the momentum runs learn.
-- **Adam plays the role of AdaBelief.** No Adam run diverged, and Adam at LR 0.1 is Keras's selected configuration in 30 of the 40 architecture-and-seed selections, just as AdaBelief at LR 0.1 dominates the NumPy network's selections.
-- **Keras is about 15–30× slower on data this small.** A selected Keras model takes 4–13 s to train, against 0.2–0.3 s for the NumPy network. With a few hundred training samples, each step is tiny, and the framework's per-step overhead dominates. The 480 Keras runs took 81 minutes on one CPU; the NumPy network's 960 runs take about 10.
+- **No implementation is consistently better.** Pairing them seed by seed, the NumPy network has the lower test error than Keras in 17 of the 40 architecture-and-seed comparisons, and than PyTorch in 20 of 40. Most gaps are within the spread across seeds, and the best architecture differs between implementations. Selecting over all their architectures, the NumPy network's best model beats Keras's best on 2 of 5 classification seeds and 4 of 5 regression seeds, and beats PyTorch's best on 3 of 5 and 2 of 5.
+- **The NumPy network's failure mode is real, not a bug.** In the NumPy network, the deep ReLU network on regression at LR 0.1 never learns with SGD or momentum: 8 runs diverge and 12 collapse to a constant output (test MSE 577–622). PyTorch reproduces this almost exactly: of its 20 A2 runs at those settings, 10 diverge and 10 collapse to the same MSE range of 577–622. In Keras, 19 diverge and 1 collapses.
+- **Here the NumPy network's batch norm does better than the frameworks'.** In the NumPy network, batch norm lets the momentum runs at LR 0.1 learn. In both frameworks, all 20 A2-bn runs at those settings diverge, and so do all 20 A2-bias runs. PyTorch's batch norm has the same settings as the NumPy one, so the likely cause is the momentum rule: the frameworks' classical momentum takes steps about 10× larger than the NumPy network's moving average at the same learning rate.
+- **Adam plays the role of AdaBelief.** No Adam run diverged in either framework. Adam at LR 0.1 is the selected configuration in 30 of 40 selections in Keras and 29 of 40 in PyTorch, just as AdaBelief at LR 0.1 dominates the NumPy network's selections. It's less smooth, though. In the PyTorch curves below, Adam's validation loss jumps from 0.000005 to 7.5 at epoch 19, and early stopping restores the epoch-18 checkpoint.
+- **The frameworks are slower on data this small.** A selected model takes 0.2–0.3 s to train in the NumPy network, 0.6–1.6 s in PyTorch, and 4–13 s in Keras. With a few hundred training samples, each step is tiny, and per-step framework overhead dominates; Keras's `fit()` adds the most. The 480 runs took 9 minutes in PyTorch and 81 in Keras on one CPU; the NumPy network's 960 runs take about 10.
 
 <p align="center">
-  <img src="reports/figures/benchmarks/benchmark_classification_20261007-213646.png" width="48%" alt="Classification test BCE: NumPy network vs. scikit-learn and Keras models">
-  <img src="reports/figures/benchmarks/benchmark_regression_20261007-213646.png" width="48%" alt="Regression test MSE: NumPy network vs. scikit-learn and Keras models">
+  <img src="reports/figures/benchmarks/benchmark_classification_20261007-223117.png" width="48%" alt="Classification test BCE: NumPy network vs. scikit-learn, Keras and PyTorch models">
+  <img src="reports/figures/benchmarks/benchmark_regression_20261007-223117.png" width="48%" alt="Regression test MSE: NumPy network vs. scikit-learn, Keras and PyTorch models">
 </p>
 <p align="center">
-  <img src="reports/figures/benchmarks/benchmark_curves_tensorflow_20261007-213646.png" width="85%" alt="Validation loss of the selected NumPy and Keras models, seed 42">
+  <img src="reports/figures/benchmarks/benchmark_curves_tensorflow_20261007-223117.png" width="85%" alt="Validation loss of the selected NumPy and Keras models, seed 42">
+</p>
+<p align="center">
+  <img src="reports/figures/benchmarks/benchmark_curves_pytorch_20261007-223117.png" width="85%" alt="Validation loss of the selected NumPy and PyTorch models, seed 42">
 </p>
 
-The bar charts include every library model and each Keras architecture; the curves show the selected NumPy and Keras models on seed 42. The full tables, the configuration each model selected most often and the seed-by-seed head-to-heads are in [`benchmark_report_20261007-213646.txt`](reports/benchmark_report_20261007-213646.txt).
+The bar charts include every library model and each framework architecture. The curves show the selected NumPy and framework models on seed 42. The full tables, the configuration each model selected most often and the seed-by-seed head-to-heads are in [`benchmark_report_20261007-223117.txt`](reports/benchmark_report_20261007-223117.txt).
 
 ## Quickstart
 
@@ -150,8 +157,8 @@ make plots                        # optimizer / depth / learning-rate / variant 
 make analysis                     # summary report -> reports/analysis_<stamp>.txt
 make all                          # train, plots and analysis in one go
 
-make benchmark-requirements       # optional: scikit-learn and TensorFlow, for the library comparison
-make benchmarks                   # train the library models on the same splits (~1 min scikit-learn, ~80 min TensorFlow)
+make benchmark-requirements       # optional: scikit-learn, TensorFlow, PyTorch
+make benchmarks                   # train the library models on the same splits (scikit-learn ~1 min, PyTorch ~9, TensorFlow ~80)
 make benchmark-report             # comparison report -> reports/benchmark_report_<stamp>.txt
 
 make test                         # gradient checks, layer tests, split checks, training tests
@@ -173,8 +180,8 @@ python -m nn_from_scratch.comparisons      # comparison plots
 python -m nn_from_scratch.analysis         # analysis report
 python -m pytest                           # tests
 
-pip install -e ".[benchmarks]"             # optional: scikit-learn, TensorFlow
-python -m nn_from_scratch.benchmarks.run   # library comparison (or: ... run sklearn / ... run tensorflow)
+pip install -e ".[benchmarks]"             # optional: scikit-learn, TensorFlow, PyTorch
+python -m nn_from_scratch.benchmarks.run   # library comparison (or one: ... run sklearn / tensorflow / pytorch)
 python -m nn_from_scratch.benchmarks.report
 ```
 
@@ -205,7 +212,7 @@ neural-network-from-scratch/
 ├── reports/                     # generated results: summary CSV, full results JSON, analysis
 │   ├── comparisons/             # short text analyses next to the comparison plots
 │   └── figures/
-│       ├── benchmarks/          # NumPy network vs. scikit-learn and TensorFlow
+│       ├── benchmarks/          # NumPy network vs. scikit-learn, TensorFlow, PyTorch
 │       ├── comparisons/         # loss-curve comparison plots
 │       └── eda/                 # exploratory and preprocessing plots
 ├── nn_from_scratch/             # the source package
@@ -217,10 +224,11 @@ neural-network-from-scratch/
 │   ├── plots.py                 # EDA and preprocessing figures
 │   ├── comparisons.py           # optimizer / depth / learning-rate / variant / dropout plots
 │   ├── analysis.py              # aggregate analysis report, including multi-seed results
-│   ├── benchmarks/              # comparison with scikit-learn and TensorFlow on the same splits (optional dependencies)
+│   ├── benchmarks/              # comparison with scikit-learn, TensorFlow and PyTorch on the same splits (optional)
 │   │   ├── data.py              # the main pipeline's exact splits, per seed
 │   │   ├── sklearn_models.py    # scikit-learn models and their grids
 │   │   ├── keras_models.py      # the network's architectures rebuilt in Keras
+│   │   ├── torch_models.py      # ... and in PyTorch, with a hand-written training loop
 │   │   ├── run.py               # trains the library models
 │   │   └── report.py            # comparison tables and figures
 │   ├── nn/                      # the neural-network library

@@ -56,7 +56,7 @@ The same quantity is used for training and for evaluation, so the reported metri
 | `nn_from_scratch/modeling/train.py` | Orchestrates the full experiment grid (every config and seed) | everything above | `reports/main_results_full_<stamp>.json`, `reports/main_summary_<stamp>.csv` |
 | `nn_from_scratch/comparisons.py` | Optimizer, depth, and learning-rate comparison plots with short text analyses | newest `reports/main_results_full_*.json` (or a path given as the first argument) | `reports/figures/comparisons/*_<stamp>.png`, `reports/comparisons/*_<stamp>.txt` |
 | `nn_from_scratch/analysis.py` | Aggregate analysis across all runs | newest `reports/main_results_full_*.json` (or a path given as the first argument) | `reports/analysis_<stamp>.txt` |
-| `nn_from_scratch/benchmarks/run.py` | Trains the library models (scikit-learn) on the same splits; see [section 4](#4-library-comparison) | `configs/benchmark_experiments.json`, `data/raw/*.csv` | `reports/benchmark_<library>_results_<stamp>.json` |
+| `nn_from_scratch/benchmarks/run.py` | Trains the library models (scikit-learn, TensorFlow, PyTorch) on the same splits; see [section 4](#4-library-comparison) | `configs/benchmark_experiments.json`, `data/raw/*.csv` | `reports/benchmark_<library>_results_<stamp>.json` |
 | `nn_from_scratch/benchmarks/report.py` | Compares the NumPy network with the library models | newest NumPy and library results | `reports/benchmark_report_<stamp>.txt`, `reports/figures/benchmarks/*.png` |
 
 `nn_from_scratch/modeling/train.py` has a `SHOW_EDA` flag (default `False`). Set it to `True` to display the preprocessing plots interactively while the pipeline runs. The plots are saved to `reports/figures/eda/` either way.
@@ -128,7 +128,7 @@ make format         # ruff check --fix and ruff format (rewrites files)
 - `tests/test_dropout.py` checks inverted dropout: in training mode it drops about `rate` of the values with a new mask per batch and scales the survivors so the expected value is unchanged; backward reuses the same mask; evaluation mode is the identity. It also checks that dropout sits after the activation, doesn't change the initial weights, is reproducible from the seed, and that the config loader rejects invalid rates and dropout on the output layer.
 - `tests/test_utils.py` checks the run-stamp helpers used for output file names.
 - `tests/test_metrics.py` checks the accuracy and R² metrics.
-- `tests/test_benchmarks.py` checks that the library comparison uses exactly the main pipeline's splits, the model selection and summaries in the report, the scikit-learn wrappers, and the Keras models (layer structure, optimizers, training records, reproducibility). Library tests are skipped automatically when that library isn't installed.
+- `tests/test_benchmarks.py` checks that the library comparison uses exactly the main pipeline's splits, the model selection and summaries in the report, the scikit-learn wrappers, and the Keras and PyTorch models (layer structure, optimizers, training records, reproducibility; for PyTorch also the hand-written early stopping and divergence detection). Library tests are skipped automatically when that library isn't installed.
 - `tests/test_seeds.py` checks that the split and the weight initialization follow the seed, the constant-prediction baselines, the `seeds` config validation, and the multi-seed analysis helpers (model selection by validation loss, error removed, mean ± std).
 - `tests/test_preprocessing.py` checks that the NumPy split has the right sizes, has no overlapping rows, preserves class balance when stratified, and is reproducible from the seed.
 - `tests/test_training.py` checks that each optimizer reduces the loss on a toy problem, and that `Trainer.fit` / `Trainer.evaluate` run end to end and report BCE as the classification metric.
@@ -364,7 +364,7 @@ The report (`reports/analysis_<stamp>.txt`) contains a method section, supportin
 
 ## 4. Library comparison
 
-The `nn_from_scratch.benchmarks` subpackage compares the from-scratch NumPy network with standard libraries: scikit-learn's classic models, and the same network built in TensorFlow (Keras). The network itself stays NumPy-only; the libraries are only used here, as an optional install:
+The `nn_from_scratch.benchmarks` subpackage compares the from-scratch NumPy network with standard libraries: scikit-learn's classic models, and the same network built in TensorFlow (Keras) and in PyTorch. The network itself stays NumPy-only; the libraries are only used here, as an optional install:
 
 ```bash
 make benchmark-requirements   # pip install -e ".[dev,benchmarks]"
@@ -372,7 +372,7 @@ make benchmarks               # python -m nn_from_scratch.benchmarks.run
 make benchmark-report         # python -m nn_from_scratch.benchmarks.report
 ```
 
-`scipy` is pinned in the `benchmarks` group because newer SciPy releases require NumPy 2, which would replace the project's pinned NumPy 1.26.4. TensorFlow 2.21 works with NumPy 1.26.4 and runs on the CPU on Windows (it no longer supports GPUs on native Windows). `make benchmarks` runs every library; `python -m nn_from_scratch.benchmarks.run tensorflow` runs one.
+`scipy` is pinned in the `benchmarks` group because newer SciPy releases require NumPy 2, which would replace the project's pinned NumPy 1.26.4. TensorFlow 2.21 works with NumPy 1.26.4 and runs on the CPU on Windows (it no longer supports GPUs on native Windows). PyTorch 2.14 also works with NumPy 1.26.4; on Windows and macOS the PyPI wheel is CPU-only, while on Linux it includes CUDA (a much larger download; `pip install torch --index-url https://download.pytorch.org/whl/cpu` installs the CPU build instead). `make benchmarks` runs every library; `python -m nn_from_scratch.benchmarks.run pytorch` runs one.
 
 ### What is compared
 
@@ -380,6 +380,7 @@ make benchmark-report         # python -m nn_from_scratch.benchmarks.report
 |---|---|---|
 | scikit-learn | logistic regression, SVM (RBF), random forest, gradient boosting (`HistGradientBoostingClassifier`), MLP (`MLPClassifier`) | ridge regression, SVR (RBF), random forest, gradient boosting (`HistGradientBoostingRegressor`), MLP (`MLPRegressor`) |
 | TensorFlow (Keras) | A1, A2, A2-bias, A2-bn | A1, A2, A2-bias, A2-bn |
+| PyTorch | A1, A2, A2-bias, A2-bn | A1, A2, A2-bias, A2-bn |
 
 Each scikit-learn model has a small hyperparameter grid in `configs/benchmark_experiments.json`. The MLP grid mirrors the NumPy network's A1 (32 sigmoid units) and A2 (3 × 32 ReLU units) with scikit-learn's own Adam optimizer.
 
@@ -401,12 +402,29 @@ Everything else is what Keras provides, as a practitioner would use it:
 
 Runs are seeded with `keras.utils.set_random_seed` and TensorFlow's deterministic operations, so a seed always gives the same result. The restored model is scored with the same NumPy metric functions as every other model, and its validation metric is used for selection.
 
+#### PyTorch
+
+`benchmarks/torch_models.py` rebuilds the same four architectures as an `nn.Sequential` (Linear → BatchNorm1d → activation, with `nn.Identity` for a linear output) and trains them over the same grid. PyTorch has no `fit()` method or early-stopping callback, so the training loop is written out, as is usual in PyTorch code: per epoch, shuffle with a seeded `torch.Generator`, loop over mini-batches (`zero_grad` → forward → loss → `backward` → `step`), then compute the validation loss in `eval()` mode under `torch.no_grad()`. Because the loop is our own, early stopping uses **exactly the NumPy trainer's rule**.
+
+| Aspect | NumPy network | PyTorch |
+|---|---|---|
+| Weight initialization | N(0, 0.1²) | `nn.Linear` default: U(−1/√fan_in, 1/√fan_in) (Kaiming uniform with a = √5) |
+| Momentum | v = 0.9·v + 0.1·g (moving average) | v = 0.9·v + g, step lr·v, so about 10× larger steps |
+| Adaptive optimizer | AdaBelief | Adam (PyTorch has no AdaBelief) |
+| Batch norm | momentum 0.1, ε = 1e-5 | `BatchNorm1d` default: momentum 0.1, ε = 1e-5 (the same) |
+| Precision | float64 | float32 |
+| Loss | BCE on clipped probabilities, MSE | `nn.BCELoss` on the sigmoid output (log clamped at −100), `nn.MSELoss` |
+| Early stopping | best checkpoint tracked from epoch 1; no stopping before epoch 20; patience 10, `min_delta` 1e-4 | the same rule, restoring the best `state_dict` (weights and batch-norm statistics) |
+| Divergence | stops at the first non-finite loss | the same, plus non-finite predictions from the restored model |
+
+Runs are seeded with `torch.manual_seed` (weights) and a seeded generator (shuffling), with `torch.use_deterministic_algorithms(True)`. A seed gives the same result on the same machine; the number of CPU threads PyTorch uses can change the last digits, and through them the epoch early stopping picks, so results on another machine may differ slightly.
+
 ### How the comparison is kept fair
 
 - **Same data.** `benchmarks/data.py` calls the main pipeline's own preprocessing for each seed in the main configs, so every library sees exactly the same train / validation / test split and scaling. A test checks this element by element.
 - **Same metrics.** Every model is scored with the project's NumPy metric functions (`nn_from_scratch.nn.metrics`): BCE (from predicted probabilities) and accuracy for classification, MSE and R² for regression.
 - **Same selection rule.** On each seed, every configuration of a model is trained on the training set, the one with the lowest validation metric is selected, and only its test metric is reported. "Best model (selected on validation)" applies the same rule across all of a library's models, which is what a practitioner would pick.
-- **Reproducible.** Every scikit-learn estimator with a `random_state` gets the seed, and Keras is seeded and run deterministically.
+- **Reproducible.** Every scikit-learn estimator with a `random_state` gets the seed, and Keras and PyTorch are seeded and run deterministically.
 
 Training time is the wall-clock time of the selected configuration's fit, on one CPU run. It is only a rough comparison: the NumPy network trains for up to 100 epochs with early stopping, while scikit-learn's models stop on their own criteria.
 

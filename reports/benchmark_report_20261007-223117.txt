@@ -6,6 +6,7 @@ The from-scratch NumPy network is compared with library models trained on exactl
 NumPy network results: main_results_full_20261007-165753.json
 scikit-learn results: benchmark_sklearn_results_20261007-165640.json
 TensorFlow (Keras) results: benchmark_tensorflow_results_20261007-201155.json
+PyTorch results: benchmark_pytorch_results_20261007-222220.json
 
 Classification — test BCE (lower is better), mean ± std over seeds
 ------------------------------------------------------------------
@@ -23,6 +24,11 @@ TensorFlow (Keras) · A2                                     0.00463 ± 0.00490 
 TensorFlow (Keras) · A2-bias                                0.00001 ± 0.00001       1.0000 ± 0.0000     100.00 ± 0.00       4.47 ± 1.13   
 TensorFlow (Keras) · A2-bn                                  0.00024 ± 0.00025       1.0000 ± 0.0000     99.96 ± 0.04        8.58 ± 3.92   
 TensorFlow (Keras) · best model (selected on validation)    0.00005 ± 0.00010       1.0000 ± 0.0000     99.99 ± 0.02        4.72 ± 0.96   
+PyTorch · A1                                                0.00607 ± 0.01004       0.9993 ± 0.0017     99.12 ± 1.46        0.95 ± 0.15   
+PyTorch · A2                                                0.00570 ± 0.00430       0.9978 ± 0.0020     99.17 ± 0.62        0.72 ± 0.42   
+PyTorch · A2-bias                                           0.00113 ± 0.00237       0.9993 ± 0.0017     99.84 ± 0.34        1.56 ± 1.22   
+PyTorch · A2-bn                                             0.00020 ± 0.00028       1.0000 ± 0.0000     99.97 ± 0.04        0.59 ± 0.04   
+PyTorch · best model (selected on validation)               0.00114 ± 0.00236       0.9993 ± 0.0017     99.83 ± 0.34        1.57 ± 1.20   
 
 Most often selected configuration:
 - NumPy NN (from scratch) · A1 / A2: A1 · adabelief · LR 0.1 · bs 16 (4/5 seeds)
@@ -38,10 +44,16 @@ Most often selected configuration:
 - TensorFlow (Keras) · A2-bias: A2-bias · adam · LR 0.1 · bs 64 (4/5 seeds)
 - TensorFlow (Keras) · A2-bn: A2-bn · adam · LR 0.1 · bs 16 (3/5 seeds)
 - TensorFlow (Keras) · best model (selected on validation): A2-bias ×4, A2-bn ×1
+- PyTorch · A1: A1 · adam · LR 0.1 · bs 16 (5/5 seeds)
+- PyTorch · A2: A2 · momentum · LR 0.1 · bs 16 (2/5 seeds)
+- PyTorch · A2-bias: A2-bias · adam · LR 0.1 · bs 16 (2/5 seeds)
+- PyTorch · A2-bn: A2-bn · adam · LR 0.1 · bs 64 (5/5 seeds)
+- PyTorch · best model (selected on validation): A2-bias ×4, A2-bn ×1
 
 Head-to-head per seed — classification (test BCE):
 - NumPy NN (all architectures) vs scikit-learn best: NumPy better on 4/5 seeds (seed 42: 0.0003085 vs 0.0001753; seed 43: 3.844e-06 vs 0.0002205; seed 44: 1.769e-05 vs 0.0002763; seed 45: 2.564e-05 vs 0.0002493; seed 46: 0.0001024 vs 0.0007487)
 - NumPy NN (all architectures) vs TensorFlow (Keras) best: NumPy better on 2/5 seeds (seed 42: 0.0003085 vs 7.181e-06; seed 43: 3.844e-06 vs 7.919e-06; seed 44: 1.769e-05 vs 0.0002376; seed 45: 2.564e-05 vs 1.718e-06; seed 46: 0.0001024 vs 1.423e-07)
+- NumPy NN (all architectures) vs PyTorch best: NumPy better on 3/5 seeds (seed 42: 0.0003085 vs 7.201e-07; seed 43: 3.844e-06 vs 3.872e-07; seed 44: 1.769e-05 vs 0.005359; seed 45: 2.564e-05 vs 5.06e-05; seed 46: 0.0001024 vs 0.0002809)
 
 Same architecture, different implementation — classification (test BCE)
 -----------------------------------------------------------------------
@@ -50,6 +62,14 @@ A1            0.00169 ± 0.00211       0.00168 ± 0.00321       2/5 seeds     0/
 A2            0.00565 ± 0.00401       0.00463 ± 0.00490       3/5 seeds     0/60 / 0/60
 A2-bias       0.00014 ± 0.00017       0.00001 ± 0.00001       2/5 seeds     0/60 / 0/60
 A2-bn         0.00029 ± 0.00023       0.00024 ± 0.00025       1/5 seeds     0/60 / 0/60
+
+Same architecture, different implementation — classification (test BCE)
+-----------------------------------------------------------------------
+Architecture  NumPy (from scratch)    PyTorch                 NumPy better  Diverged runs (NumPy / framework)
+A1            0.00169 ± 0.00211       0.00607 ± 0.01004       3/5 seeds     0/60 / 0/60
+A2            0.00565 ± 0.00401       0.00570 ± 0.00430       3/5 seeds     0/60 / 0/60
+A2-bias       0.00014 ± 0.00017       0.00113 ± 0.00237       1/5 seeds     0/60 / 0/60
+A2-bn         0.00029 ± 0.00023       0.00020 ± 0.00028       2/5 seeds     0/60 / 0/60
 
 Regression — test MSE (lower is better), mean ± std over seeds
 --------------------------------------------------------------
@@ -67,6 +87,11 @@ TensorFlow (Keras) · A2                                     1.5443 ± 0.6253   
 TensorFlow (Keras) · A2-bias                                0.5053 ± 0.0959         0.9949 ± 0.0012     99.49 ± 0.12        8.04 ± 0.76   
 TensorFlow (Keras) · A2-bn                                  1.9864 ± 1.1004         0.9802 ± 0.0107     98.03 ± 1.07        9.80 ± 2.64   
 TensorFlow (Keras) · best model (selected on validation)    0.5053 ± 0.0959         0.9949 ± 0.0012     99.49 ± 0.12        8.04 ± 0.76   
+PyTorch · A1                                                0.6338 ± 0.2785         0.9937 ± 0.0027     99.37 ± 0.27        1.19 ± 0.22   
+PyTorch · A2                                                2.6370 ± 1.0419         0.9741 ± 0.0093     97.42 ± 0.93        0.85 ± 0.40   
+PyTorch · A2-bias                                           0.4215 ± 0.1465         0.9958 ± 0.0014     99.58 ± 0.14        1.37 ± 0.48   
+PyTorch · A2-bn                                             1.8416 ± 0.6106         0.9817 ± 0.0058     98.17 ± 0.58        0.98 ± 0.69   
+PyTorch · best model (selected on validation)               0.4215 ± 0.1465         0.9958 ± 0.0014     99.58 ± 0.14        1.37 ± 0.48   
 
 Most often selected configuration:
 - NumPy NN (from scratch) · A1 / A2: A1 · adabelief · LR 0.1 · bs 16 (4/5 seeds)
@@ -82,10 +107,16 @@ Most often selected configuration:
 - TensorFlow (Keras) · A2-bias: A2-bias · adam · LR 0.1 · bs 16 (3/5 seeds)
 - TensorFlow (Keras) · A2-bn: A2-bn · momentum · LR 0.001 · bs 64 (3/5 seeds)
 - TensorFlow (Keras) · best model (selected on validation): A2-bias ×5
+- PyTorch · A1: A1 · adam · LR 0.1 · bs 16 (5/5 seeds)
+- PyTorch · A2: A2 · adam · LR 0.1 · bs 16 (3/5 seeds)
+- PyTorch · A2-bias: A2-bias · adam · LR 0.1 · bs 16 (2/5 seeds)
+- PyTorch · A2-bn: A2-bn · momentum · LR 0.001 · bs 64 (2/5 seeds)
+- PyTorch · best model (selected on validation): A2-bias ×5
 
 Head-to-head per seed — regression (test MSE):
 - NumPy NN (all architectures) vs scikit-learn best: NumPy better on 0/5 seeds (seed 42: 0.3745 vs 0.1872; seed 43: 0.3894 vs 0.2114; seed 44: 0.8414 vs 0.1657; seed 45: 0.4926 vs 0.1196; seed 46: 0.3983 vs 0.2372)
 - NumPy NN (all architectures) vs TensorFlow (Keras) best: NumPy better on 4/5 seeds (seed 42: 0.3745 vs 0.3915; seed 43: 0.3894 vs 0.4301; seed 44: 0.8414 vs 0.5861; seed 45: 0.4926 vs 0.5057; seed 46: 0.3983 vs 0.6132)
+- NumPy NN (all architectures) vs PyTorch best: NumPy better on 2/5 seeds (seed 42: 0.3745 vs 0.6561; seed 43: 0.3894 vs 0.4217; seed 44: 0.8414 vs 0.4324; seed 45: 0.4926 vs 0.2823; seed 46: 0.3983 vs 0.315)
 
 Same architecture, different implementation — regression (test MSE)
 -------------------------------------------------------------------
@@ -94,3 +125,11 @@ A1            0.5200 ± 0.1876         0.9844 ± 0.8610         4/5 seeds     0/
 A2            1.7931 ± 0.7966         1.5443 ± 0.6253         2/5 seeds     8/60 / 19/60
 A2-bias       0.7010 ± 0.1849         0.5053 ± 0.0959         0/5 seeds     12/60 / 20/60
 A2-bn         1.4385 ± 0.2801         1.9864 ± 1.1004         3/5 seeds     10/60 / 20/60
+
+Same architecture, different implementation — regression (test MSE)
+-------------------------------------------------------------------
+Architecture  NumPy (from scratch)    PyTorch                 NumPy better  Diverged runs (NumPy / framework)
+A1            0.5200 ± 0.1876         0.6338 ± 0.2785         3/5 seeds     0/60 / 0/60
+A2            1.7931 ± 0.7966         2.6370 ± 1.0419         3/5 seeds     8/60 / 10/60
+A2-bias       0.7010 ± 0.1849         0.4215 ± 0.1465         1/5 seeds     12/60 / 20/60
+A2-bn         1.4385 ± 0.2801         1.8416 ± 0.6106         4/5 seeds     10/60 / 20/60

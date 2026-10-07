@@ -41,7 +41,7 @@ def load_benchmark_config(path=BENCHMARK_CONFIG_PATH):
         Maps each library name to its settings, with non-library keys such
         as "description" removed. Two formats are used:
         - "sklearn": problem name -> {model name: hyperparameter grid}
-        - neural-network frameworks (e.g. "tensorflow"): "architectures"
+        - neural-network frameworks ("tensorflow", "pytorch"): "architectures"
           (list of str, names from the main configs, used for both
           problems), "grid" (dict of str to list: optimizer,
           learning_rate, batch_size) and "training" (dict: epochs and
@@ -93,6 +93,10 @@ def get_runner(library):
         from nn_from_scratch.benchmarks.keras_models import run_model
 
         return run_model
+    if library == "pytorch":
+        from nn_from_scratch.benchmarks.torch_models import run_model
+
+        return run_model
     raise ValueError(f"Unsupported library: {library}")
 
 
@@ -123,7 +127,7 @@ def run_library(library, library_config):
     2. For each problem and each of its seeds, load the split and its
        constant-prediction baseline once, and run every model's full grid
        on it.
-    3. Print a one-line progress message per model.
+    3. Print a one-line progress message per model (flushed at once).
     """
     run_model = get_runner(library)
     records = []
@@ -146,7 +150,9 @@ def run_library(library, library_config):
                 records.extend(model_records)
                 print(
                     f"{library:8s} {problem_name:15s} seed {seed}  {model_name:20s} "
-                    f"{len(model_records):2d} configs  {time.perf_counter() - start:6.1f} s"
+                    f"{len(model_records):2d} configs  {time.perf_counter() - start:6.1f} s",
+                    # Show progress at once, also when the output goes to a file.
+                    flush=True,
                 )
 
     return records
