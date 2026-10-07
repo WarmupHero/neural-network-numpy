@@ -128,7 +128,7 @@ make format         # ruff check --fix and ruff format (rewrites files)
 - `tests/test_dropout.py` checks inverted dropout: in training mode it drops about `rate` of the values with a new mask per batch and scales the survivors so the expected value is unchanged; backward reuses the same mask; evaluation mode is the identity. It also checks that dropout sits after the activation, doesn't change the initial weights, is reproducible from the seed, and that the config loader rejects invalid rates and dropout on the output layer.
 - `tests/test_utils.py` checks the run-stamp helpers used for output file names.
 - `tests/test_metrics.py` checks the accuracy and R² metrics.
-- `tests/test_benchmarks.py` checks that the library comparison uses exactly the main pipeline's splits, the model selection and summaries in the report, and the scikit-learn wrappers. The scikit-learn tests are skipped automatically when it isn't installed.
+- `tests/test_benchmarks.py` checks that the library comparison uses exactly the main pipeline's splits, the model selection and summaries in the report, the scikit-learn wrappers, and the Keras models (layer structure, optimizers, training records, reproducibility). Library tests are skipped automatically when that library isn't installed.
 - `tests/test_seeds.py` checks that the split and the weight initialization follow the seed, the constant-prediction baselines, the `seeds` config validation, and the multi-seed analysis helpers (model selection by validation loss, error removed, mean ± std).
 - `tests/test_preprocessing.py` checks that the NumPy split has the right sizes, has no overlapping rows, preserves class balance when stratified, and is reproducible from the seed.
 - `tests/test_training.py` checks that each optimizer reduces the loss on a toy problem, and that `Trainer.fit` / `Trainer.evaluate` run end to end and report BCE as the classification metric.
@@ -364,7 +364,7 @@ The report (`reports/analysis_<stamp>.txt`) contains a method section, supportin
 
 ## 4. Library comparison
 
-The `nn_from_scratch.benchmarks` subpackage compares the from-scratch NumPy network with standard libraries. The network itself stays NumPy-only; the libraries are only used here, as an optional install:
+The `nn_from_scratch.benchmarks` subpackage compares the from-scratch NumPy network with standard libraries: scikit-learn's classic models, and the same network built in TensorFlow (Keras). The network itself stays NumPy-only; the libraries are only used here, as an optional install:
 
 ```bash
 make benchmark-requirements   # pip install -e ".[dev,benchmarks]"
@@ -372,27 +372,47 @@ make benchmarks               # python -m nn_from_scratch.benchmarks.run
 make benchmark-report         # python -m nn_from_scratch.benchmarks.report
 ```
 
-`scipy` is pinned in the `benchmarks` group because newer SciPy releases require NumPy 2, which would replace the project's pinned NumPy 1.26.4.
+`scipy` is pinned in the `benchmarks` group because newer SciPy releases require NumPy 2, which would replace the project's pinned NumPy 1.26.4. TensorFlow 2.21 works with NumPy 1.26.4 and runs on the CPU on Windows (it no longer supports GPUs on native Windows). `make benchmarks` runs every library; `python -m nn_from_scratch.benchmarks.run tensorflow` runs one.
 
 ### What is compared
 
 | Library | Classification | Regression |
 |---|---|---|
 | scikit-learn | logistic regression, SVM (RBF), random forest, gradient boosting (`HistGradientBoostingClassifier`), MLP (`MLPClassifier`) | ridge regression, SVR (RBF), random forest, gradient boosting (`HistGradientBoostingRegressor`), MLP (`MLPRegressor`) |
+| TensorFlow (Keras) | A1, A2, A2-bias, A2-bn | A1, A2, A2-bias, A2-bn |
 
-Each model has a small hyperparameter grid in `configs/benchmark_experiments.json`. The MLP grid mirrors the NumPy network's A1 (32 sigmoid units) and A2 (3 × 32 ReLU units) with scikit-learn's own Adam optimizer.
+Each scikit-learn model has a small hyperparameter grid in `configs/benchmark_experiments.json`. The MLP grid mirrors the NumPy network's A1 (32 sigmoid units) and A2 (3 × 32 ReLU units) with scikit-learn's own Adam optimizer.
+
+#### TensorFlow (Keras)
+
+`benchmarks/keras_models.py` rebuilds A1, A2, A2-bias and A2-bn from the **same architecture definitions** in the main configs: the same units, activations, bias settings and batch-norm placement (Dense → BatchNormalization → Activation). Each is trained over the grid SGD / momentum / Adam × learning rate 0.1 / 0.001 × batch size 16 / 64, for up to 100 epochs, on every seed.
+
+Everything else is what Keras provides, as a practitioner would use it:
+
+| Aspect | NumPy network | Keras |
+|---|---|---|
+| Weight initialization | N(0, 0.1²) | Glorot uniform |
+| Momentum | v = 0.9·v + 0.1·g (moving average) | v = 0.9·v − lr·g (classical), so about 10× larger steps |
+| Adaptive optimizer | AdaBelief | Adam (Keras has no AdaBelief) |
+| Batch norm | momentum 0.1 (= 0.9 decay), ε = 1e-5 | decay 0.99, ε = 1e-3 |
+| Precision | float64 | float32 |
+| Early stopping | tracks the best checkpoint from epoch 1; can't stop before epoch 20 | `EarlyStopping(start_from_epoch=20)`: ignores the first 20 epochs entirely, then the same patience 10 / `min_delta` 1e-4, restoring the best weights |
+| Divergence | stops at the first non-finite loss | `TerminateOnNaN`; a run also counts as diverged when the restored model's predictions aren't finite (in float32 the loss can stay just below overflow, around 1e34, while the outputs overflow) |
+
+Runs are seeded with `keras.utils.set_random_seed` and TensorFlow's deterministic operations, so a seed always gives the same result. The restored model is scored with the same NumPy metric functions as every other model, and its validation metric is used for selection.
 
 ### How the comparison is kept fair
 
 - **Same data.** `benchmarks/data.py` calls the main pipeline's own preprocessing for each seed in the main configs, so every library sees exactly the same train / validation / test split and scaling. A test checks this element by element.
 - **Same metrics.** Every model is scored with the project's NumPy metric functions (`nn_from_scratch.nn.metrics`): BCE (from predicted probabilities) and accuracy for classification, MSE and R² for regression.
 - **Same selection rule.** On each seed, every configuration of a model is trained on the training set, the one with the lowest validation metric is selected, and only its test metric is reported. "Best model (selected on validation)" applies the same rule across all of a library's models, which is what a practitioner would pick.
-- **Reproducible.** Every estimator with a `random_state` gets the seed.
+- **Reproducible.** Every scikit-learn estimator with a `random_state` gets the seed, and Keras is seeded and run deterministically.
 
 Training time is the wall-clock time of the selected configuration's fit, on one CPU run. It is only a rough comparison: the NumPy network trains for up to 100 epochs with early stopping, while scikit-learn's models stop on their own criteria.
 
 ### Outputs
 
-- `reports/benchmark_<library>_results_<stamp>.json`: one record per configuration, problem and seed (validation, test and training metrics, secondary metric, training time, whether training converged).
-- `reports/benchmark_report_<stamp>.txt`: per task, the test metric, secondary metric, error removed and training time (mean ± std over seeds) for the NumPy network and every library model, the configuration chosen most often, and a seed-by-seed head-to-head between the NumPy network (all architectures) and each library's best model.
+- `reports/benchmark_<library>_results_<stamp>.json`: one record per configuration, problem and seed (validation, test and training metrics, secondary metric, training time; for scikit-learn whether training converged; for the frameworks the epochs run, best epoch, whether training diverged and the loss histories).
+- `reports/benchmark_report_<stamp>.txt`: per task, the test metric, secondary metric, error removed and training time (mean ± std over seeds) for the NumPy network and every library model, the configuration chosen most often, a seed-by-seed head-to-head between the NumPy network (all architectures) and each library's best model, and, per framework, an architecture-by-architecture table (NumPy vs. framework version of A1, A2, A2-bias, A2-bn, with diverged-run counts).
 - `reports/figures/benchmarks/benchmark_<task>_<stamp>.png`: the test metric per model as a bar chart (log scale).
+- `reports/figures/benchmarks/benchmark_curves_<framework>_<stamp>.png`: the validation-loss curves of the NumPy network's and the framework's selected models on the first seed, for both tasks.

@@ -55,7 +55,7 @@ analysis:
 .PHONY: all
 all: train plots analysis
 
-## Install the libraries the network is compared against (scikit-learn, ...)
+## Install the libraries the network is compared against (scikit-learn, TensorFlow)
 .PHONY: benchmark-requirements
 benchmark-requirements:
 	$(PYTHON_INTERPRETER) -m pip install -e ".[dev,benchmarks]"

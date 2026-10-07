@@ -38,9 +38,14 @@ def load_benchmark_config(path=BENCHMARK_CONFIG_PATH):
     Returns
     -------
     dict
-        Maps each library name (e.g. "sklearn") to a dict of problem name
-        to {model name: hyperparameter grid}. Non-library keys such as
-        "description" are removed.
+        Maps each library name to its settings, with non-library keys such
+        as "description" removed. Two formats are used:
+        - "sklearn": problem name -> {model name: hyperparameter grid}
+        - neural-network frameworks (e.g. "tensorflow"): "architectures"
+          (list of str, names from the main configs, used for both
+          problems), "grid" (dict of str to list: optimizer,
+          learning_rate, batch_size) and "training" (dict: epochs and
+          early-stopping settings).
 
     Notes
     -----
@@ -67,7 +72,7 @@ def get_runner(library):
     -------
     callable
         A function run_model(problem_name, model_name, grid, splits, seed,
-        baseline) -> list of dict.
+        baseline, **options) -> list of dict.
 
     Raises
     ------
@@ -84,6 +89,10 @@ def get_runner(library):
         from nn_from_scratch.benchmarks.sklearn_models import run_model
 
         return run_model
+    if library == "tensorflow":
+        from nn_from_scratch.benchmarks.keras_models import run_model
+
+        return run_model
     raise ValueError(f"Unsupported library: {library}")
 
 
@@ -96,7 +105,8 @@ def run_library(library, library_config):
     library : str
         Library name, e.g. "sklearn".
     library_config : dict
-        Maps problem name to {model name: hyperparameter grid}.
+        The library's settings, in either format described in
+        load_benchmark_config.
 
     Returns
     -------
@@ -105,21 +115,34 @@ def run_library(library, library_config):
 
     Notes
     -----
-    Processing, for each problem and each of its seeds:
-    1. Load the split and its constant-prediction baseline once.
-    2. Run every model family's full grid on it.
-    3. Print a one-line progress message per model family.
+    Processing:
+    1. Work out the models per problem: the config's per-problem models
+       for scikit-learn, or every listed architecture with the shared
+       grid for a neural-network framework (whose "training" settings are
+       passed on as an option).
+    2. For each problem and each of its seeds, load the split and its
+       constant-prediction baseline once, and run every model's full grid
+       on it.
+    3. Print a one-line progress message per model.
     """
     run_model = get_runner(library)
     records = []
+    options = {}
+    if "architectures" in library_config:
+        options["training"] = library_config.get("training", {})
 
     for problem_name in PROBLEMS:
-        models = library_config.get(problem_name, {})
+        if "architectures" in library_config:
+            models = {name: library_config["grid"] for name in library_config["architectures"]}
+        else:
+            models = library_config.get(problem_name, {})
         for seed in problem_seeds(problem_name):
             splits, baseline = load_splits(problem_name, seed)
             for model_name, grid in models.items():
                 start = time.perf_counter()
-                model_records = run_model(problem_name, model_name, grid, splits, seed, baseline)
+                model_records = run_model(
+                    problem_name, model_name, grid, splits, seed, baseline, **options
+                )
                 records.extend(model_records)
                 print(
                     f"{library:8s} {problem_name:15s} seed {seed}  {model_name:20s} "

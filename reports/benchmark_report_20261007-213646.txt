@@ -1,0 +1,96 @@
+LIBRARY COMPARISON
+==================
+
+The from-scratch NumPy network is compared with library models trained on exactly the same train / validation / test splits (same seeds), scored with the same NumPy metric functions. For every model, the configuration with the lowest validation metric is selected on each seed and its test metric is reported; the test set is never used for selection. 'Error removed' is 1 - test / constant-prediction baseline. 'Fit time' is the training time of the selected configuration on one seed (one CPU run each; the NumPy network trains up to 100 epochs with early stopping).
+
+NumPy network results: main_results_full_20261007-165753.json
+scikit-learn results: benchmark_sklearn_results_20261007-165640.json
+TensorFlow (Keras) results: benchmark_tensorflow_results_20261007-201155.json
+
+Classification — test BCE (lower is better), mean ± std over seeds
+------------------------------------------------------------------
+Model                                                       Test BCE                Accuracy            Error removed %     Fit time (s)  
+NumPy NN (from scratch) · A1 / A2                           0.00169 ± 0.00211       1.0000 ± 0.0000     99.75 ± 0.31        0.27 ± 0.14   
+NumPy NN (from scratch) · all 8 architectures               0.00009 ± 0.00013       1.0000 ± 0.0000     99.99 ± 0.02        0.30 ± 0.14   
+scikit-learn · logistic regression                          0.01117 ± 0.00988       0.9956 ± 0.0061     98.38 ± 1.43        0.00 ± 0.00   
+scikit-learn · SVM (RBF)                                    0.00361 ± 0.00075       1.0000 ± 0.0000     99.48 ± 0.11        0.01 ± 0.00   
+scikit-learn · random forest                                0.03783 ± 0.00909       0.9941 ± 0.0042     94.51 ± 1.32        0.37 ± 0.00   
+scikit-learn · gradient boosting                            0.02441 ± 0.02959       0.9948 ± 0.0072     96.45 ± 4.30        0.31 ± 0.05   
+scikit-learn · MLP                                          0.00033 ± 0.00023       1.0000 ± 0.0000     99.95 ± 0.03        0.07 ± 0.01   
+scikit-learn · best model (selected on validation)          0.00033 ± 0.00023       1.0000 ± 0.0000     99.95 ± 0.03        0.07 ± 0.01   
+TensorFlow (Keras) · A1                                     0.00168 ± 0.00321       0.9993 ± 0.0017     99.76 ± 0.47        10.07 ± 3.73  
+TensorFlow (Keras) · A2                                     0.00463 ± 0.00490       0.9985 ± 0.0020     99.33 ± 0.71        6.24 ± 2.81   
+TensorFlow (Keras) · A2-bias                                0.00001 ± 0.00001       1.0000 ± 0.0000     100.00 ± 0.00       4.47 ± 1.13   
+TensorFlow (Keras) · A2-bn                                  0.00024 ± 0.00025       1.0000 ± 0.0000     99.96 ± 0.04        8.58 ± 3.92   
+TensorFlow (Keras) · best model (selected on validation)    0.00005 ± 0.00010       1.0000 ± 0.0000     99.99 ± 0.02        4.72 ± 0.96   
+
+Most often selected configuration:
+- NumPy NN (from scratch) · A1 / A2: A1 · adabelief · LR 0.1 · bs 16 (4/5 seeds)
+- NumPy NN (from scratch) · all 8 architectures: A2-bias · adabelief · LR 0.1 · bs 16 (2/5 seeds)
+- scikit-learn · logistic regression: C=100 (5/5 seeds)
+- scikit-learn · SVM (RBF): C=100, gamma=scale (3/5 seeds)
+- scikit-learn · random forest: max_depth=None (3/5 seeds)
+- scikit-learn · gradient boosting: learning_rate=0.05 (3/5 seeds)
+- scikit-learn · MLP: activation=relu, hidden_layer_sizes=[32, 32, 32], learning_rate_init=0.01 (5/5 seeds)
+- scikit-learn · best model (selected on validation): MLP ×5
+- TensorFlow (Keras) · A1: A1 · adam · LR 0.1 · bs 16 (5/5 seeds)
+- TensorFlow (Keras) · A2: A2 · adam · LR 0.1 · bs 64 (2/5 seeds)
+- TensorFlow (Keras) · A2-bias: A2-bias · adam · LR 0.1 · bs 64 (4/5 seeds)
+- TensorFlow (Keras) · A2-bn: A2-bn · adam · LR 0.1 · bs 16 (3/5 seeds)
+- TensorFlow (Keras) · best model (selected on validation): A2-bias ×4, A2-bn ×1
+
+Head-to-head per seed — classification (test BCE):
+- NumPy NN (all architectures) vs scikit-learn best: NumPy better on 4/5 seeds (seed 42: 0.0003085 vs 0.0001753; seed 43: 3.844e-06 vs 0.0002205; seed 44: 1.769e-05 vs 0.0002763; seed 45: 2.564e-05 vs 0.0002493; seed 46: 0.0001024 vs 0.0007487)
+- NumPy NN (all architectures) vs TensorFlow (Keras) best: NumPy better on 2/5 seeds (seed 42: 0.0003085 vs 7.181e-06; seed 43: 3.844e-06 vs 7.919e-06; seed 44: 1.769e-05 vs 0.0002376; seed 45: 2.564e-05 vs 1.718e-06; seed 46: 0.0001024 vs 1.423e-07)
+
+Same architecture, different implementation — classification (test BCE)
+-----------------------------------------------------------------------
+Architecture  NumPy (from scratch)    TensorFlow (Keras)      NumPy better  Diverged runs (NumPy / framework)
+A1            0.00169 ± 0.00211       0.00168 ± 0.00321       2/5 seeds     0/60 / 0/60
+A2            0.00565 ± 0.00401       0.00463 ± 0.00490       3/5 seeds     0/60 / 0/60
+A2-bias       0.00014 ± 0.00017       0.00001 ± 0.00001       2/5 seeds     0/60 / 0/60
+A2-bn         0.00029 ± 0.00023       0.00024 ± 0.00025       1/5 seeds     0/60 / 0/60
+
+Regression — test MSE (lower is better), mean ± std over seeds
+--------------------------------------------------------------
+Model                                                       Test MSE                R²                  Error removed %     Fit time (s)  
+NumPy NN (from scratch) · A1 / A2                           0.5200 ± 0.1876         0.9948 ± 0.0018     99.48 ± 0.18        0.21 ± 0.02   
+NumPy NN (from scratch) · all 8 architectures               0.4993 ± 0.1968         0.9950 ± 0.0019     99.50 ± 0.19        0.26 ± 0.11   
+scikit-learn · ridge regression                             9.2059 ± 0.9615         0.9084 ± 0.0077     90.85 ± 0.77        0.00 ± 0.00   
+scikit-learn · SVR (RBF)                                    0.3930 ± 0.1141         0.9960 ± 0.0015     99.60 ± 0.14        1.17 ± 0.23   
+scikit-learn · random forest                                0.2698 ± 0.0646         0.9973 ± 0.0008     99.73 ± 0.08        0.34 ± 0.00   
+scikit-learn · gradient boosting                            0.1842 ± 0.0449         0.9981 ± 0.0005     99.81 ± 0.05        0.19 ± 0.02   
+scikit-learn · MLP                                          0.5437 ± 0.1680         0.9945 ± 0.0020     99.45 ± 0.20        1.02 ± 0.59   
+scikit-learn · best model (selected on validation)          0.1842 ± 0.0449         0.9981 ± 0.0005     99.81 ± 0.05        0.19 ± 0.02   
+TensorFlow (Keras) · A1                                     0.9844 ± 0.8610         0.9903 ± 0.0082     99.03 ± 0.82        12.91 ± 2.46  
+TensorFlow (Keras) · A2                                     1.5443 ± 0.6253         0.9848 ± 0.0056     98.48 ± 0.57        9.29 ± 3.45   
+TensorFlow (Keras) · A2-bias                                0.5053 ± 0.0959         0.9949 ± 0.0012     99.49 ± 0.12        8.04 ± 0.76   
+TensorFlow (Keras) · A2-bn                                  1.9864 ± 1.1004         0.9802 ± 0.0107     98.03 ± 1.07        9.80 ± 2.64   
+TensorFlow (Keras) · best model (selected on validation)    0.5053 ± 0.0959         0.9949 ± 0.0012     99.49 ± 0.12        8.04 ± 0.76   
+
+Most often selected configuration:
+- NumPy NN (from scratch) · A1 / A2: A1 · adabelief · LR 0.1 · bs 16 (4/5 seeds)
+- NumPy NN (from scratch) · all 8 architectures: A1 · adabelief · LR 0.1 · bs 16 (3/5 seeds)
+- scikit-learn · ridge regression: alpha=0.001 (4/5 seeds)
+- scikit-learn · SVR (RBF): C=1000, gamma=scale (5/5 seeds)
+- scikit-learn · random forest: max_depth=None (4/5 seeds)
+- scikit-learn · gradient boosting: learning_rate=0.3 (5/5 seeds)
+- scikit-learn · MLP: activation=relu, hidden_layer_sizes=[32, 32, 32], learning_rate_init=0.001 (3/5 seeds)
+- scikit-learn · best model (selected on validation): gradient boosting ×5
+- TensorFlow (Keras) · A1: A1 · adam · LR 0.1 · bs 16 (4/5 seeds)
+- TensorFlow (Keras) · A2: A2 · adam · LR 0.1 · bs 16 (2/5 seeds)
+- TensorFlow (Keras) · A2-bias: A2-bias · adam · LR 0.1 · bs 16 (3/5 seeds)
+- TensorFlow (Keras) · A2-bn: A2-bn · momentum · LR 0.001 · bs 64 (3/5 seeds)
+- TensorFlow (Keras) · best model (selected on validation): A2-bias ×5
+
+Head-to-head per seed — regression (test MSE):
+- NumPy NN (all architectures) vs scikit-learn best: NumPy better on 0/5 seeds (seed 42: 0.3745 vs 0.1872; seed 43: 0.3894 vs 0.2114; seed 44: 0.8414 vs 0.1657; seed 45: 0.4926 vs 0.1196; seed 46: 0.3983 vs 0.2372)
+- NumPy NN (all architectures) vs TensorFlow (Keras) best: NumPy better on 4/5 seeds (seed 42: 0.3745 vs 0.3915; seed 43: 0.3894 vs 0.4301; seed 44: 0.8414 vs 0.5861; seed 45: 0.4926 vs 0.5057; seed 46: 0.3983 vs 0.6132)
+
+Same architecture, different implementation — regression (test MSE)
+-------------------------------------------------------------------
+Architecture  NumPy (from scratch)    TensorFlow (Keras)      NumPy better  Diverged runs (NumPy / framework)
+A1            0.5200 ± 0.1876         0.9844 ± 0.8610         4/5 seeds     0/60 / 0/60
+A2            1.7931 ± 0.7966         1.5443 ± 0.6253         2/5 seeds     8/60 / 19/60
+A2-bias       0.7010 ± 0.1849         0.5053 ± 0.0959         0/5 seeds     12/60 / 20/60
+A2-bn         1.4385 ± 0.2801         1.9864 ± 1.1004         3/5 seeds     10/60 / 20/60

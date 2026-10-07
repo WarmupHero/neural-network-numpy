@@ -141,7 +141,7 @@ def test_mean_pm_std_ignores_missing_values():
 # ------------------------------------------------------------------
 
 
-def make_splits(problem_name, n=120, seed=0):
+def make_splits(problem_name, n=120, seed=0, n_features=3):
     """
     Build small synthetic train / validation / test splits.
 
@@ -154,12 +154,14 @@ def make_splits(problem_name, n=120, seed=0):
         Total number of samples, split 50 / 25 / 25 %.
     seed : int, default=0
         Seed for the random data.
+    n_features : int, default=3
+        Number of input features.
 
     Returns
     -------
     tuple of numpy.ndarray
-        (X_train, y_train, X_val, y_val, X_test, y_test), with 3 features
-        and y arrays of shape (n_part, 1), like the real pipeline.
+        (X_train, y_train, X_val, y_val, X_test, y_test), with n_features
+        features and y arrays of shape (n_part, 1), like the real pipeline.
 
     Notes
     -----
@@ -170,8 +172,8 @@ def make_splits(problem_name, n=120, seed=0):
     3. Cut the arrays into the three parts.
     """
     rng = np.random.RandomState(seed)
-    X = rng.normal(size=(n, 3))
-    signal = X @ np.array([1.0, -2.0, 0.5])
+    X = rng.normal(size=(n, n_features))
+    signal = X @ np.linspace(-2.0, 1.0, n_features)
     y = (signal > 0).astype(np.int64) if problem_name == "classification" else signal
     y = y.reshape(-1, 1)
     a, b = n // 2, 3 * n // 4
@@ -273,3 +275,110 @@ def test_unknown_model_name_raises():
 
     with pytest.raises(ValueError):
         build_model("classification", "ridge", {}, seed=0)
+
+
+# ------------------------------------------------------------------
+# TensorFlow / Keras wrappers
+# ------------------------------------------------------------------
+
+# Short training so the tests stay fast.
+QUICK_TRAINING = {"epochs": 3, "early_stopping": {"patience": 2, "start_from_epoch": 0}}
+
+
+def test_keras_network_mirrors_the_architecture_config():
+    """
+    build_network creates the same layer sequence as the NumPy architecture.
+
+    Notes
+    -----
+    A2-bn (3 hidden ReLU layers with batch norm, no bias) must become, per
+    hidden layer, Dense (without bias) -> BatchNormalization -> Activation,
+    followed by the output Dense -> Activation.
+    """
+    pytest.importorskip("tensorflow")
+    from nn_from_scratch.benchmarks.data import load_problem_config
+    from nn_from_scratch.benchmarks.keras_models import build_network
+
+    config = load_problem_config("regression")
+    model = build_network(config["architectures"]["A2-bn"], config["input_dimension"], seed=0)
+    kinds = [type(layer).__name__ for layer in model.layers[1:]]  # skip the input layer
+    assert kinds == ["Dense", "BatchNormalization", "Activation"] * 3 + ["Dense", "Activation"]
+    assert all(not layer.use_bias for layer in model.layers if type(layer).__name__ == "Dense")
+
+
+@pytest.mark.parametrize("name", ["sgd", "momentum", "adam"])
+def test_keras_optimizers(name):
+    """
+    build_optimizer returns the matching Keras optimizer.
+
+    Parameters
+    ----------
+    name : str
+        Optimizer name from the benchmark config.
+
+    Notes
+    -----
+    "momentum" must be SGD with momentum 0.9; unknown names are rejected.
+    """
+    pytest.importorskip("tensorflow")
+    from nn_from_scratch.benchmarks.keras_models import build_optimizer
+
+    optimizer = build_optimizer(name, 0.01)
+    expected = {"sgd": "SGD", "momentum": "SGD", "adam": "Adam"}[name]
+    assert type(optimizer).__name__ == expected
+    if name == "momentum":
+        assert optimizer.momentum == pytest.approx(0.9)
+    with pytest.raises(ValueError):
+        build_optimizer("adabelief", 0.01)
+
+
+@pytest.mark.parametrize("problem_name, n_features", [("classification", 4), ("regression", 8)])
+def test_keras_run_model_records_every_combination(problem_name, n_features):
+    """
+    run_model trains each grid combination and records finite metrics.
+
+    Parameters
+    ----------
+    problem_name : str
+        Problem type; its config fixes the architecture's input size.
+    n_features : int
+        Number of features matching that config (4 or 8).
+
+    Notes
+    -----
+    Two combinations of A1, trained for 3 epochs on synthetic data, must
+    each produce a record with finite metrics, the loss histories and the
+    run's settings.
+    """
+    pytest.importorskip("tensorflow")
+    from nn_from_scratch.benchmarks.keras_models import run_model
+
+    splits = make_splits(problem_name, n_features=n_features)
+    grid = {"optimizer": ["adam"], "learning_rate": [0.01], "batch_size": [16, 32]}
+    records = run_model(problem_name, "A1", grid, splits, 5, 0.5, training=QUICK_TRAINING)
+    assert len(records) == 2
+    for record in records:
+        assert record["library"] == "tensorflow" and record["model"] == "A1"
+        assert not record["diverged"]
+        assert record["epochs_ran"] == len(record["train_loss_history"]) <= 3
+        for key in ("val_metric", "test_metric", "train_metric", "train_seconds"):
+            assert math.isfinite(record[key])
+
+
+def test_keras_runs_are_reproducible():
+    """
+    The same seed gives the same Keras result twice.
+
+    Notes
+    -----
+    Seeding with keras.utils.set_random_seed and deterministic TensorFlow
+    operations make weight initialization and shuffling repeatable.
+    """
+    pytest.importorskip("tensorflow")
+    from nn_from_scratch.benchmarks.keras_models import run_model
+
+    splits = make_splits("classification", n_features=4)
+    grid = {"optimizer": ["sgd"], "learning_rate": [0.1], "batch_size": [16]}
+    first = run_model("classification", "A1", grid, splits, 9, 0.5, training=QUICK_TRAINING)
+    second = run_model("classification", "A1", grid, splits, 9, 0.5, training=QUICK_TRAINING)
+    assert first[0]["test_metric"] == second[0]["test_metric"]

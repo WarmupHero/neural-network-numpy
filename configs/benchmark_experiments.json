@@ -67,5 +67,21 @@
         }
       ]
     }
+  },
+  "tensorflow": {
+    "architectures": ["A1", "A2", "A2-bias", "A2-bn"],
+    "grid": {
+      "optimizer": ["sgd", "momentum", "adam"],
+      "learning_rate": [0.1, 0.001],
+      "batch_size": [16, 64]
+    },
+    "training": {
+      "epochs": 100,
+      "early_stopping": {
+        "patience": 10,
+        "min_delta": 0.0001,
+        "start_from_epoch": 20
+      }
+    }
   }
 }

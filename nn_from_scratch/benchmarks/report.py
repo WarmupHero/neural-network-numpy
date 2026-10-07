@@ -39,10 +39,14 @@ from nn_from_scratch.config import (
 )
 
 # Libraries whose results the report looks for, in display order.
-LIBRARIES = ["sklearn"]
+LIBRARIES = ["sklearn", "tensorflow"]
 
 # Display names for libraries and models.
-LIBRARY_LABELS = {"sklearn": "scikit-learn"}
+LIBRARY_LABELS = {"sklearn": "scikit-learn", "tensorflow": "TensorFlow (Keras)"}
+
+# Libraries that rebuild the NumPy network's own architectures (as opposed
+# to scikit-learn's different model families).
+FRAMEWORKS = ["tensorflow"]
 MODEL_LABELS = {
     "logistic_regression": "logistic regression",
     "ridge": "ridge regression",
@@ -219,21 +223,29 @@ def describe_config(run):
     Returns
     -------
     str
-        For a NumPy run, e.g. "A1 · adabelief · LR 0.1 · bs 16". For a
-        library run, its hyperparameters, e.g. "C=10, gamma=scale".
+        For a NumPy run, e.g. "A1 · adabelief · LR 0.1 · bs 16", and a
+        framework run in the same form, e.g. "A1 · adam · LR 0.1 · bs 16".
+        For a scikit-learn run, its hyperparameters, e.g. "C=10,
+        gamma=scale".
 
     Notes
     -----
     Processing:
-    1. NumPy runs are recognised by their "architecture" key.
-    2. Library runs list their hyperparameters, leaving out fixed settings
-       that are the same for every configuration (max_iter, probability,
-       kernel, n_estimators).
+    1. NumPy runs are recognised by their "architecture" key, framework
+       runs by an "optimizer" hyperparameter.
+    2. scikit-learn runs list their hyperparameters, leaving out fixed
+       settings that are the same for every configuration (max_iter,
+       probability, kernel, n_estimators).
     """
     if "architecture" in run:
         return (
             f"{run['architecture']} · {run['optimizer']} · "
             f"LR {run['learning_rate']} · bs {run['batch']}"
+        )
+    if "optimizer" in run["params"]:
+        p = run["params"]
+        return (
+            f"{run['model']} · {p['optimizer']} · LR {p['learning_rate']} · bs {p['batch_size']}"
         )
     fixed = {"max_iter", "probability", "kernel", "n_estimators"}
     return ", ".join(f"{k}={v}" for k, v in run["params"].items() if k not in fixed) or "default"
@@ -376,11 +388,11 @@ def format_table(problem_name, rows):
     title = f"{problem_name.capitalize()} — test {metric} (lower is better), mean ± std over seeds"
     lines = [title, "-" * len(title)]
     lines.append(
-        f"{'Model':<52}{'Test ' + metric:<24}{secondary:<20}{'Error removed %':<20}{'Fit time (s)':<14}"
+        f"{'Model':<60}{'Test ' + metric:<24}{secondary:<20}{'Error removed %':<20}{'Fit time (s)':<14}"
     )
     for row in rows:
         lines.append(
-            f"{row['label']:<52}"
+            f"{row['label']:<60}"
             f"{mean_pm_std(row['test'], digits):<24}"
             f"{mean_pm_std(row['secondary'], 4):<20}"
             f"{mean_pm_std([100 * v for v in row['error_removed']], 2):<20}"
@@ -436,6 +448,131 @@ def format_head_to_head(problem_name, selections):
         )
     lines.append("")
     return "\n".join(lines)
+
+
+def format_architecture_table(problem_name, numpy_runs, framework, framework_runs):
+    """
+    Compare the NumPy network and a framework architecture by architecture.
+
+    Parameters
+    ----------
+    problem_name : str
+        "classification" or "regression".
+    numpy_runs : list of dict
+        All NumPy network runs for this problem.
+    framework : str
+        Framework library name, e.g. "tensorflow".
+    framework_runs : list of dict
+        All of the framework's runs for this problem.
+
+    Returns
+    -------
+    str
+        A table with one row per architecture the framework ran: the test
+        metric (mean ± std over seeds) of the NumPy and the framework
+        version, each selected per seed on validation among its own
+        optimizer / learning-rate / batch-size grid; on how many seeds the
+        NumPy version was better; and how many runs of each diverged.
+
+    Notes
+    -----
+    Processing, for each architecture:
+    1. Select the best NumPy run per seed (lowest validation loss, diverged
+       runs excluded) and the best framework run per seed (lowest
+       validation metric; diverged runs have NaN and are skipped).
+    2. Compare the two seed by seed.
+    3. Count diverged runs on each side.
+
+    The NumPy grid uses SGD / momentum / AdaBelief, the frameworks SGD /
+    momentum / Adam, each as implemented by that library.
+    """
+    metric, _, _ = PROBLEM_METRICS[problem_name]
+    digits = 5 if problem_name == "classification" else 4
+    label = LIBRARY_LABELS.get(framework, framework)
+    title = f"Same architecture, different implementation — {problem_name} (test {metric})"
+    lines = [title, "-" * len(title)]
+    lines.append(
+        f"{'Architecture':<14}{'NumPy (from scratch)':<24}{label:<24}"
+        f"{'NumPy better':<14}Diverged runs (NumPy / framework)"
+    )
+    for arch in dict.fromkeys(r["model"] for r in framework_runs):
+        arch_numpy = [r for r in numpy_runs if r["architecture"] == arch]
+        arch_framework = [r for r in framework_runs if r["model"] == arch]
+        numpy_sel = select_per_seed([r for r in arch_numpy if not is_diverged(r)], "best_val_loss")
+        frame_sel = select_per_seed(arch_framework, "val_metric")
+        frame_by_seed = {r["seed"]: r for r in frame_sel}
+        pairs = [(n, frame_by_seed[n["seed"]]) for n in numpy_sel if n["seed"] in frame_by_seed]
+        wins = sum(n["test_metric"] < f["test_metric"] for n, f in pairs)
+        numpy_div = sum(is_diverged(r) for r in arch_numpy)
+        frame_div = sum(bool(r.get("diverged")) for r in arch_framework)
+        lines.append(
+            f"{arch:<14}"
+            f"{mean_pm_std([r['test_metric'] for r in numpy_sel], digits):<24}"
+            f"{mean_pm_std([r['test_metric'] for r in frame_sel], digits):<24}"
+            f"{f'{wins}/{len(pairs)} seeds':<14}"
+            f"{numpy_div}/{len(arch_numpy)} / {frame_div}/{len(arch_framework)}"
+        )
+    lines.append("")
+    return "\n".join(lines)
+
+
+def plot_learning_curves(framework, curves):
+    """
+    Plot validation-loss curves of the NumPy network's and a framework's
+    selected models, one panel per problem.
+
+    Parameters
+    ----------
+    framework : str
+        Framework library name, e.g. "tensorflow".
+    curves : dict of str to tuple of (dict, dict)
+        Problem name -> (selected NumPy run, selected framework run) on the
+        same seed. Each run has a "val_loss_history" (list of float).
+
+    Returns
+    -------
+    str
+        Path of the saved PNG in reports/figures/benchmarks/.
+
+    Notes
+    -----
+    Processing:
+    1. For each problem, plot both validation-loss histories against the
+       epoch number, labelled with each run's configuration.
+    2. Use a log scale: the losses fall by orders of magnitude.
+    3. Save the figure with the run stamp and close it.
+    """
+    label = LIBRARY_LABELS.get(framework, framework)
+    fig, axes = plt.subplots(1, len(curves), figsize=(6.5 * len(curves), 4.5))
+    axes = [axes] if len(curves) == 1 else list(axes)
+    for ax, (problem_name, (numpy_run, frame_run)) in zip(axes, curves.items()):
+        metric, _, _ = PROBLEM_METRICS[problem_name]
+        for run, name, color in [
+            (numpy_run, "NumPy", "tab:orange"),
+            (frame_run, label, "tab:blue"),
+        ]:
+            history = run["val_loss_history"]
+            ax.plot(
+                range(1, len(history) + 1),
+                history,
+                color=color,
+                label=f"{name}: {describe_config(run)}",
+            )
+        ax.set_yscale("log")
+        ax.set_xlabel("Epoch")
+        ax.set_ylabel(f"Validation {metric} (log scale)")
+        ax.set_title(f"{problem_name.capitalize()}, seed {numpy_run['seed']}: selected models")
+        ax.grid(alpha=0.3)
+        ax.legend(fontsize=8)
+    fig.tight_layout()
+
+    os.makedirs(BENCHMARK_FIGURES_DIR, exist_ok=True)
+    name = stamped_filename(f"benchmark_curves_{framework}.png")
+    path = os.path.join(BENCHMARK_FIGURES_DIR, name)
+    fig.savefig(path, dpi=200)
+    plt.close(fig)
+    print(f"Saved figure to: {path}")
+    return path
 
 
 def plot_problem(problem_name, rows):
@@ -501,8 +638,9 @@ def main(numpy_results_path=None):
     Returns
     -------
     None
-        Writes reports/benchmark_report_<stamp>.txt and one figure per
-        problem, and prints their paths.
+        Writes reports/benchmark_report_<stamp>.txt, one bar chart per
+        problem and one learning-curve figure per framework, and prints
+        their paths.
 
     Raises
     ------
@@ -513,9 +651,11 @@ def main(numpy_results_path=None):
     -----
     Processing:
     1. Load the NumPy network's results and each library's newest results.
-    2. For each problem, build the rows, the table, the head-to-head lines
-       and the figure.
-    3. Write the report with a header explaining the method and listing
+    2. For each problem, build the rows, the table, the head-to-head lines,
+       an architecture-by-architecture table per framework, and the bar
+       chart.
+    3. Plot the learning curves of the selected models per framework.
+    4. Write the report with a header explaining the method and listing
        the input files.
     """
     numpy_path = resolve_results_path(numpy_results_path)
@@ -546,6 +686,9 @@ def main(numpy_results_path=None):
         lines.append(f"{LIBRARY_LABELS.get(lib, lib)} results: {os.path.basename(path)}")
     lines.append("")
 
+    # Learning curves to plot per framework: problem -> (NumPy run, framework run).
+    curves = {fw: {} for fw in FRAMEWORKS if fw in library_results}
+
     for problem_name in PROBLEM_METRICS:
         numpy_runs = [r for r in numpy_results if r["problem_name"] == problem_name]
         library_runs = {
@@ -555,7 +698,22 @@ def main(numpy_results_path=None):
         rows, selections = build_rows(problem_name, numpy_runs, library_runs)
         lines.append(format_table(problem_name, rows))
         lines.append(format_head_to_head(problem_name, selections))
+        for framework, framework_curves in curves.items():
+            lines.append(
+                format_architecture_table(
+                    problem_name, numpy_runs, framework, library_runs[framework]
+                )
+            )
+            # The first seed's selected models of both implementations.
+            numpy_first = selections["numpy"][0]
+            frame_first = next(
+                r for r in selections[framework] if r["seed"] == numpy_first["seed"]
+            )
+            framework_curves[problem_name] = (numpy_first, frame_first)
         plot_problem(problem_name, rows)
+
+    for framework, framework_curves in curves.items():
+        plot_learning_curves(framework, framework_curves)
 
     path = os.path.join(REPORT_DIR, stamped_filename("benchmark_report.txt"))
     with open(path, "w", encoding="utf-8") as f:
