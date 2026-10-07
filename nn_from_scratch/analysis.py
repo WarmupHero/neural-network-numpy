@@ -169,25 +169,34 @@ def add_derived_metrics(results):
     Returns
     -------
     list of dict
-        The same list (modified in place), with three fields added or
-        overwritten on each run: "best_val_loss" (float),
-        "final_train_loss" (float) and "convergence_epoch" (int).
+        The same list (modified in place), with "final_train_loss" (float)
+        and "convergence_epoch" (int) added to each run, and
+        "best_val_loss" (float) added if the run doesn't have one.
 
     Notes
     -----
     Processing, for each run:
-    1. best_val_loss = minimum of the validation-loss history. This
-       overwrites the value saved by nn_from_scratch.modeling.train with the same quantity, so
-       older results files without it also work.
+    1. best_val_loss: keep the value saved by
+       nn_from_scratch.modeling.train. It is the validation loss of the
+       checkpoint that early stopping restored, i.e. of the model whose
+       test metric is reported. Only if it is missing, fall back to the
+       minimum of the validation-loss history.
     2. final_train_loss = last value of the training-loss history.
     3. convergence_epoch = convergence_epoch(train_loss_history).
+
+    Why not always use the minimum of the history: early stopping only
+    saves a checkpoint when the validation loss improves by more than
+    min_delta. A later epoch can reach a slightly lower validation loss
+    without being saved, so that minimum can belong to a model that was
+    never tested. Selecting runs on it would pick a run for a score its
+    reported model did not achieve.
 
     For loss quality, we use best validation loss within each run.
     For convergence speed, we use training-loss convergence epoch.
     """
     for run in results:
-        # Best validation loss achieved by this run.
-        run["best_val_loss"] = min(run["val_loss_history"])
+        # Validation loss of the restored (and tested) checkpoint.
+        run.setdefault("best_val_loss", min(run["val_loss_history"]))
 
         # Final training loss reached by this run.
         run["final_train_loss"] = run["train_loss_history"][-1]
@@ -1010,7 +1019,7 @@ def format_selected_model_table(title, problem_runs, architectures, digits):
     """
     lines = [title, "-" * len(title)]
     lines.append(
-        f"{'Seed':<6}{'Selected run':<42}{'Test':<12}{'Baseline':<12}{'Error removed':<14}"
+        f"{'Seed':<6}{'Selected run':<48}{'Test':<12}{'Baseline':<12}{'Error removed':<14}"
     )
 
     selected = []
@@ -1024,12 +1033,12 @@ def format_selected_model_table(title, problem_runs, architectures, digits):
             f"LR {best['learning_rate']} · bs {best['batch']}"
         )
         lines.append(
-            f"{seed:<6}{label:<42}{best['test_metric']:<12.{digits}f}"
+            f"{seed:<6}{label:<48}{best['test_metric']:<12.{digits}f}"
             f"{best['baseline_test_metric']:<12.{digits}f}{error_removed(best):<14.2%}"
         )
 
     lines.append(
-        f"{'Mean':<6}{'':<42}"
+        f"{'Mean':<6}{'':<48}"
         f"{mean_pm_std([r['test_metric'] for r in selected], digits):<24}"
         f"{mean_pm_std([100 * error_removed(r) for r in selected], 2)} %"
     )

@@ -107,7 +107,7 @@ make analysis       # python -m nn_from_scratch.analysis
 make all
 ```
 
-Steps 2 and 3 read the newest `reports/main_results_full_*.json` and fail if none exists. To analyse a specific run instead, pass its path as the first argument, e.g. `python -m nn_from_scratch.analysis reports/main_results_full_20261007-145814.json`. The repository already includes a results file, so you can run them immediately. `make plots` sets `MPLBACKEND=Agg` so no plot windows open; set it yourself when running the Python command directly.
+Steps 2 and 3 read the newest `reports/main_results_full_*.json` and fail if none exists. To analyse a specific run instead, pass its path as the first argument, e.g. `python -m nn_from_scratch.analysis reports/main_results_full_20261007-160408.json`. The repository already includes a results file, so you can run them immediately. `make plots` sets `MPLBACKEND=Agg` so no plot windows open; set it yourself when running the Python command directly.
 
 `make` is not installed on Windows by default: install it with `winget install ezwinports.make` and open a new terminal.
 
@@ -277,7 +277,7 @@ That epoch is the **convergence epoch**, a practical definition of when training
 #### Derived metrics
 
 For each run, it computes:
-- `best_val_loss`: the minimum of `val_loss_history`
+- `best_val_loss`: the validation loss saved with the run, i.e. of the checkpoint that early stopping restored and whose test metric is reported (the minimum of `val_loss_history` only for older files without it). The plain minimum of the history is not used, because a later epoch can dip slightly lower without being saved (its improvement was below `min_delta`), and that model was never tested.
 - `final_train_loss`: the last value of `train_loss_history`
 - `convergence_epoch`: the same definition as in `comparisons.py`
 

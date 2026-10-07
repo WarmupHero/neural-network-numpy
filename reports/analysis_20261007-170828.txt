@@ -14,15 +14,15 @@ Loss : BCE
 Optimizer Summary — Classification
 ----------------------------------
 Group          Runs    Avg Conv Epoch    Avg Best Val Loss   
-sgd            8       57.12             0.352982            
-momentum       8       53.88             0.353280            
-adabelief      8       66.88             0.021800            
+sgd            8       57.12             0.353005            
+momentum       8       53.88             0.353303            
+adabelief      8       66.88             0.021827            
 
 Architecture Summary — Classification
 -------------------------------------
 Group          Runs    Avg Conv Epoch    Avg Best Val Loss   
-A1             12      77.67             0.237736            
-A2             12      40.92             0.247639            
+A1             12      77.67             0.237760            
+A2             12      40.92             0.247663            
 
 Supporting Data — Regression
 ----------------------------
@@ -48,15 +48,15 @@ Loss values below are normalized within each problem before averaging.
 Optimizer Summary — Combined Overall
 ------------------------------------
 Group          Runs    Avg Conv Epoch    Avg Norm Best Val Loss  
-sgd            16      61.44             0.383514                
-momentum       16      65.19             0.383122                
-adabelief      16      73.44             0.019658                
+sgd            16      61.44             0.383488                
+momentum       16      65.19             0.383095                
+adabelief      16      73.44             0.019626                
 
 Architecture Summary — Combined Overall
 ---------------------------------------
 Group          Runs    Avg Conv Epoch    Avg Norm Best Val Loss  
-A1             24      84.83             0.176314                
-A2             24      48.54             0.347882                
+A1             24      84.83             0.176286                
+A2             24      48.54             0.347853                
 
 Answers
 -------
@@ -71,10 +71,10 @@ Each variant changes A2 (3 hidden ReLU layers): A2-bias adds a bias term to ever
 A2 Variant Summary — Classification (BCE)
 -----------------------------------------
 Group          Runs    Avg Conv Epoch    Avg Best Val Loss   
-A2             12      40.92             0.247639            
-A2-bias        12      45.33             0.228468            
-A2-he          12      81.67             0.058167            
-A2-bias-he     12      71.42             0.045756            
+A2             12      40.92             0.247663            
+A2-bias        12      45.33             0.228504            
+A2-he          12      81.67             0.058169            
+A2-bias-he     12      71.42             0.045813            
 A2-bn          12      67.33             0.034570            
 
 A2 Variant Summary — Regression (MSE)
@@ -132,32 +132,32 @@ The constant-prediction baseline is the test metric of a model that ignores the 
 
 Selected Model per Seed — Classification (BCE), baseline architectures A1 / A2
 ------------------------------------------------------------------------------
-Seed  Selected run                              Test        Baseline    Error removed 
-42    A1 · adabelief · LR 0.1 · bs 16           0.00016     0.68851     99.98%        
-43    A1 · adabelief · LR 0.1 · bs 16           0.00015     0.68851     99.98%        
-44    A1 · adabelief · LR 0.1 · bs 64           0.00190     0.68851     99.72%        
-45    A1 · adabelief · LR 0.1 · bs 16           0.00102     0.68851     99.85%        
-46    A1 · adabelief · LR 0.1 · bs 16           0.00523     0.68851     99.24%        
-Mean                                            0.00169 ± 0.00211       99.75 ± 0.31 %
+Seed  Selected run                                    Test        Baseline    Error removed 
+42    A1 · adabelief · LR 0.1 · bs 16                 0.00016     0.68851     99.98%        
+43    A1 · adabelief · LR 0.1 · bs 16                 0.00015     0.68851     99.98%        
+44    A1 · adabelief · LR 0.1 · bs 64                 0.00190     0.68851     99.72%        
+45    A1 · adabelief · LR 0.1 · bs 16                 0.00102     0.68851     99.85%        
+46    A1 · adabelief · LR 0.1 · bs 16                 0.00523     0.68851     99.24%        
+Mean                                                  0.00169 ± 0.00211       99.75 ± 0.31 %
 
 Selected Model per Seed — Classification (BCE), all architectures
 -----------------------------------------------------------------
-Seed  Selected run                              Test        Baseline    Error removed 
-42    A2-bias · adabelief · LR 0.1 · bs 16      0.00031     0.68851     99.96%        
-43    A2-bias-he · adabelief · LR 0.1 · bs 16   0.00001     0.68851     100.00%       
-44    A2-bias-he · adabelief · LR 0.1 · bs 16   0.00000     0.68851     100.00%       
-45    A2-bias · adabelief · LR 0.1 · bs 64      0.00019     0.68851     99.97%        
-46    A2-bias-he · adabelief · LR 0.1 · bs 64   0.00010     0.68851     99.99%        
-Mean                                            0.00012 ± 0.00013       99.98 ± 0.02 %
+Seed  Selected run                                    Test        Baseline    Error removed 
+42    A2-bias · adabelief · LR 0.1 · bs 16            0.00031     0.68851     99.96%        
+43    A2-bn-dropout · adabelief · LR 0.1 · bs 64      0.00000     0.68851     100.00%       
+44    A2-bias · adabelief · LR 0.1 · bs 64            0.00002     0.68851     100.00%       
+45    A2-bias · adabelief · LR 0.1 · bs 16            0.00003     0.68851     100.00%       
+46    A2-bias-he · adabelief · LR 0.1 · bs 64         0.00010     0.68851     99.99%        
+Mean                                                  0.00009 ± 0.00013       99.99 ± 0.02 %
 
 Architectures Across Seeds — Classification (BCE)
 -------------------------------------------------
 Architecture   Best run test (mean ± std)    Avg conv epoch        No better than baseline  Diverged  
 A1             0.00169 ± 0.00211             79.5 ± 2.5            4/60                     0/60      
 A2             0.00565 ± 0.00401             40.6 ± 6.5            16/60                    0/60      
-A2-bias        0.00017 ± 0.00015             47.0 ± 3.3            6/60                     0/60      
+A2-bias        0.00014 ± 0.00017             47.0 ± 3.3            6/60                     0/60      
 A2-he          0.00469 ± 0.00450             71.3 ± 7.7            0/60                     0/60      
-A2-bias-he     0.00008 ± 0.00007             70.2 ± 1.8            0/60                     0/60      
+A2-bias-he     0.00008 ± 0.00006             70.2 ± 1.8            0/60                     0/60      
 A2-bn          0.00029 ± 0.00023             65.3 ± 2.1            0/60                     0/60      
 A1-dropout     0.00760 ± 0.00858             80.6 ± 10.7           4/60                     0/60      
 A2-bn-dropout  0.00039 ± 0.00047             63.6 ± 3.1            0/60                     0/60      
@@ -171,23 +171,23 @@ adabelief   0.01965 ± 0.02023         0.01259 ± 0.00727
 
 Selected Model per Seed — Regression (MSE), baseline architectures A1 / A2
 --------------------------------------------------------------------------
-Seed  Selected run                              Test        Baseline    Error removed 
-42    A1 · adabelief · LR 0.1 · bs 16           0.3745      101.4335    99.63%        
-43    A1 · adabelief · LR 0.1 · bs 16           0.4930      103.4031    99.52%        
-44    A1 · momentum · LR 0.1 · bs 16            0.8414      101.0386    99.17%        
-45    A1 · adabelief · LR 0.1 · bs 16           0.4926      106.1618    99.54%        
-46    A1 · adabelief · LR 0.1 · bs 16           0.3983      90.8421     99.56%        
-Mean                                            0.5200 ± 0.1876         99.48 ± 0.18 %
+Seed  Selected run                                    Test        Baseline    Error removed 
+42    A1 · adabelief · LR 0.1 · bs 16                 0.3745      101.4335    99.63%        
+43    A1 · adabelief · LR 0.1 · bs 16                 0.4930      103.4031    99.52%        
+44    A1 · momentum · LR 0.1 · bs 16                  0.8414      101.0386    99.17%        
+45    A1 · adabelief · LR 0.1 · bs 16                 0.4926      106.1618    99.54%        
+46    A1 · adabelief · LR 0.1 · bs 16                 0.3983      90.8421     99.56%        
+Mean                                                  0.5200 ± 0.1876         99.48 ± 0.18 %
 
 Selected Model per Seed — Regression (MSE), all architectures
 -------------------------------------------------------------
-Seed  Selected run                              Test        Baseline    Error removed 
-42    A1 · adabelief · LR 0.1 · bs 16           0.3745      101.4335    99.63%        
-43    A2-bias-he · adabelief · LR 0.1 · bs 16   0.3894      103.4031    99.62%        
-44    A1 · momentum · LR 0.1 · bs 16            0.8414      101.0386    99.17%        
-45    A1 · adabelief · LR 0.1 · bs 16           0.4926      106.1618    99.54%        
-46    A1 · adabelief · LR 0.1 · bs 16           0.3983      90.8421     99.56%        
-Mean                                            0.4993 ± 0.1968         99.50 ± 0.19 %
+Seed  Selected run                                    Test        Baseline    Error removed 
+42    A1 · adabelief · LR 0.1 · bs 16                 0.3745      101.4335    99.63%        
+43    A2-bias-he · adabelief · LR 0.1 · bs 16         0.3894      103.4031    99.62%        
+44    A1 · momentum · LR 0.1 · bs 16                  0.8414      101.0386    99.17%        
+45    A1 · adabelief · LR 0.1 · bs 16                 0.4926      106.1618    99.54%        
+46    A1 · adabelief · LR 0.1 · bs 16                 0.3983      90.8421     99.56%        
+Mean                                                  0.4993 ± 0.1968         99.50 ± 0.19 %
 
 Architectures Across Seeds — Regression (MSE)
 ---------------------------------------------

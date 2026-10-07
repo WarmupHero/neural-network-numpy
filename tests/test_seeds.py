@@ -307,3 +307,27 @@ def test_error_removed_and_baseline_failure():
     assert error_removed(run(val=0, test=2.5, baseline=10.0)) == pytest.approx(0.75)
     assert fails_baseline(run(val=0, test=10.0, baseline=10.0))
     assert not fails_baseline(run(val=0, test=9.9, baseline=10.0))
+
+
+def test_derived_metrics_keep_the_checkpoint_validation_loss():
+    """
+    add_derived_metrics keeps the saved best_val_loss instead of the history minimum.
+
+    Notes
+    -----
+    The saved value (0.5) belongs to the checkpoint that was restored and
+    tested; a later epoch reached 0.4 without being saved (its improvement
+    was below min_delta). Selection must use 0.5. A run without a saved
+    value falls back to the history minimum.
+    """
+    from nn_from_scratch.analysis import add_derived_metrics
+
+    saved = {
+        "best_val_loss": 0.5,
+        "val_loss_history": [0.9, 0.5, 0.4],
+        "train_loss_history": [1.0, 0.8, 0.7],
+    }
+    missing = {"val_loss_history": [0.9, 0.5, 0.4], "train_loss_history": [1.0, 0.8, 0.7]}
+    add_derived_metrics([saved, missing])
+    assert saved["best_val_loss"] == 0.5
+    assert missing["best_val_loss"] == 0.4
