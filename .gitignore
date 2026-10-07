@@ -5,7 +5,10 @@ __pycache__/
 venv/
 .ipynb_checkpoints/
 .vscode/
+.ruff_cache/
+*.egg-info/
+build/
 
 # Stamped run outputs (name_YYYYMMDD-HHMMSS.ext). Older runs stay local;
 # the pre-commit hook force-adds only the newest version of each output.
-report/**/*_[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9].*
+reports/**/*_[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9].*

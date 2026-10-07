@@ -8,8 +8,8 @@ experiment runs.
 import json
 import os
 
-from src.layers import SUPPORTED_INITS
-from src.utils import ROOT_DIR
+from nn_from_scratch.nn.layers import SUPPORTED_INITS
+from nn_from_scratch.config import ROOT_DIR
 
 
 class ConfigLoader:
@@ -43,10 +43,10 @@ class ConfigLoader:
     - using the wrong loss for the task type
     """
 
-    # Supported activation names used by src.activations.get_activation(...)
+    # Supported activation names used by nn_from_scratch.nn.activations.get_activation(...)
     SUPPORTED_ACTIVATIONS = {"relu", "sigmoid", "tanh", "linear"}
 
-    # Supported loss names used by src.losses.get_loss(...)
+    # Supported loss names used by nn_from_scratch.nn.losses.get_loss(...)
     SUPPORTED_CLASSIFICATION_LOSSES = {
         "bce",
         "binary_crossentropy",
@@ -61,7 +61,7 @@ class ConfigLoader:
         Parameters
         ----------
         None
-            Uses `ROOT_DIR` from src.utils.
+            Uses `ROOT_DIR` from nn_from_scratch.config.
 
         Returns
         -------

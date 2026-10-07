@@ -8,8 +8,8 @@ checkpoint), and evaluates or scores the trained model.
 """
 import numpy as np
 
-from src.metrics import binary_cross_entropy, mean_squared_error
-from src.utils import RANDOM_SEED
+from nn_from_scratch.nn.metrics import binary_cross_entropy, mean_squared_error
+from nn_from_scratch.config import RANDOM_SEED
 
 class Trainer:
     """
@@ -35,7 +35,7 @@ class Trainer:
     loss_fn : MSELoss or BCELoss
         Loss object used for training and for the reported loss values.
     optimizer : object
-        Optimizer with an `update(layer)` method (see src.optimizers).
+        Optimizer with an `update(layer)` method (see nn_from_scratch.nn.optimizers).
     task_type : str
         "classification" or "regression" (lower-cased).
     random : numpy.random.RandomState
@@ -64,11 +64,11 @@ class Trainer:
         network : NeuralNetwork
             The neural network model to train.
         loss_fn : MSELoss or BCELoss
-            Loss function object (from src.losses) with:
+            Loss function object (from nn_from_scratch.nn.losses) with:
             - forward(y_true, y_pred) -> float, the scalar loss
             - backward(y_true, y_pred) -> numpy.ndarray, dL/dy_pred
         optimizer : object
-            Optimizer object (from src.optimizers) with an update(layer)
+            Optimizer object (from nn_from_scratch.nn.optimizers) with an update(layer)
             method that changes the layer's parameters in place.
         task_type : str
             Either "classification" or "regression" (case-insensitive).
@@ -225,7 +225,7 @@ class Trainer:
         -----
         Processing:
         1. If `self.task_type` is "classification", return
-           `binary_cross_entropy(y_true, y_pred)` from src.metrics.
+           `binary_cross_entropy(y_true, y_pred)` from nn_from_scratch.nn.metrics.
         2. Otherwise return `mean_squared_error(y_true, y_pred)`.
         """
         if self.task_type == "classification":

@@ -6,12 +6,12 @@ the trainer's handling of both (checkpoints, evaluation mode, divergence).
 import numpy as np
 import pytest
 
-from src.config_loader import ConfigLoader
-from src.layers import BatchNorm
-from src.losses import get_loss
-from src.network import NeuralNetwork
-from src.optimizers import get_optimizer
-from src.train import Trainer
+from nn_from_scratch.config_loader import ConfigLoader
+from nn_from_scratch.nn.layers import BatchNorm
+from nn_from_scratch.nn.losses import get_loss
+from nn_from_scratch.nn.network import NeuralNetwork
+from nn_from_scratch.nn.optimizers import get_optimizer
+from nn_from_scratch.modeling.trainer import Trainer
 
 from tests.test_gradients import numerical_grad
 

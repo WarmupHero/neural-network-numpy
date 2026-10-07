@@ -1,8 +1,9 @@
 """
 Shared paths, the global random seed and run-stamp helpers.
 
-Every other module imports its folder locations (project root, datasets,
-report output) and the default random seed from here. This module also
+Every other module imports its folder locations (project root, raw data,
+reports and figures) and the default random seed from here. The folders
+follow the Cookiecutter Data Science layout. This module also
 creates the run stamp (a YYYYMMDD-HHMMSS time string) that is added to the
 name of every output file, and provides helpers that find the newest
 stamped output on disk so that downstream scripts (analysis, plots, the
@@ -13,13 +14,25 @@ import os
 import re
 from datetime import datetime
 
-# Calculate paths based on where utils.py is located
-SRC_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT_DIR = os.path.dirname(SRC_DIR)
-DATASETS_DIR = os.path.join(ROOT_DIR, "datasets")
+# Paths are calculated from where this file lives: the package folder
+# (nn_from_scratch/) sits directly inside the project root.
+PACKAGE_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = os.path.dirname(PACKAGE_DIR)
 
-REPORT_DIR = os.path.join(ROOT_DIR, "report")
-PREPROCESSING_GRAPHS_DIR = os.path.join(REPORT_DIR, "preprocessing_graphs")
+# data/raw/: the original UCI datasets, as downloaded (never modified).
+DATA_DIR = os.path.join(ROOT_DIR, "data")
+DATASETS_DIR = os.path.join(DATA_DIR, "raw")
+
+# reports/: generated results (summary CSV, full results JSON, analysis text).
+REPORT_DIR = os.path.join(ROOT_DIR, "reports")
+
+# reports/comparisons/: the short text analyses written next to the comparison plots.
+COMPARISONS_TEXT_DIR = os.path.join(REPORT_DIR, "comparisons")
+
+# reports/figures/: every generated figure, split by kind.
+FIGURES_DIR = os.path.join(REPORT_DIR, "figures")
+COMPARISONS_FIGURES_DIR = os.path.join(FIGURES_DIR, "comparisons")
+PREPROCESSING_GRAPHS_DIR = os.path.join(FIGURES_DIR, "eda")
 
 # Global Configurations
 # Default seed for the data split, weight initialization, dropout masks and
@@ -115,7 +128,7 @@ def latest_stamped_file(directory, basename, ext):
     if not candidates:
         raise FileNotFoundError(
             f"No file matching {basename}_<YYYYMMDD-HHMMSS>{ext} found in "
-            f"{directory}. Run main.py first to produce one.")
+            f"{directory}. Run python -m nn_from_scratch.modeling.train first to produce one.")
 
     return max(candidates, key=os.path.basename)
 
@@ -182,7 +195,7 @@ def resolve_results_path(explicit_path=None):
     explicit_path : str or None, default=None
         A path given by the user, usually from the command line.
         When None (or an empty string), the newest
-        report/main_results_full_<stamp>.json is used.
+        reports/main_results_full_<stamp>.json is used.
 
     Returns
     -------
@@ -193,7 +206,7 @@ def resolve_results_path(explicit_path=None):
     Raises
     ------
     FileNotFoundError
-        If no explicit path is given and report/ contains no stamped
+        If no explicit path is given and reports/ contains no stamped
         main_results_full JSON file (raised by latest_stamped_file).
 
     Notes

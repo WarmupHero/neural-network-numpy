@@ -1,12 +1,12 @@
 """
 Data preparation for the two problems: load, clean, split, explore, scale.
 
-Input: the CSV files in ``datasets/`` written by src.fetch_data
+Input: the CSV files in ``data/raw/`` written by nn_from_scratch.dataset
 (``banknote_auth.csv`` and ``energy_efficiency.csv``).
 
 Output: NumPy arrays ``X_train, y_train, X_val, y_val, X_test, y_test``
 ready for the network, plus (optionally) EDA plots saved through
-src.visualizations.Visualizer.
+nn_from_scratch.plots.Visualizer.
 
 The split is 60 / 20 / 20 (train / validation / test). Feature scaling is
 always fit on the training split only and then applied to validation and
@@ -19,13 +19,13 @@ import pandas as pd
 # Import shared project settings:
 # - DATASETS_DIR: folder where the CSV files are stored
 # - RANDOM_SEED: fixed seed for reproducibility
-from src.utils import DATASETS_DIR, RANDOM_SEED
+from nn_from_scratch.config import DATASETS_DIR, RANDOM_SEED
 
 # Import our custom standard scaler
-from src.scalers import StandardScaler
+from nn_from_scratch.scalers import StandardScaler
 
 # Import plotting utilities for EDA
-from src.visualizations import Visualizer
+from nn_from_scratch.plots import Visualizer
 
 
 def train_val_test_split(df, val_size=0.2, test_size=0.2, stratify_col=None, random_seed=RANDOM_SEED):
@@ -129,7 +129,7 @@ class PreprocessBanknote:
     Attributes
     ----------
     banknote_path : str
-        Full path of ``datasets/banknote_auth.csv``.
+        Full path of ``data/raw/banknote_auth.csv``.
 
     Notes
     -----
@@ -343,7 +343,7 @@ class PreprocessBanknote:
         random_seed : int, default=RANDOM_SEED
             Seed for the train / validation / test split.
         run_eda : bool, default=True
-            Whether to generate (and save) the EDA plots. main.py turns this
+            Whether to generate (and save) the EDA plots. modeling/train.py turns this
             off for every seed after the first, so a multi-seed run saves one
             set of EDA plots instead of overwriting them once per seed.
 
@@ -463,7 +463,7 @@ class PreprocessEnergy:
     Attributes
     ----------
     energy_path : str
-        Full path of ``datasets/energy_efficiency.csv``.
+        Full path of ``data/raw/energy_efficiency.csv``.
 
     Notes
     -----
@@ -679,7 +679,7 @@ class PreprocessEnergy:
         random_seed : int, default=RANDOM_SEED
             Seed for the train / validation / test split.
         run_eda : bool, default=True
-            Whether to generate (and save) the EDA plots. main.py turns this
+            Whether to generate (and save) the EDA plots. modeling/train.py turns this
             off for every seed after the first, so a multi-seed run saves one
             set of EDA plots instead of overwriting them once per seed.
 

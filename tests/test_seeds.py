@@ -8,12 +8,12 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from main import constant_prediction_baseline, get_seeds
-from src.analysis import error_removed, fails_baseline, mean_pm_std, select_by_validation
-from src.config_loader import ConfigLoader
-from src.network import NeuralNetwork
-from src.preprocessing import train_val_test_split
-from src.utils import RANDOM_SEED
+from nn_from_scratch.modeling.train import constant_prediction_baseline, get_seeds
+from nn_from_scratch.analysis import error_removed, fails_baseline, mean_pm_std, select_by_validation
+from nn_from_scratch.config_loader import ConfigLoader
+from nn_from_scratch.nn.network import NeuralNetwork
+from nn_from_scratch.features import train_val_test_split
+from nn_from_scratch.config import RANDOM_SEED
 
 
 # ------------------------------------------------------------------

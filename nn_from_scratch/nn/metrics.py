@@ -8,7 +8,7 @@ functions accept 1-D or column-vector inputs and return a plain float.
 
 import numpy as np
 
-from src.losses import BCELoss, MSELoss
+from nn_from_scratch.nn.losses import BCELoss, MSELoss
 
 def binary_cross_entropy(y_true, y_pred):
     """

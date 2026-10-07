@@ -5,14 +5,14 @@ Input: the UCI Machine Learning Repository, reached through the optional
 ``ucimlrepo`` package (Banknote Authentication, id 267, and Energy
 Efficiency, id 242).
 
-Output: two CSV files in ``datasets/`` (``banknote_auth.csv`` and
+Output: two CSV files in ``data/raw/`` (``banknote_auth.csv`` and
 ``energy_efficiency.csv``), each holding the feature columns followed by
 the target column(s). A file that already exists is not downloaded again.
 """
 import os
 import pandas as pd
 
-from src.utils import DATASETS_DIR
+from nn_from_scratch.config import DATASETS_DIR
 
 class Fetch:
     """
@@ -25,10 +25,10 @@ class Fetch:
     ----------
     banknote_path : str
         Full path of the Banknote Authentication CSV
-        (``datasets/banknote_auth.csv``), used for binary classification.
+        (``data/raw/banknote_auth.csv``), used for binary classification.
     energy_path : str
         Full path of the Energy Efficiency CSV
-        (``datasets/energy_efficiency.csv``), used for regression.
+        (``data/raw/energy_efficiency.csv``), used for regression.
     """
 
     def __init__(self):
@@ -38,7 +38,7 @@ class Fetch:
         Parameters
         ----------
         None
-            Uses the module-level constant ``DATASETS_DIR`` from src.utils.
+            Uses the module-level constant ``DATASETS_DIR`` from nn_from_scratch.config.
 
         Returns
         -------
@@ -143,7 +143,7 @@ class Fetch:
         print("Data downloaded successfully!")
 
 
-# Running this file directly downloads any missing dataset CSVs into datasets/.
+# Running this file directly downloads any missing dataset CSVs into data/raw/.
 if __name__ == "__main__":
     fetch = Fetch()
     fetch.download_all()

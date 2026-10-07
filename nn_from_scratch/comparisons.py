@@ -1,18 +1,19 @@
 """
 Comparison plots and short written analyses built from the experiment results.
 
-Input: a full results JSON written by main.py
-(``report/main_results_full_<stamp>.json``): a list with one dictionary per
+Input: a full results JSON written by nn_from_scratch.modeling.train
+(``reports/main_results_full_<stamp>.json``): a list with one dictionary per
 training run, holding its settings (problem, architecture, optimizer,
 learning rate, batch size, seed) and its loss histories and test metric.
 
-Output, in ``report/comparisons/`` (each file name gets the run stamp):
-- loss-curve figures that compare runs differing in exactly one setting
-  (optimizer, network depth, learning rate, A2 variant, dropout);
-- two text files (depth and learning-rate analyses) that say which run
+Output (each file name gets the run stamp):
+- in ``reports/figures/comparisons/``: loss-curve figures that compare runs
+  differing in exactly one setting (optimizer, network depth, learning rate,
+  A2 variant, dropout);
+- in ``reports/comparisons/``: two text files (depth and learning-rate analyses) that say which run
   converged faster and which reached the lower final losses.
 
-Run it with ``python -m src.comparisons [results.json]``.
+Run it with ``python -m nn_from_scratch.comparisons [results.json]``.
 """
 import json
 import math
@@ -23,17 +24,27 @@ import time
 # Standard Matplotlib plotting interface.
 import matplotlib.pyplot as plt
 
-# ROOT_DIR points to the root folder of the project/repository.
-# We use it to build paths to the output folder.
+# COMPARISONS_FIGURES_DIR / COMPARISONS_TEXT_DIR are the output folders.
 # RUN_STAMP / stamped_filename give every output file a unique name, and
-# resolve_results_path finds the results JSON produced by the main runner.
-from src.utils import RANDOM_SEED, ROOT_DIR, RUN_STAMP, stamped_filename, resolve_results_path
+# resolve_results_path finds the results JSON produced by the experiment sweep.
+from nn_from_scratch.config import (
+    COMPARISONS_FIGURES_DIR,
+    COMPARISONS_TEXT_DIR,
+    RANDOM_SEED,
+    RUN_STAMP,
+    stamped_filename,
+    resolve_results_path,
+)
 
-# Folder where all comparison plots and text analyses will be saved.
-PLOTS_DIR = os.path.join(ROOT_DIR, "report", "comparisons")
+# Folder where the comparison plots are saved (reports/figures/comparisons/).
+PLOTS_DIR = COMPARISONS_FIGURES_DIR
 
-# Create the output folder if it does not already exist.
+# Folder where the short text analyses are saved (reports/comparisons/).
+TEXT_DIR = COMPARISONS_TEXT_DIR
+
+# Create the output folders if they do not already exist.
 os.makedirs(PLOTS_DIR, exist_ok=True)
+os.makedirs(TEXT_DIR, exist_ok=True)
 
 def load_results(path):
     """
@@ -399,7 +410,7 @@ def _save_and_show(fig, filename):
     Returns
     -------
     None
-        Writes the PNG to ``report/comparisons/`` at 300 dpi, prints its
+        Writes the PNG to ``reports/figures/comparisons/`` at 300 dpi, prints its
         path, shows the figure in a blocking window, then closes it.
 
     Notes
@@ -431,7 +442,7 @@ def _save_and_show(fig, filename):
 
 def _write_text_file(filename, content):
     """
-    Save a short text analysis file to the plots folder.
+    Save a short text analysis file to the comparisons text folder.
 
     Parameters
     ----------
@@ -444,7 +455,7 @@ def _write_text_file(filename, content):
     Returns
     -------
     None
-        Writes the file to ``report/comparisons/`` (UTF-8) and prints its
+        Writes the file to ``reports/comparisons/`` (UTF-8) and prints its
         path.
 
     Notes
@@ -456,7 +467,7 @@ def _write_text_file(filename, content):
     """
     # Build the full output path for the text file, with the run stamp
     # inserted before the extension so earlier runs are never overwritten.
-    output_path = os.path.join(PLOTS_DIR, stamped_filename(filename))
+    output_path = os.path.join(TEXT_DIR, stamped_filename(filename))
 
     # Open the file for writing using UTF-8 encoding.
     with open(output_path, "w", encoding="utf-8") as f:
@@ -842,7 +853,7 @@ def plot_optimizer_comparison(results, problem_name, architecture, learning_rate
     Returns
     -------
     None
-        Saves the figure to ``report/comparisons/`` and shows it.
+        Saves the figure to ``reports/figures/comparisons/`` and shows it.
 
     Raises
     ------
@@ -989,8 +1000,8 @@ def plot_depth_comparison(results, problem_name, optimizer, learning_rate, batch
     Returns
     -------
     None
-        Saves and shows the figure, and writes the text file, both in
-        ``report/comparisons/``.
+        Saves and shows the figure (in ``reports/figures/comparisons/``) and
+        writes the text file (in ``reports/comparisons/``).
 
     Raises
     ------
@@ -1151,8 +1162,8 @@ def plot_learning_rate_comparison(results, problem_name, architecture, optimizer
     Returns
     -------
     None
-        Saves and shows the figure, and writes the text file, both in
-        ``report/comparisons/``.
+        Saves and shows the figure (in ``reports/figures/comparisons/``) and
+        writes the text file (in ``reports/comparisons/``).
 
     Raises
     ------
@@ -1329,7 +1340,7 @@ def plot_variant_comparison(results, problem_name, optimizer, learning_rate, bat
     Returns
     -------
     None
-        Saves the figure to ``report/comparisons/`` and shows it.
+        Saves the figure to ``reports/figures/comparisons/`` and shows it.
 
     Raises
     ------
@@ -1423,13 +1434,14 @@ def main(results_path=None):
     ----------
     results_path : str or None, default=None
         Path to a main_results_full_<stamp>.json file. When None, the
-        newest stamped results file in report/ is used.
+        newest stamped results file in reports/ is used.
 
     Returns
     -------
     None
-        Saves (and shows) every comparison figure and writes the two
-        analysis text files in ``report/comparisons/``; prints the run
+        Saves (and shows) every comparison figure in
+        ``reports/figures/comparisons/`` and writes the two analysis text
+        files in ``reports/comparisons/``; prints the run
         stamp, the results file used and each saved path.
 
     Raises

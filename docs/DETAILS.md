@@ -26,43 +26,45 @@ This project implements a feed-forward neural network from scratch in NumPy for 
 4. It trains and evaluates every configured network and saves the results.
 5. Separate scripts read the saved results to generate comparison plots and a written analysis.
 
+The repository follows the [Cookiecutter Data Science](https://cookiecutter-data-science.drivendata.org/) layout: raw data in `data/raw/`, generated results in `reports/` and figures in `reports/figures/`, and all source code in the `nn_from_scratch` package. Its `nn/` subpackage is the neural-network library and `modeling/` holds the trainer and the experiment sweep. `configs/` (experiment definitions) and `tools/` (repository helpers) are this project's additions to the template, and `data/{external,interim,processed}/`, `models/`, `notebooks/` and `references/` are kept empty, with a `.gitkeep`, for future use.
+
 | Task | Dataset | Target | Loss | Evaluation metric |
 |---|---|---|---|---|
 | Classification | Banknote Authentication (UCI #267) | `class` (0/1) | Binary cross-entropy (BCE) | BCE |
 | Regression | Energy Efficiency (UCI #242) | `Heating_Load` (`Cooling_Load` is dropped) | Mean squared error (MSE) | MSE |
 
-The same quantity is used for training and for evaluation, so the reported metric is directly comparable with the loss curves. The `test_metric` column in `report/main_summary_<stamp>.csv` holds the **test-set BCE** for classification rows and the **test-set MSE** for regression rows. Lower is better in both cases. The metric is chosen in `src/train.py` (`Trainer._compute_metric`) and implemented in `src/metrics.py`, which reuses the loss classes from `src/losses.py`.
+The same quantity is used for training and for evaluation, so the reported metric is directly comparable with the loss curves. The `test_metric` column in `reports/main_summary_<stamp>.csv` holds the **test-set BCE** for classification rows and the **test-set MSE** for regression rows. Lower is better in both cases. The metric is chosen in `nn_from_scratch/modeling/trainer.py` (`Trainer._compute_metric`) and implemented in `nn_from_scratch/nn/metrics.py`, which reuses the loss classes from `nn_from_scratch/nn/losses.py`.
 
 ### Pipeline map
 
 | Module | Role | Reads | Writes |
 |---|---|---|---|
-| `src/utils.py` | Shared constants: project paths and `RANDOM_SEED`; the per-process `RUN_STAMP` and the `stamped_filename` / `latest_stamped_file` / `resolve_results_path` helpers | – | – |
-| `src/fetch_data.py` | Downloads the raw UCI datasets with `ucimlrepo` if they are not cached | – | `datasets/banknote_auth.csv`, `datasets/energy_efficiency.csv` |
-| `src/preprocessing.py` | Removes duplicates, splits train/val/test with a NumPy-only `train_val_test_split` (stratified by class for classification), optionally standardizes features (fit on train only), runs EDA plots | `datasets/*.csv` | `report/preprocessing_graphs/*.png` |
-| `src/scalers.py` | Custom standard scaler, (x − μ) / σ | – | – |
-| `src/visualizations.py` | Exploratory and preprocessing plots used by `preprocessing.py` | – | – |
-| `src/config_loader.py` | Loads and validates the JSON experiment configs | `configs/*.json` | – |
-| `src/layers.py` | Dense layer, Z = X·W (+ b), with its backward pass; optional bias and `normal` / `he` / `xavier` weight initialization. BatchNorm layer with learned scale and shift, running statistics, and a training / evaluation mode. Inverted Dropout layer | – | – |
-| `src/activations.py` | ReLU, Sigmoid, Tanh, Linear (forward and backward) | – | – |
-| `src/network.py` | Builds the network from a config; full forward and backward passes | – | – |
-| `src/losses.py` | BCE and MSE (forward and gradient) | – | – |
-| `src/optimizers.py` | SGD, Momentum SGD, AdaBelief | – | – |
-| `src/metrics.py` | Evaluation metrics: BCE (classification) and MSE (regression) | – | – |
-| `src/train.py` | Mini-batch training loop, validation, early stopping, best-model restore, divergence detection, test evaluation; switches the network between training and evaluation mode | – | – |
-| `main.py` | Orchestrates the full experiment grid | everything above | `report/main_results_full_<stamp>.json`, `report/main_summary_<stamp>.csv` |
-| `src/comparisons.py` | Optimizer, depth, and learning-rate comparison plots with short text analyses | newest `report/main_results_full_*.json` (or a path given as the first argument) | `report/comparisons/*_<stamp>.*` |
-| `src/analysis.py` | Aggregate analysis across all runs | newest `report/main_results_full_*.json` (or a path given as the first argument) | `report/analysis_<stamp>.txt` |
+| `nn_from_scratch/config.py` | Shared constants: project paths and `RANDOM_SEED`; the per-process `RUN_STAMP` and the `stamped_filename` / `latest_stamped_file` / `resolve_results_path` helpers | – | – |
+| `nn_from_scratch/dataset.py` | Downloads the raw UCI datasets with `ucimlrepo` if they are not cached | – | `data/raw/banknote_auth.csv`, `data/raw/energy_efficiency.csv` |
+| `nn_from_scratch/features.py` | Removes duplicates, splits train/val/test with a NumPy-only `train_val_test_split` (stratified by class for classification), optionally standardizes features (fit on train only), runs EDA plots | `data/raw/*.csv` | `reports/figures/eda/*.png` |
+| `nn_from_scratch/scalers.py` | Custom standard scaler, (x − μ) / σ | – | – |
+| `nn_from_scratch/plots.py` | Exploratory and preprocessing plots used by `features.py` | – | – |
+| `nn_from_scratch/config_loader.py` | Loads and validates the JSON experiment configs | `configs/*.json` | – |
+| `nn_from_scratch/nn/layers.py` | Dense layer, Z = X·W (+ b), with its backward pass; optional bias and `normal` / `he` / `xavier` weight initialization. BatchNorm layer with learned scale and shift, running statistics, and a training / evaluation mode. Inverted Dropout layer | – | – |
+| `nn_from_scratch/nn/activations.py` | ReLU, Sigmoid, Tanh, Linear (forward and backward) | – | – |
+| `nn_from_scratch/nn/network.py` | Builds the network from a config; full forward and backward passes | – | – |
+| `nn_from_scratch/nn/losses.py` | BCE and MSE (forward and gradient) | – | – |
+| `nn_from_scratch/nn/optimizers.py` | SGD, Momentum SGD, AdaBelief | – | – |
+| `nn_from_scratch/nn/metrics.py` | Evaluation metrics: BCE (classification) and MSE (regression) | – | – |
+| `nn_from_scratch/modeling/trainer.py` | Mini-batch training loop, validation, early stopping, best-model restore, divergence detection, test evaluation; switches the network between training and evaluation mode | – | – |
+| `nn_from_scratch/modeling/train.py` | Orchestrates the full experiment grid (every config and seed) | everything above | `reports/main_results_full_<stamp>.json`, `reports/main_summary_<stamp>.csv` |
+| `nn_from_scratch/comparisons.py` | Optimizer, depth, and learning-rate comparison plots with short text analyses | newest `reports/main_results_full_*.json` (or a path given as the first argument) | `reports/figures/comparisons/*_<stamp>.png`, `reports/comparisons/*_<stamp>.txt` |
+| `nn_from_scratch/analysis.py` | Aggregate analysis across all runs | newest `reports/main_results_full_*.json` (or a path given as the first argument) | `reports/analysis_<stamp>.txt` |
 
-`main.py` has a `SHOW_EDA` flag (default `False`). Set it to `True` to display the preprocessing plots interactively while the pipeline runs. The plots are saved to `report/preprocessing_graphs/` either way.
+`nn_from_scratch/modeling/train.py` has a `SHOW_EDA` flag (default `False`). Set it to `True` to display the preprocessing plots interactively while the pipeline runs. The plots are saved to `reports/figures/eda/` either way.
 
 #### Run stamps
 
-Every file a run writes carries a stamp of the form `name_YYYYMMDD-HHMMSS.ext` (local time), so nothing from an earlier run is ever overwritten. The stamp is `RUN_STAMP` in `src/utils.py`, computed once when the module is first imported, so all files written by one process share it. `main.py`, `src.comparisons` and `src.analysis` are separate processes and therefore get their own stamps. `src.comparisons` and `src.analysis` print which results file they used.
+Every file a run writes carries a stamp of the form `name_YYYYMMDD-HHMMSS.ext` (local time), so nothing from an earlier run is ever overwritten. The stamp is `RUN_STAMP` in `nn_from_scratch/config.py`, computed once when the module is first imported, so all files written by one process share it. The training sweep, `nn_from_scratch.comparisons` and `nn_from_scratch.analysis` are separate processes and therefore get their own stamps. `nn_from_scratch.comparisons` and `nn_from_scratch.analysis` print which results file they used.
 
-Only the newest version of each output is committed. `.gitignore` ignores all stamped files under `report/`, and the pre-commit hook in `.githooks/` runs `tools/stage_latest_outputs.py`, which:
+Only the newest version of each output is committed. `.gitignore` ignores all stamped files under `reports/`, and the pre-commit hook in `.githooks/` runs `tools/stage_latest_outputs.py`, which:
 
-- force-adds the newest stamped file of each output (using `latest_stamped_outputs` in `src/utils.py`)
+- force-adds the newest stamped file of each output (using `latest_stamped_outputs` in `nn_from_scratch/config.py`)
 - removes older stamped files from the index, leaving them on disk
 - rewrites stamped output names in `README.md` and `docs/DETAILS.md` to the newest stamps, and stops the commit if either file has unstaged edits, so those edits are never committed by accident
 
@@ -84,31 +86,37 @@ ucimlrepo==0.0.7     # one-time dataset download
 
 ### Running the pipeline
 
-Run every command from the repository root:
+Run every command from the repository root. The `Makefile` wraps each step (`make help` lists them all); the equivalent Python commands are shown next to each one.
 
 ```bash
-pip install -r requirements.txt
+make requirements   # pip install -r requirements.txt && pip install -e ".[dev]"
 
 # 1. Load or download the data, preprocess, train all configured experiments.
-#    Writes report/main_results_full_<stamp>.json and report/main_summary_<stamp>.csv
-python main.py
+#    Writes reports/main_results_full_<stamp>.json and reports/main_summary_<stamp>.csv
+make train          # python -m nn_from_scratch.modeling.train
 
-# 2. Optimizer / network-depth / learning-rate comparisons.
-#    Writes stamped plots and short analyses to report/comparisons/
-python -m src.comparisons
+# 2. Optimizer / network-depth / learning-rate / variant / dropout comparisons.
+#    Writes stamped plots to reports/figures/comparisons/ and short analyses to reports/comparisons/
+make plots          # MPLBACKEND=Agg python -m nn_from_scratch.comparisons
 
 # 3. Aggregate analysis.
-#    Writes report/analysis_<stamp>.txt
-python -m src.analysis
+#    Writes reports/analysis_<stamp>.txt
+make analysis       # python -m nn_from_scratch.analysis
+
+# Or all three in order:
+make all
 ```
 
-Steps 2 and 3 read the newest `report/main_results_full_*.json` and fail if none exists. To analyse a specific run instead, pass its path as the first argument, e.g. `python -m src.analysis report/main_results_full_20261007-112904.json`. The repository already includes a results file, so you can run them immediately. Set `MPLBACKEND=Agg` to run step 2 without plot windows opening.
+Steps 2 and 3 read the newest `reports/main_results_full_*.json` and fail if none exists. To analyse a specific run instead, pass its path as the first argument, e.g. `python -m nn_from_scratch.analysis reports/main_results_full_20261007-145814.json`. The repository already includes a results file, so you can run them immediately. `make plots` sets `MPLBACKEND=Agg` so no plot windows open; set it yourself when running the Python command directly.
+
+`make` is not installed on Windows by default: install it with `winget install ezwinports.make` and open a new terminal.
 
 ### Tests
 
 ```bash
-pip install pytest
-python -m pytest
+make test           # python -m pytest
+make lint           # ruff format --check and ruff check (reports only)
+make format         # ruff check --fix and ruff format (rewrites files)
 ```
 
 - `tests/test_gradients.py` compares every analytic gradient against a central finite-difference estimate: each activation, both losses, and the weight and bias gradients of whole A1- and A2-style networks, with and without bias terms and with each initialization scheme.
@@ -196,10 +204,10 @@ If the training or validation loss of an epoch is NaN or infinite, the trainer s
 ### What the JSON does not control
 
 1. **Layer types.** Each layer has a `"type"` field, but only `dense` is implemented; batch norm is attached to a dense layer with `batch_norm`. Batch norm and dropout are attached to a dense layer with `batch_norm` and `dropout`. Convolutional or recurrent layers would need code changes first. (Optimizers and checkpoints already handle any number of parameters per layer, through `get_params()` / `get_grads()`, and non-trainable state through `get_buffers()`.)
-2. **Optimizer internals.** Only the learning rate comes from JSON. Momentum uses β = 0.9, and AdaBelief uses β₁ = 0.9, β₂ = 0.999, ε = 1e-8, all fixed in `src/optimizers.py` (`get_optimizer`).
+2. **Optimizer internals.** Only the learning rate comes from JSON. Momentum uses β = 0.9, and AdaBelief uses β₁ = 0.9, β₂ = 0.999, ε = 1e-8, all fixed in `nn_from_scratch/nn/optimizers.py` (`get_optimizer`).
 3. **Evaluation metrics.** The task type determines them: BCE for classification and MSE for regression, matching the training losses.
-4. **The default random seed.** `RANDOM_SEED` in `src/utils.py` (42) is used when a config lists no `seeds`, and it's the seed that the single-seed analysis sections and the comparison plots use.
-5. **EDA display.** It's controlled by `SHOW_EDA` in `main.py` (see above).
+4. **The default random seed.** `RANDOM_SEED` in `nn_from_scratch/config.py` (42) is used when a config lists no `seeds`, and it's the seed that the single-seed analysis sections and the comparison plots use.
+5. **EDA display.** It's controlled by `SHOW_EDA` in `nn_from_scratch/modeling/train.py` (see above).
 
 ### Summary
 
@@ -336,7 +344,7 @@ Diverged runs are excluded from model selection and averages throughout. The com
 - `summarize_combined_group(...)`: computes averages across all runs using normalized loss
 - `best_group(summary_dict, field_name)`: selects the group with the smallest value in the given field
 
-The report (`report/analysis_<stamp>.txt`) contains a method section, supporting tables per task and combined, direct answers to the three questions, and, when the results include them, the A2 variant section.
+The report (`reports/analysis_<stamp>.txt`) contains a method section, supporting tables per task and combined, direct answers to the three questions, and, when the results include them, the A2 variant section.
 
 ### In short
 

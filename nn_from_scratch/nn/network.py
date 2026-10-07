@@ -8,9 +8,9 @@ described in a config dictionary.
 """
 import numpy as np
 
-from src.layers import BatchNorm, Dense, Dropout
-from src.activations import get_activation
-from src.utils import RANDOM_SEED
+from nn_from_scratch.nn.layers import BatchNorm, Dense, Dropout
+from nn_from_scratch.nn.activations import get_activation
+from nn_from_scratch.config import RANDOM_SEED
 
 class NeuralNetwork:
     """
@@ -260,7 +260,7 @@ class NeuralNetwork:
         ----------
         activation_name : str
             Name of the activation function: "relu", "sigmoid", "tanh" or
-            "linear" (case-insensitive; see `src.activations.get_activation`).
+            "linear" (case-insensitive; see `nn_from_scratch.nn.activations.get_activation`).
 
         Returns
         -------

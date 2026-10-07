@@ -2,16 +2,16 @@
 Experiment driver: runs the full hyperparameter sweep for both problems.
 
 Input: the two JSON experiment configs in configs/ and the datasets in
-datasets/ (downloaded first if missing).
+data/raw/ (downloaded first if missing).
 
 Processing: for each problem (banknote classification, energy-efficiency
 regression) and each seed, the data is preprocessed once, then one network
 is trained and tested for every combination of architecture, optimizer,
 learning rate and batch size listed in the config.
 
-Output: a console summary table, plus two files in report/ whose names
+Output: a console summary table, plus two files in reports/ whose names
 carry the run stamp: a compact CSV summary and a full JSON file with every
-run's settings, metrics and training histories (read by src/analysis.py and
+run's settings, metrics and training histories (read by nn_from_scratch/analysis.py and
 the plotting scripts).
 """
 import csv
@@ -21,17 +21,17 @@ import time
 
 import numpy as np
 
-from src.fetch_data import Fetch
-from src.metrics import binary_cross_entropy, mean_squared_error
-from src.preprocessing import PreprocessBanknote, PreprocessEnergy
-from src.config_loader import ConfigLoader
-from src.network import NeuralNetwork
-from src.losses import get_loss
-from src.optimizers import get_optimizer
-from src.train import Trainer
-from src.utils import ROOT_DIR, RANDOM_SEED, RUN_STAMP, stamped_filename
+from nn_from_scratch.dataset import Fetch
+from nn_from_scratch.nn.metrics import binary_cross_entropy, mean_squared_error
+from nn_from_scratch.features import PreprocessBanknote, PreprocessEnergy
+from nn_from_scratch.config_loader import ConfigLoader
+from nn_from_scratch.nn.network import NeuralNetwork
+from nn_from_scratch.nn.losses import get_loss
+from nn_from_scratch.nn.optimizers import get_optimizer
+from nn_from_scratch.modeling.trainer import Trainer
+from nn_from_scratch.config import REPORT_DIR, RANDOM_SEED, RUN_STAMP, stamped_filename
 
-# Toggle this to True if you want preprocessing.py to generate EDA plots.
+# Toggle this to True if you want features.py to generate EDA plots.
 # Leaving it False makes the full experiment sweep faster and quieter.
 SHOW_EDA = False
 
@@ -47,11 +47,9 @@ PREPROCESSORS = {
     "regression": PreprocessEnergy
 }
 
-# Folder where experiment outputs will be saved.
-# This includes the summary CSV and the full JSON results.
-REPORT_DIR = os.path.join(ROOT_DIR, "report")
-
-# Create the report directory if it does not already exist.
+# Experiment outputs (the summary CSV and the full JSON results) are saved
+# in REPORT_DIR, i.e. reports/, imported from nn_from_scratch.config.
+# Create the reports directory if it does not already exist.
 os.makedirs(REPORT_DIR, exist_ok=True)
 
 
@@ -347,7 +345,7 @@ def run_single_experiment(
 
 def save_summary_csv(results, filename="main_summary.csv"):
     """
-    Save a compact experiment summary as a CSV file in report/.
+    Save a compact experiment summary as a CSV file in reports/.
 
     Parameters
     ----------
@@ -361,7 +359,7 @@ def save_summary_csv(results, filename="main_summary.csv"):
     Returns
     -------
     None
-        Writes report/<filename with run stamp> and prints its path.
+        Writes reports/<filename with run stamp> and prints its path.
 
     Notes
     -----
@@ -404,7 +402,7 @@ def save_summary_csv(results, filename="main_summary.csv"):
 
 def save_full_results_json(results, filename="main_results_full.json"):
     """
-    Save the full experiment results as a JSON file in report/.
+    Save the full experiment results as a JSON file in reports/.
 
     Parameters
     ----------
@@ -418,7 +416,7 @@ def save_full_results_json(results, filename="main_results_full.json"):
     Returns
     -------
     None
-        Writes report/<filename with run stamp> and prints its path.
+        Writes reports/<filename with run stamp> and prints its path.
 
     Notes
     -----
@@ -501,13 +499,13 @@ def main():
     ----------
     None
         Uses the module-level CONFIG_FILES, PREPROCESSORS, SHOW_EDA and
-        REPORT_DIR, and the run stamp from src.utils.
+        REPORT_DIR, and the run stamp from nn_from_scratch.config.
 
     Returns
     -------
     None
         Downloads missing datasets, prints progress and a summary table,
-        and writes the stamped summary CSV and full-results JSON to report/.
+        and writes the stamped summary CSV and full-results JSON to reports/.
 
     Notes
     -----
@@ -612,7 +610,7 @@ def main():
 
 
 # Running this file runs the whole experiment sweep, saves the results to
-# report/, and prints the total wall-clock time.
+# reports/, and prints the total wall-clock time.
 if __name__ == "__main__":
     start_time = time.perf_counter()
     main()

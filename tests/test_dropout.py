@@ -6,12 +6,12 @@ evaluation-mode training metric, and the config rules for dropout.
 import numpy as np
 import pytest
 
-from src.config_loader import ConfigLoader
-from src.layers import Dropout
-from src.losses import get_loss
-from src.network import NeuralNetwork
-from src.optimizers import get_optimizer
-from src.train import Trainer
+from nn_from_scratch.config_loader import ConfigLoader
+from nn_from_scratch.nn.layers import Dropout
+from nn_from_scratch.nn.losses import get_loss
+from nn_from_scratch.nn.network import NeuralNetwork
+from nn_from_scratch.nn.optimizers import get_optimizer
+from nn_from_scratch.modeling.trainer import Trainer
 
 
 # ------------------------------------------------------------------

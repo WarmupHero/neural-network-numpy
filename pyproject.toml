@@ -1,3 +1,47 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nn_from_scratch"
+version = "0.2.0"
+description = "A feed-forward neural network built with NumPy only, benchmarked on UCI classification and regression tasks."
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.12"
+# Runtime dependencies; requirements.txt pins the exact versions used for the results.
+dependencies = [
+    "numpy==1.26.4",
+    "pandas==2.2.2",
+    "matplotlib==3.9.2",
+    "seaborn==0.13.2",
+    "ucimlrepo==0.0.7",
+]
+
+[project.optional-dependencies]
+# Development tools: install with  pip install -e ".[dev]"  (or  make requirements).
+dev = [
+    "pytest>=8",
+    "ruff==0.16.10",
+]
+
+[tool.setuptools.packages.find]
+include = ["nn_from_scratch*"]
+
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 99
+src = ["nn_from_scratch"]
+include = ["pyproject.toml", "nn_from_scratch/**/*.py", "tests/**/*.py", "tools/**/*.py"]
+
+[tool.ruff.lint]
+# Ruff's default rules (pyflakes and pycodestyle errors) plus import sorting,
+# as in the Cookiecutter Data Science template.
+extend-select = ["I"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["nn_from_scratch"]
+force-sort-within-sections = true

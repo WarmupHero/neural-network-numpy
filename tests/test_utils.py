@@ -1,5 +1,5 @@
 """
-Tests for the timestamped output-file helpers in src.utils: building a
+Tests for the timestamped output-file helpers in nn_from_scratch.config: building a
 stamped filename and finding the newest stamped file(s) in a folder.
 """
 
@@ -7,7 +7,7 @@ import pytest
 
 import os
 
-from src.utils import stamped_filename, latest_stamped_file, latest_stamped_outputs
+from nn_from_scratch.config import stamped_filename, latest_stamped_file, latest_stamped_outputs
 
 
 def test_stamped_filename_inserts_stamp_before_extension():

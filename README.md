@@ -43,7 +43,7 @@ When all 8 architectures are allowed, the selection changes for classification. 
 
 The typical run is strong too. Across seeds, the median A1 / A2 run removes 97.2% ± 1.6% of the baseline error on classification and 91.1% ± 0.9% on regression. The weaker runs are the failure modes described below.
 
-*A1* = 1 hidden layer (32 units, sigmoid). *A2* = 3 hidden layers (32 units each, ReLU). The other six architectures are variants of these; see [Architectures](#architectures). Full per-run results are in [`main_summary_20261007-112904.csv`](report/main_summary_20261007-112904.csv).
+*A1* = 1 hidden layer (32 units, sigmoid). *A2* = 3 hidden layers (32 units each, ReLU). The other six architectures are variants of these; see [Architectures](#architectures). Full per-run results are in [`main_summary_20261007-145814.csv`](reports/main_summary_20261007-145814.csv).
 
 ### Key findings
 
@@ -54,17 +54,17 @@ The typical run is strong too. Across seeds, the median A1 / A2 run removes 97.2
 - **Dropout doesn't help here, because nothing overfits.** The gap between training and test metric is tiny (about 0.0002 BCE on classification). With no overfitting to correct, dropout only removes capacity. It wins only 30 of 120 matched classification comparisons and 12 of 110 regression ones.
 
 <p align="center">
-  <img src="report/comparisons/a2_variants_regression_momentum_lr01_bs64_20261007-113835.png" width="85%" alt="A2 and its variants on regression with momentum at LR 0.1: only the batch-norm variant learns">
+  <img src="reports/figures/comparisons/a2_variants_regression_momentum_lr01_bs64_20261007-150416.png" width="85%" alt="A2 and its variants on regression with momentum at LR 0.1: only the batch-norm variant learns">
 </p>
 <p align="center">
-  <img src="report/comparisons/optimizers_classification_A1_lr01_bs16_20261007-113835.png" width="85%" alt="Training and validation loss for SGD, Momentum and AdaBelief on banknote classification">
+  <img src="reports/figures/comparisons/optimizers_classification_A1_lr01_bs16_20261007-150416.png" width="85%" alt="Training and validation loss for SGD, Momentum and AdaBelief on banknote classification">
 </p>
 <p align="center">
-  <img src="report/comparisons/depth_classification_sgd_lr01_bs16_20261007-113835.png" width="48%" alt="Depth comparison: A1 vs A2">
-  <img src="report/comparisons/learning_rate_classification_A1_sgd_bs16_20261007-113835.png" width="48%" alt="Learning-rate comparison: 0.1 vs 0.001">
+  <img src="reports/figures/comparisons/depth_classification_sgd_lr01_bs16_20261007-150416.png" width="48%" alt="Depth comparison: A1 vs A2">
+  <img src="reports/figures/comparisons/learning_rate_classification_A1_sgd_bs16_20261007-150416.png" width="48%" alt="Learning-rate comparison: 0.1 vs 0.001">
 </p>
 
-The plots show seed 42. More plots, including the dropout comparison, EDA, scaling comparisons and correlation heatmaps, are in [`report/`](report/). The written analysis, including all multi-seed tables, is in [`analysis_20261007-113903.txt`](report/analysis_20261007-113903.txt).
+The plots show seed 42. More plots, including the dropout comparison, EDA, scaling comparisons and correlation heatmaps, are in [`reports/`](reports/). The written analysis, including all multi-seed tables, is in [`analysis_20261007-150424.txt`](reports/analysis_20261007-150424.txt).
 
 ### Architectures
 
@@ -81,22 +81,40 @@ The plots show seed 42. More plots, including the dropout comparison, EDA, scali
 
 ## Quickstart
 
+The project follows the [Cookiecutter Data Science](https://cookiecutter-data-science.drivendata.org/) layout, and a `Makefile` wraps the common commands:
+
+```bash
+make create_environment           # python -m venv .venv
+make requirements                 # pinned dependencies + the package + dev tools (pytest, ruff)
+
+make train                        # run all 960 experiments (~10 min)
+make plots                        # optimizer / depth / learning-rate / variant / dropout plots
+make analysis                     # summary report -> reports/analysis_<stamp>.txt
+make all                          # train, plots and analysis in one go
+
+make test                         # gradient checks, layer tests, split checks, training tests
+make lint                         # check style and lint with ruff (changes nothing)
+make format                       # apply ruff's fixes and formatting
+make help                         # list every command
+```
+
+`make` isn't installed on Windows by default. Install it with `winget install ezwinports.make`, then open a new terminal. Without `make`, run the same steps directly:
+
 ```bash
 python -m venv .venv
 .venv\Scripts\activate            # Windows  (macOS/Linux: source .venv/bin/activate)
 pip install -r requirements.txt
+pip install -e ".[dev]"
 
-python main.py                    # download data, preprocess, run all 960 experiments (~10 min)
-python -m src.comparisons         # optimizer / depth / learning-rate / variant / dropout plots
-python -m src.analysis            # summary report -> report/analysis_<stamp>.txt
-
-pip install pytest
-python -m pytest                  # gradient checks, layer tests, split checks, training tests
+python -m nn_from_scratch.modeling.train   # run all experiments
+python -m nn_from_scratch.comparisons      # comparison plots
+python -m nn_from_scratch.analysis         # analysis report
+python -m pytest                           # tests
 ```
 
 For a quicker run, set `"seeds": [42]` in both files in `configs/`. That runs the 192 experiments of a single seed in about 2 minutes, and seed 42 reproduces the single-seed results exactly.
 
-Every output file is stamped with the time of the run, as `name_YYYYMMDD-HHMMSS.ext`, so a new run never overwrites an earlier one. `src.comparisons` and `src.analysis` use the newest `report/main_results_full_*.json` by default; pass a path as the first argument to pick a specific one, e.g. `python -m src.analysis report/main_results_full_20261007-112904.json`. To run `src.comparisons` without plot windows popping up, set `MPLBACKEND=Agg`.
+Every output file is stamped with the time of the run, as `name_YYYYMMDD-HHMMSS.ext`, so a new run never overwrites an earlier one. `nn_from_scratch.comparisons` and `nn_from_scratch.analysis` use the newest `reports/main_results_full_*.json` by default; pass a path as the first argument to pick a specific one, e.g. `python -m nn_from_scratch.analysis reports/main_results_full_20261007-145814.json`. When run directly (not through `make plots`), set `MPLBACKEND=Agg` to stop plot windows from opening.
 
 Older runs stay on your disk, but only the newest version of each output is committed. Stamped outputs are git-ignored, and a pre-commit hook ([`tools/stage_latest_outputs.py`](tools/stage_latest_outputs.py)) stages the newest ones, untracks older ones, and updates the stamped links in this README. Enable it once per clone with `git config core.hooksPath .githooks`.
 
@@ -104,39 +122,64 @@ Older runs stay on your disk, but only the newest version of each output is comm
 
 ```
 neural-network-from-scratch/
-├── main.py                 # runs the full experiment grid, for every seed
-├── configs/                # JSON experiment definitions (one per task)
-├── src/
-│   ├── layers.py           # Dense (bias, initialization), BatchNorm, Dropout
-│   ├── activations.py      # ReLU, Sigmoid, Tanh, Linear
-│   ├── losses.py           # BCE, MSE
-│   ├── optimizers.py       # SGD, Momentum, AdaBelief
-│   ├── network.py          # model assembly, forward / backward, train / eval mode
-│   ├── train.py            # training loop, early stopping, divergence detection, evaluation
-│   ├── preprocessing.py    # cleaning, splitting, scaling, EDA
-│   ├── comparisons.py      # optimizer / depth / learning-rate / variant / dropout plots
-│   └── analysis.py         # aggregate analysis report, including multi-seed results
-├── tests/                  # pytest: gradient checks, layers, batch norm, dropout, seeds, training
-├── tools/                  # pre-commit helper that stages only the newest outputs
-├── .githooks/              # the pre-commit hook
-├── datasets/               # cached UCI CSVs
-├── report/                 # generated results and figures
-└── docs/DETAILS.md         # detailed documentation
+├── Makefile                     # make train / plots / analysis / test / lint / format / ...
+├── pyproject.toml               # package metadata, dev tools, pytest and ruff settings
+├── requirements.txt             # pinned runtime dependencies
+├── configs/                     # JSON experiment definitions (one per task)
+├── data/
+│   ├── external/                # (empty) data from third-party sources
+│   ├── interim/                 # (empty) intermediate transformed data
+│   ├── processed/               # (empty) final datasets for modeling
+│   └── raw/                     # the original UCI CSVs, never modified
+├── docs/
+│   └── DETAILS.md               # detailed documentation
+├── models/                      # (empty) trained and serialized models
+├── notebooks/                   # (empty) Jupyter notebooks
+├── references/                  # (empty) data dictionaries, manuals, papers
+├── reports/                     # generated results: summary CSV, full results JSON, analysis
+│   ├── comparisons/             # short text analyses next to the comparison plots
+│   └── figures/
+│       ├── comparisons/         # loss-curve comparison plots
+│       └── eda/                 # exploratory and preprocessing plots
+├── nn_from_scratch/             # the source package
+│   ├── config.py                # paths, default seed, output-file stamping
+│   ├── config_loader.py         # loads and validates the JSON configs
+│   ├── dataset.py               # downloads the raw datasets
+│   ├── features.py              # cleaning, splitting, scaling, EDA
+│   ├── scalers.py               # NumPy standard scaler
+│   ├── plots.py                 # EDA and preprocessing figures
+│   ├── comparisons.py           # optimizer / depth / learning-rate / variant / dropout plots
+│   ├── analysis.py              # aggregate analysis report, including multi-seed results
+│   ├── nn/                      # the neural-network library
+│   │   ├── layers.py            # Dense (bias, initialization), BatchNorm, Dropout
+│   │   ├── activations.py       # ReLU, Sigmoid, Tanh, Linear
+│   │   ├── losses.py            # BCE, MSE
+│   │   ├── metrics.py           # evaluation metrics
+│   │   ├── network.py           # model assembly, forward / backward, train / eval mode
+│   │   └── optimizers.py        # SGD, Momentum, AdaBelief
+│   └── modeling/
+│       ├── train.py             # runs the full experiment grid, for every seed
+│       └── trainer.py           # training loop, early stopping, divergence detection, evaluation
+├── tests/                       # pytest: gradient checks, layers, batch norm, dropout, seeds, training
+├── tools/                       # pre-commit helper (newest outputs only) and make help
+└── .githooks/                   # the pre-commit hook
 ```
+
+The empty folders hold a `.gitkeep` file so they exist for future use, as in the template. `configs/`, `tools/`, the `nn/` subpackage and the split of `modeling/` into `train.py` and `trainer.py` are this project's additions to the template.
 
 See the [detailed project documentation](docs/DETAILS.md) for the module-by-module pipeline, everything the JSON configs can and cannot control, how convergence is measured, and how each section of the analysis is computed.
 
 ## Demo
 
-Watch the full pipeline run on YouTube: `main.py` preprocesses the data and trains the experiments, then `analysis.py` summarizes the results.
+Watch the full pipeline run on YouTube: the training script preprocesses the data and trains the experiments, then the analysis script summarizes the results.
 
 [![Demo video: Neural Network from Scratch in NumPy](https://img.youtube.com/vi/FIBYV5jaxqo/hqdefault.jpg)](https://youtu.be/FIBYV5jaxqo)
 
-*The recording predates the latest changes. It shows the original 48-run grid, accuracy / MAE in the console output, and the old folder layout. Current results are in [Results](#results).*
+*The recording predates the latest changes. It shows the original 48-run grid, accuracy / MAE in the console output, and the old folder layout (`main.py`, `src/`). Current results are in [Results](#results).*
 
 ## Datasets & attribution
 
-Both datasets come from the UCI Machine Learning Repository and are licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The cached copies in `datasets/` are unmodified except that the Energy Efficiency columns are renamed to descriptive names.
+Both datasets come from the UCI Machine Learning Repository and are licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The cached copies in `data/raw/` are unmodified except that the Energy Efficiency columns are renamed to descriptive names.
 
 - Lohweg, V. (2012). *Banknote Authentication* [Dataset]. UCI Machine Learning Repository. https://doi.org/10.24432/C55P57
 - Tsanas, A. & Xifara, A. (2012). *Energy Efficiency* [Dataset]. UCI Machine Learning Repository. https://doi.org/10.24432/C51307

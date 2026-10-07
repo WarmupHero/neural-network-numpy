@@ -5,7 +5,7 @@ Tests for the NumPy-only train / validation / test split.
 import numpy as np
 import pandas as pd
 
-from src.preprocessing import train_val_test_split
+from nn_from_scratch.features import train_val_test_split
 
 
 def make_frame(n=1000, positive_rate=0.3, seed=0):

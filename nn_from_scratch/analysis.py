@@ -1,7 +1,7 @@
 """
 Aggregate analysis of the experiment sweep, written as a plain-text report.
 
-Input: a full-results JSON written by main.py (report/main_results_full_<stamp>.json,
+Input: a full-results JSON written by nn_from_scratch.modeling.train (reports/main_results_full_<stamp>.json,
 the newest one by default, or a path given on the command line).
 
 Processing: adds derived values to every run (best validation loss, final
@@ -12,7 +12,7 @@ best loss, and how depth affects optimization. Extra sections cover the A2
 variants (bias, He initialization, batch normalization), dropout, and, when
 several seeds were run, mean ± standard deviation across seeds.
 
-Output: report/analysis_<stamp>.txt.
+Output: reports/analysis_<stamp>.txt.
 """
 import json
 import math
@@ -21,7 +21,7 @@ from statistics import mean, stdev
 import sys
 import time
 
-from src.utils import RANDOM_SEED, REPORT_DIR, RUN_STAMP, stamped_filename, resolve_results_path
+from nn_from_scratch.config import RANDOM_SEED, REPORT_DIR, RUN_STAMP, stamped_filename, resolve_results_path
 
 # Path where this script will write the analysis report. The run stamp is
 # inserted before the extension so earlier reports are never overwritten.
@@ -65,7 +65,7 @@ def load_results(path):
     Returns
     -------
     list of dict
-        One dictionary per experiment run, as written by main.py (keys such
+        One dictionary per experiment run, as written by nn_from_scratch.modeling.train (keys such
         as "problem_name", "architecture", "optimizer", "learning_rate",
         "batch", "test_metric", "train_loss_history", "val_loss_history").
 
@@ -172,7 +172,7 @@ def add_derived_metrics(results):
     -----
     Processing, for each run:
     1. best_val_loss = minimum of the validation-loss history. This
-       overwrites the value saved by main.py with the same quantity, so
+       overwrites the value saved by nn_from_scratch.modeling.train with the same quantity, so
        older results files without it also work.
     2. final_train_loss = last value of the training-loss history.
     3. convergence_epoch = convergence_epoch(train_loss_history).
@@ -1281,18 +1281,18 @@ def main(results_path=None):
     ----------
     results_path : str or None, default=None
         Path to a main_results_full_<stamp>.json file. When None, the
-        newest stamped results file in report/ is used.
+        newest stamped results file in reports/ is used.
 
     Returns
     -------
     None
-        Writes the report to OUTPUT_PATH (report/analysis_<stamp>.txt) and
+        Writes the report to OUTPUT_PATH (reports/analysis_<stamp>.txt) and
         prints the results file used and the report path.
 
     Raises
     ------
     FileNotFoundError
-        If no results path is given and report/ has no stamped results file.
+        If no results path is given and reports/ has no stamped results file.
 
     Notes
     -----

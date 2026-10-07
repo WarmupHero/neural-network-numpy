@@ -10,9 +10,9 @@ against a central finite-difference estimate:
 import numpy as np
 import pytest
 
-from src.activations import get_activation
-from src.losses import get_loss
-from src.network import NeuralNetwork
+from nn_from_scratch.nn.activations import get_activation
+from nn_from_scratch.nn.losses import get_loss
+from nn_from_scratch.nn.network import NeuralNetwork
 
 EPS = 1e-6
 RTOL = 1e-5

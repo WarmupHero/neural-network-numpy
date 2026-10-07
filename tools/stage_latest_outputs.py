@@ -1,16 +1,16 @@
 """
-Stage only the newest stamped outputs in report/ for the next commit.
+Stage only the newest stamped outputs in reports/ for the next commit.
 
 Run automatically by .githooks/pre-commit. It can also be run by hand:
 
     python tools/stage_latest_outputs.py
 
-Input: the stamped output files on disk under report/ and the git index.
+Input: the stamped output files on disk under reports/ and the git index.
 Output: an updated git index (and possibly updated README.md /
 docs/DETAILS.md), plus a one-line summary printed to the console.
 
 Processing:
-1. Finds the newest stamped version of every output in report/.
+1. Finds the newest stamped version of every output in reports/.
 2. Removes older stamped outputs from the index. They stay on disk.
 3. Force-adds the newest files (stamped outputs are ignored by .gitignore).
 4. Rewrites stamped output names in the docs (README.md, docs/DETAILS.md)
@@ -26,7 +26,7 @@ import sys
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT_DIR)
 
-from src.utils import REPORT_DIR, STAMP_SUFFIX_PATTERN, latest_stamped_outputs
+from nn_from_scratch.config import REPORT_DIR, STAMP_SUFFIX_PATTERN, latest_stamped_outputs
 
 # Documentation files whose stamped output references are kept current.
 DOC_FILES = ["README.md", os.path.join("docs", "DETAILS.md")]
@@ -42,7 +42,7 @@ def git(*args):
     Parameters
     ----------
     *args : str
-        Arguments passed to git, e.g. "ls-files", "--", "report".
+        Arguments passed to git, e.g. "ls-files", "--", "reports".
 
     Returns
     -------
@@ -81,7 +81,7 @@ def to_repo_path(path):
     -------
     str
         The path relative to ROOT_DIR with "/" separators, e.g.
-        "report/analysis_20261007-094442.txt", which is the form git prints.
+        "reports/analysis_20261007-094442.txt", which is the form git prints.
 
     Notes
     -----
@@ -100,7 +100,7 @@ def is_stamped(repo_path):
     Parameters
     ----------
     repo_path : str
-        A file path, e.g. "report/main_summary_20261007-094422.csv".
+        A file path, e.g. "reports/main_summary_20261007-094422.csv".
 
     Returns
     -------
@@ -203,9 +203,9 @@ def main():
     Notes
     -----
     Processing:
-    1. Find the newest stamped version of every output in report/. If there
+    1. Find the newest stamped version of every output in reports/. If there
        are none, print a message and stop.
-    2. List the stamped files under report/ that git currently tracks; the
+    2. List the stamped files under reports/ that git currently tracks; the
        ones that are not the newest version are "stale".
     3. Remove the stale files from the index ("git rm --cached"), leaving
        them on disk.
@@ -216,13 +216,13 @@ def main():
     """
     latest = latest_stamped_outputs(REPORT_DIR)
     if not latest:
-        print("stage_latest_outputs: no stamped outputs found in report/.")
+        print("stage_latest_outputs: no stamped outputs found in reports/.")
         return
 
     # Repo paths of the newest outputs, and of the stamped outputs git
     # tracks now; tracked files that are not the newest are stale.
     keep = {to_repo_path(path) for path in latest.values()}
-    tracked = [p for p in git("ls-files", "--", "report").splitlines() if is_stamped(p)]
+    tracked = [p for p in git("ls-files", "--", "reports").splitlines() if is_stamped(p)]
     stale = [p for p in tracked if p not in keep]
 
     # Stop tracking older outputs, keeping the files on disk.
@@ -246,6 +246,6 @@ def main():
 
 
 # Running this file (by hand or from the pre-commit hook) stages the newest
-# stamped outputs in report/ and updates the docs that link to them.
+# stamped outputs in reports/ and updates the docs that link to them.
 if __name__ == "__main__":
     main()
