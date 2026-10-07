@@ -55,6 +55,22 @@ analysis:
 .PHONY: all
 all: train plots analysis
 
+## Install the libraries the network is compared against (scikit-learn, ...)
+.PHONY: benchmark-requirements
+benchmark-requirements:
+	$(PYTHON_INTERPRETER) -m pip install -e ".[dev,benchmarks]"
+
+## Train the library models on the same splits as the network
+.PHONY: benchmarks
+benchmarks:
+	$(PYTHON_INTERPRETER) -m $(PACKAGE).benchmarks.run
+
+## Write the comparison report and figures (network vs. libraries)
+.PHONY: benchmark-report
+benchmark-report: export MPLBACKEND = Agg
+benchmark-report:
+	$(PYTHON_INTERPRETER) -m $(PACKAGE).benchmarks.report
+
 ## Run the test suite
 .PHONY: test
 test:

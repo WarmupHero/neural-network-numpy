@@ -13,6 +13,7 @@ This is the in-depth reference for the project. For a quick overview, results, a
 3. [Analysis details](#3-analysis-details)
    - [comparisons.py](#comparisonspy)
    - [analysis.py](#analysispy)
+4. [Library comparison](#4-library-comparison)
 
 ---
 
@@ -55,6 +56,8 @@ The same quantity is used for training and for evaluation, so the reported metri
 | `nn_from_scratch/modeling/train.py` | Orchestrates the full experiment grid (every config and seed) | everything above | `reports/main_results_full_<stamp>.json`, `reports/main_summary_<stamp>.csv` |
 | `nn_from_scratch/comparisons.py` | Optimizer, depth, and learning-rate comparison plots with short text analyses | newest `reports/main_results_full_*.json` (or a path given as the first argument) | `reports/figures/comparisons/*_<stamp>.png`, `reports/comparisons/*_<stamp>.txt` |
 | `nn_from_scratch/analysis.py` | Aggregate analysis across all runs | newest `reports/main_results_full_*.json` (or a path given as the first argument) | `reports/analysis_<stamp>.txt` |
+| `nn_from_scratch/benchmarks/run.py` | Trains the library models (scikit-learn) on the same splits; see [section 4](#4-library-comparison) | `configs/benchmark_experiments.json`, `data/raw/*.csv` | `reports/benchmark_<library>_results_<stamp>.json` |
+| `nn_from_scratch/benchmarks/report.py` | Compares the NumPy network with the library models | newest NumPy and library results | `reports/benchmark_report_<stamp>.txt`, `reports/figures/benchmarks/*.png` |
 
 `nn_from_scratch/modeling/train.py` has a `SHOW_EDA` flag (default `False`). Set it to `True` to display the preprocessing plots interactively while the pipeline runs. The plots are saved to `reports/figures/eda/` either way.
 
@@ -107,7 +110,7 @@ make analysis       # python -m nn_from_scratch.analysis
 make all
 ```
 
-Steps 2 and 3 read the newest `reports/main_results_full_*.json` and fail if none exists. To analyse a specific run instead, pass its path as the first argument, e.g. `python -m nn_from_scratch.analysis reports/main_results_full_20261007-160408.json`. The repository already includes a results file, so you can run them immediately. `make plots` sets `MPLBACKEND=Agg` so no plot windows open; set it yourself when running the Python command directly.
+Steps 2 and 3 read the newest `reports/main_results_full_*.json` and fail if none exists. To analyse a specific run instead, pass its path as the first argument, e.g. `python -m nn_from_scratch.analysis reports/main_results_full_20261007-165753.json`. The repository already includes a results file, so you can run them immediately. `make plots` sets `MPLBACKEND=Agg` so no plot windows open; set it yourself when running the Python command directly.
 
 `make` is not installed on Windows by default: install it with `winget install ezwinports.make` and open a new terminal.
 
@@ -124,6 +127,8 @@ make format         # ruff check --fix and ruff format (rewrites files)
 - `tests/test_batchnorm.py` checks batch normalization: training mode normalizes over the batch and updates the running statistics; evaluation mode uses them and gives a single sample the same output alone as inside a batch; its gradients (input, gamma, beta) match finite differences in both modes. It also checks the network's `train()` / `eval()` switch, that checkpoints restore the running statistics, and that the trainer stops and flags a diverging run.
 - `tests/test_dropout.py` checks inverted dropout: in training mode it drops about `rate` of the values with a new mask per batch and scales the survivors so the expected value is unchanged; backward reuses the same mask; evaluation mode is the identity. It also checks that dropout sits after the activation, doesn't change the initial weights, is reproducible from the seed, and that the config loader rejects invalid rates and dropout on the output layer.
 - `tests/test_utils.py` checks the run-stamp helpers used for output file names.
+- `tests/test_metrics.py` checks the accuracy and R² metrics.
+- `tests/test_benchmarks.py` checks that the library comparison uses exactly the main pipeline's splits, the model selection and summaries in the report, and the scikit-learn wrappers. The scikit-learn tests are skipped automatically when it isn't installed.
 - `tests/test_seeds.py` checks that the split and the weight initialization follow the seed, the constant-prediction baselines, the `seeds` config validation, and the multi-seed analysis helpers (model selection by validation loss, error removed, mean ± std).
 - `tests/test_preprocessing.py` checks that the NumPy split has the right sizes, has no overlapping rows, preserves class balance when stratified, and is reproducible from the seed.
 - `tests/test_training.py` checks that each optimizer reduces the loss on a toy problem, and that `Trainer.fit` / `Trainer.evaluate` run end to end and report BCE as the classification metric.
@@ -174,6 +179,10 @@ Batch norm behaves differently while learning and while being measured, so the n
 #### Per-run seed and constant-prediction baseline
 
 Each run records its `seed` and a `baseline_test_metric`: the test metric of a model that ignores the features. For classification that model always predicts the training class proportion; for regression, the training mean. Because it is computed from that seed's split, "error removed" (1 − test / baseline; R² for regression, McFadden's pseudo-R² for classification) can be reported for every seed.
+
+#### Accuracy, R² and training time
+
+Each run also records `test_accuracy` (classification, at a 0.5 threshold) or `test_r2` (regression), computed with the NumPy functions in `nn_from_scratch/nn/metrics.py`, and `train_seconds`, the wall-clock time of `Trainer.fit`. They are easier to read than BCE / MSE and are used by the library comparison ([section 4](#4-library-comparison)). BCE and MSE remain the metrics used for training and model selection.
 
 #### Training metric for the generalization gap
 
@@ -350,3 +359,40 @@ The report (`reports/analysis_<stamp>.txt`) contains a method section, supportin
 
 - `comparisons.py` explains individual matched experiments with plots and short text analyses.
 - `analysis.py` answers the overall questions using averages across all runs.
+
+---
+
+## 4. Library comparison
+
+The `nn_from_scratch.benchmarks` subpackage compares the from-scratch NumPy network with standard libraries. The network itself stays NumPy-only; the libraries are only used here, as an optional install:
+
+```bash
+make benchmark-requirements   # pip install -e ".[dev,benchmarks]"
+make benchmarks               # python -m nn_from_scratch.benchmarks.run
+make benchmark-report         # python -m nn_from_scratch.benchmarks.report
+```
+
+`scipy` is pinned in the `benchmarks` group because newer SciPy releases require NumPy 2, which would replace the project's pinned NumPy 1.26.4.
+
+### What is compared
+
+| Library | Classification | Regression |
+|---|---|---|
+| scikit-learn | logistic regression, SVM (RBF), random forest, gradient boosting (`HistGradientBoostingClassifier`), MLP (`MLPClassifier`) | ridge regression, SVR (RBF), random forest, gradient boosting (`HistGradientBoostingRegressor`), MLP (`MLPRegressor`) |
+
+Each model has a small hyperparameter grid in `configs/benchmark_experiments.json`. The MLP grid mirrors the NumPy network's A1 (32 sigmoid units) and A2 (3 × 32 ReLU units) with scikit-learn's own Adam optimizer.
+
+### How the comparison is kept fair
+
+- **Same data.** `benchmarks/data.py` calls the main pipeline's own preprocessing for each seed in the main configs, so every library sees exactly the same train / validation / test split and scaling. A test checks this element by element.
+- **Same metrics.** Every model is scored with the project's NumPy metric functions (`nn_from_scratch.nn.metrics`): BCE (from predicted probabilities) and accuracy for classification, MSE and R² for regression.
+- **Same selection rule.** On each seed, every configuration of a model is trained on the training set, the one with the lowest validation metric is selected, and only its test metric is reported. "Best model (selected on validation)" applies the same rule across all of a library's models, which is what a practitioner would pick.
+- **Reproducible.** Every estimator with a `random_state` gets the seed.
+
+Training time is the wall-clock time of the selected configuration's fit, on one CPU run. It is only a rough comparison: the NumPy network trains for up to 100 epochs with early stopping, while scikit-learn's models stop on their own criteria.
+
+### Outputs
+
+- `reports/benchmark_<library>_results_<stamp>.json`: one record per configuration, problem and seed (validation, test and training metrics, secondary metric, training time, whether training converged).
+- `reports/benchmark_report_<stamp>.txt`: per task, the test metric, secondary metric, error removed and training time (mean ± std over seeds) for the NumPy network and every library model, the configuration chosen most often, and a seed-by-seed head-to-head between the NumPy network (all architectures) and each library's best model.
+- `reports/figures/benchmarks/benchmark_<task>_<stamp>.png`: the test metric per model as a bar chart (log scale).

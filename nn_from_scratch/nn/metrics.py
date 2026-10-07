@@ -98,3 +98,86 @@ def mean_squared_error(y_true, y_pred):
     y_pred = np.asarray(y_pred, dtype=float).reshape(-1, 1)
 
     return float(MSELoss().forward(y_true, y_pred))
+
+
+def accuracy(y_true, y_prob, threshold=0.5):
+    """
+    Compute classification accuracy from predicted probabilities.
+
+    Parameters
+    ----------
+    y_true : array-like of shape (n_samples,) or (n_samples, 1)
+        True labels, 0 or 1.
+    y_prob : array-like of shape (n_samples,) or (n_samples, 1)
+        Predicted probability of class 1 for each sample.
+    threshold : float, default=0.5
+        A sample is predicted as class 1 when its probability is at least
+        this value.
+
+    Returns
+    -------
+    float
+        Fraction of samples whose predicted class equals the true label,
+        between 0 and 1. Higher is better.
+
+    Notes
+    -----
+    Processing:
+
+    1. Flatten both inputs to 1-D float64 arrays.
+    2. Turn probabilities into class predictions: 1 if y_prob >= threshold,
+       otherwise 0.
+    3. Return the mean of (prediction == label).
+
+    Accuracy is reported next to BCE because it is easier to read, but it
+    ignores how confident each prediction was. BCE remains the metric used
+    for training and model selection.
+    """
+    # Flatten so (n,) and (n, 1) inputs are handled the same way.
+    y_true = np.asarray(y_true, dtype=float).ravel()
+    y_prob = np.asarray(y_prob, dtype=float).ravel()
+
+    predictions = (y_prob >= threshold).astype(float)
+    return float(np.mean(predictions == y_true))
+
+
+def r2_score(y_true, y_pred):
+    """
+    Compute the coefficient of determination (R²) for regression.
+
+    Parameters
+    ----------
+    y_true : array-like of shape (n_samples,) or (n_samples, 1)
+        True target values.
+    y_pred : array-like of shape (n_samples,) or (n_samples, 1)
+        Predicted target values.
+
+    Returns
+    -------
+    float
+        R² = 1 - SS_res / SS_tot. 1 is a perfect fit, 0 matches always
+        predicting the mean of y_true, and negative values are worse than
+        that. Higher is better.
+
+    Notes
+    -----
+    Processing:
+
+    1. Flatten both inputs to 1-D float64 arrays.
+    2. SS_res = sum((y_true - y_pred)^2), the squared error of the model.
+    3. SS_tot = sum((y_true - mean(y_true))^2), the squared error of always
+       predicting the mean of the same targets.
+    4. Return 1 - SS_res / SS_tot.
+
+    This is the textbook R², which uses the mean of the evaluated targets
+    themselves. The "error removed" figure in the analysis instead compares
+    against a constant fitted on the training set, so the two can differ
+    slightly.
+    """
+    # Flatten so (n,) and (n, 1) inputs are handled the same way.
+    y_true = np.asarray(y_true, dtype=float).ravel()
+    y_pred = np.asarray(y_pred, dtype=float).ravel()
+
+    ss_res = np.sum((y_true - y_pred) ** 2)
+    ss_tot = np.sum((y_true - y_true.mean()) ** 2)
+    return float(1.0 - ss_res / ss_tot)

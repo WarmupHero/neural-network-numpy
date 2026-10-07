@@ -34,6 +34,7 @@ COMPARISONS_TEXT_DIR = os.path.join(REPORT_DIR, "comparisons")
 FIGURES_DIR = os.path.join(REPORT_DIR, "figures")
 COMPARISONS_FIGURES_DIR = os.path.join(FIGURES_DIR, "comparisons")
 PREPROCESSING_GRAPHS_DIR = os.path.join(FIGURES_DIR, "eda")
+BENCHMARK_FIGURES_DIR = os.path.join(FIGURES_DIR, "benchmarks")
 
 # Global Configurations
 # Default seed for the data split, weight initialization, dropout masks and

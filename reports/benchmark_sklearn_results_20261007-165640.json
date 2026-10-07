@@ -1,0 +1,3547 @@
+[
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 42,
+    "model": "logistic_regression",
+    "params": {
+      "C": 0.01,
+      "max_iter": 5000
+    },
+    "val_metric": 0.33598003592718206,
+    "test_metric": 0.3430339397883759,
+    "train_metric": 0.3357401797539542,
+    "test_accuracy": 0.9444444444444444,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.01463569999759784,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 42,
+    "model": "logistic_regression",
+    "params": {
+      "C": 0.1,
+      "max_iter": 5000
+    },
+    "val_metric": 0.11800220881950836,
+    "test_metric": 0.12754152280736564,
+    "train_metric": 0.11836657063199034,
+    "test_accuracy": 0.9888888888888889,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.003462000000581611,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 42,
+    "model": "logistic_regression",
+    "params": {
+      "C": 1,
+      "max_iter": 5000
+    },
+    "val_metric": 0.038418789566586856,
+    "test_metric": 0.046174383382311404,
+    "train_metric": 0.04197008525554177,
+    "test_accuracy": 0.9925925925925926,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.003127900003164541,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 42,
+    "model": "logistic_regression",
+    "params": {
+      "C": 10,
+      "max_iter": 5000
+    },
+    "val_metric": 0.016337366797442177,
+    "test_metric": 0.018630487009705137,
+    "train_metric": 0.021611921560059026,
+    "test_accuracy": 0.9962962962962963,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.003839900000457419,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 42,
+    "model": "logistic_regression",
+    "params": {
+      "C": 100,
+      "max_iter": 5000
+    },
+    "val_metric": 0.011767275578700411,
+    "test_metric": 0.010215859919967894,
+    "train_metric": 0.015263728914049556,
+    "test_accuracy": 0.9962962962962963,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.004588399999192916,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 42,
+    "model": "svm",
+    "params": {
+      "C": 0.1,
+      "gamma": "scale",
+      "kernel": "rbf",
+      "probability": true
+    },
+    "val_metric": 0.0074120724535315695,
+    "test_metric": 0.00861136054777239,
+    "train_metric": 0.0073859221908361946,
+    "test_accuracy": 1.0,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.03304260000004433,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 42,
+    "model": "svm",
+    "params": {
+      "C": 1,
+      "gamma": "scale",
+      "kernel": "rbf",
+      "probability": true
+    },
+    "val_metric": 0.004460608914607229,
+    "test_metric": 0.004390069824275593,
+    "train_metric": 0.003416320738625507,
+    "test_accuracy": 1.0,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.012021799997455673,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 42,
+    "model": "svm",
+    "params": {
+      "C": 10,
+      "gamma": "scale",
+      "kernel": "rbf",
+      "probability": true
+    },
+    "val_metric": 0.0038998898952305053,
+    "test_metric": 0.0035703967803369383,
+    "train_metric": 0.003065946710249317,
+    "test_accuracy": 1.0,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.009004899999126792,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 42,
+    "model": "svm",
+    "params": {
+      "C": 100,
+      "gamma": "scale",
+      "kernel": "rbf",
+      "probability": true
+    },
+    "val_metric": 0.003738268422826321,
+    "test_metric": 0.003858787660052432,
+    "train_metric": 0.003341337273358716,
+    "test_accuracy": 1.0,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.007784199999150587,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 42,
+    "model": "random_forest",
+    "params": {
+      "max_depth": null,
+      "n_estimators": 300
+    },
+    "val_metric": 0.0435228925427871,
+    "test_metric": 0.047535460755064256,
+    "train_metric": 0.011230021191283664,
+    "test_accuracy": 0.9888888888888889,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.3719955000015034,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 42,
+    "model": "random_forest",
+    "params": {
+      "max_depth": 5,
+      "n_estimators": 300
+    },
+    "val_metric": 0.07310691842408704,
+    "test_metric": 0.07601499416611675,
+    "train_metric": 0.043894784637887124,
+    "test_accuracy": 0.9777777777777777,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.365665600002103,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 42,
+    "model": "random_forest",
+    "params": {
+      "max_depth": 10,
+      "n_estimators": 300
+    },
+    "val_metric": 0.04353950143023901,
+    "test_metric": 0.047517187691283304,
+    "train_metric": 0.011253524447683355,
+    "test_accuracy": 0.9888888888888889,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.36665910000010626,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 42,
+    "model": "gradient_boosting",
+    "params": {
+      "learning_rate": 0.05,
+      "max_iter": 200
+    },
+    "val_metric": 0.015025801909117158,
+    "test_metric": 0.06115871735793286,
+    "train_metric": 0.00012026881162209112,
+    "test_accuracy": 0.9851851851851852,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.3310626999991655,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 42,
+    "model": "gradient_boosting",
+    "params": {
+      "learning_rate": 0.1,
+      "max_iter": 200
+    },
+    "val_metric": 0.021387042571801115,
+    "test_metric": 0.057745865821263356,
+    "train_metric": 4.242534109969133e-06,
+    "test_accuracy": 0.9925925925925926,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.21395190000112052,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 42,
+    "model": "gradient_boosting",
+    "params": {
+      "learning_rate": 0.3,
+      "max_iter": 200
+    },
+    "val_metric": 0.019792515074535715,
+    "test_metric": 0.047190471133903705,
+    "train_metric": 3.0938098826833544e-06,
+    "test_accuracy": 0.9925925925925926,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.12283310000202619,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 42,
+    "model": "mlp",
+    "params": {
+      "activation": "logistic",
+      "hidden_layer_sizes": [
+        32
+      ],
+      "learning_rate_init": 0.001,
+      "max_iter": 500
+    },
+    "val_metric": 0.029087920683003095,
+    "test_metric": 0.0357512771155895,
+    "train_metric": 0.034375826250258625,
+    "test_accuracy": 0.9925925925925926,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.9373419000003196,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 42,
+    "model": "mlp",
+    "params": {
+      "activation": "logistic",
+      "hidden_layer_sizes": [
+        32
+      ],
+      "learning_rate_init": 0.01,
+      "max_iter": 500
+    },
+    "val_metric": 0.012136501448426795,
+    "test_metric": 0.012052699287371566,
+    "train_metric": 0.017963084651108335,
+    "test_accuracy": 0.9962962962962963,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.3845632000011392,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 42,
+    "model": "mlp",
+    "params": {
+      "activation": "relu",
+      "hidden_layer_sizes": [
+        32,
+        32,
+        32
+      ],
+      "learning_rate_init": 0.001,
+      "max_iter": 500
+    },
+    "val_metric": 0.0028091555458877432,
+    "test_metric": 0.002405706410466645,
+    "train_metric": 0.0018933408421038848,
+    "test_accuracy": 1.0,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.24421759999677306,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 42,
+    "model": "mlp",
+    "params": {
+      "activation": "relu",
+      "hidden_layer_sizes": [
+        32,
+        32,
+        32
+      ],
+      "learning_rate_init": 0.01,
+      "max_iter": 500
+    },
+    "val_metric": 0.0001716656335402347,
+    "test_metric": 0.00017526440700610716,
+    "train_metric": 7.953175714982094e-05,
+    "test_accuracy": 1.0,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.06486410000070464,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 43,
+    "model": "logistic_regression",
+    "params": {
+      "C": 0.01,
+      "max_iter": 5000
+    },
+    "val_metric": 0.35045205550901926,
+    "test_metric": 0.3358268247926,
+    "train_metric": 0.33955750535367485,
+    "test_accuracy": 0.9518518518518518,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.0024825000000419095,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 43,
+    "model": "logistic_regression",
+    "params": {
+      "C": 0.1,
+      "max_iter": 5000
+    },
+    "val_metric": 0.12814649773375578,
+    "test_metric": 0.11317458877762178,
+    "train_metric": 0.12699924544750196,
+    "test_accuracy": 0.9962962962962963,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.00275839999812888,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 43,
+    "model": "logistic_regression",
+    "params": {
+      "C": 1,
+      "max_iter": 5000
+    },
+    "val_metric": 0.04088132599715921,
+    "test_metric": 0.0293094270336599,
+    "train_metric": 0.046848079086144225,
+    "test_accuracy": 1.0,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.003009599997312762,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 43,
+    "model": "logistic_regression",
+    "params": {
+      "C": 10,
+      "max_iter": 5000
+    },
+    "val_metric": 0.017903038284587523,
+    "test_metric": 0.008343488259983425,
+    "train_metric": 0.0231936498013658,
+    "test_accuracy": 1.0,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.0037121999994269572,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 43,
+    "model": "logistic_regression",
+    "params": {
+      "C": 100,
+      "max_iter": 5000
+    },
+    "val_metric": 0.014952165300976759,
+    "test_metric": 0.0036592574194125116,
+    "train_metric": 0.015089747921030282,
+    "test_accuracy": 1.0,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.005386299999372568,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 43,
+    "model": "svm",
+    "params": {
+      "C": 0.1,
+      "gamma": "scale",
+      "kernel": "rbf",
+      "probability": true
+    },
+    "val_metric": 0.00718461736741789,
+    "test_metric": 0.004061056433784245,
+    "train_metric": 0.011096945529034723,
+    "test_accuracy": 1.0,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.03484010000101989,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 43,
+    "model": "svm",
+    "params": {
+      "C": 1,
+      "gamma": "scale",
+      "kernel": "rbf",
+      "probability": true
+    },
+    "val_metric": 0.0034711638573625895,
+    "test_metric": 0.002767137719225441,
+    "train_metric": 0.0039440857507313945,
+    "test_accuracy": 1.0,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.012397500002407469,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 43,
+    "model": "svm",
+    "params": {
+      "C": 10,
+      "gamma": "scale",
+      "kernel": "rbf",
+      "probability": true
+    },
+    "val_metric": 0.003920233865922273,
+    "test_metric": 0.0034993762823229474,
+    "train_metric": 0.003417210907908947,
+    "test_accuracy": 1.0,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.010731100002885796,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 43,
+    "model": "svm",
+    "params": {
+      "C": 100,
+      "gamma": "scale",
+      "kernel": "rbf",
+      "probability": true
+    },
+    "val_metric": 0.00463862456439997,
+    "test_metric": 0.0036270332209905375,
+    "train_metric": 0.003728121952856526,
+    "test_accuracy": 1.0,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.010163699997065123,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 43,
+    "model": "random_forest",
+    "params": {
+      "max_depth": null,
+      "n_estimators": 300
+    },
+    "val_metric": 0.042425127405230544,
+    "test_metric": 0.02784489013277595,
+    "train_metric": 0.011777308370764933,
+    "test_accuracy": 1.0,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.37800480000078096,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 43,
+    "model": "random_forest",
+    "params": {
+      "max_depth": 5,
+      "n_estimators": 300
+    },
+    "val_metric": 0.07488761158124428,
+    "test_metric": 0.05122937163335491,
+    "train_metric": 0.04587925601126654,
+    "test_accuracy": 1.0,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.36412339999878895,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 43,
+    "model": "random_forest",
+    "params": {
+      "max_depth": 10,
+      "n_estimators": 300
+    },
+    "val_metric": 0.04230601617293446,
+    "test_metric": 0.02780841778553755,
+    "train_metric": 0.011800562898638348,
+    "test_accuracy": 1.0,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.37510349999865866,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 43,
+    "model": "gradient_boosting",
+    "params": {
+      "learning_rate": 0.05,
+      "max_iter": 200
+    },
+    "val_metric": 0.03342835299558411,
+    "test_metric": 0.002162965432143753,
+    "train_metric": 0.00011991855321045333,
+    "test_accuracy": 1.0,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.32846689999860246,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 43,
+    "model": "gradient_boosting",
+    "params": {
+      "learning_rate": 0.1,
+      "max_iter": 200
+    },
+    "val_metric": 0.03943306097827781,
+    "test_metric": 0.00026607392126452384,
+    "train_metric": 4.1011938909471085e-06,
+    "test_accuracy": 1.0,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.2322773000014422,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 43,
+    "model": "gradient_boosting",
+    "params": {
+      "learning_rate": 0.3,
+      "max_iter": 200
+    },
+    "val_metric": 0.037789781281740674,
+    "test_metric": 9.370327810534483e-05,
+    "train_metric": 3.2363686092326067e-06,
+    "test_accuracy": 1.0,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.13041639999937615,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 43,
+    "model": "mlp",
+    "params": {
+      "activation": "logistic",
+      "hidden_layer_sizes": [
+        32
+      ],
+      "learning_rate_init": 0.001,
+      "max_iter": 500
+    },
+    "val_metric": 0.030151327266010386,
+    "test_metric": 0.01917980233881701,
+    "train_metric": 0.03632703365673246,
+    "test_accuracy": 1.0,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 1.0226570000013453,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 43,
+    "model": "mlp",
+    "params": {
+      "activation": "logistic",
+      "hidden_layer_sizes": [
+        32
+      ],
+      "learning_rate_init": 0.01,
+      "max_iter": 500
+    },
+    "val_metric": 0.01641278169980777,
+    "test_metric": 0.004320538465158512,
+    "train_metric": 0.02016438577477807,
+    "test_accuracy": 1.0,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.34709229999862146,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 43,
+    "model": "mlp",
+    "params": {
+      "activation": "relu",
+      "hidden_layer_sizes": [
+        32,
+        32,
+        32
+      ],
+      "learning_rate_init": 0.001,
+      "max_iter": 500
+    },
+    "val_metric": 0.0013237377399219748,
+    "test_metric": 0.0012944279339894994,
+    "train_metric": 0.001624445970243823,
+    "test_accuracy": 1.0,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.27112709999710205,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 43,
+    "model": "mlp",
+    "params": {
+      "activation": "relu",
+      "hidden_layer_sizes": [
+        32,
+        32,
+        32
+      ],
+      "learning_rate_init": 0.01,
+      "max_iter": 500
+    },
+    "val_metric": 0.00025288937029530604,
+    "test_metric": 0.0002205243059675812,
+    "train_metric": 0.00031846089018959414,
+    "test_accuracy": 1.0,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.07663139999931445,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 44,
+    "model": "logistic_regression",
+    "params": {
+      "C": 0.01,
+      "max_iter": 5000
+    },
+    "val_metric": 0.33041473917412706,
+    "test_metric": 0.32535820706332025,
+    "train_metric": 0.3358687958538555,
+    "test_accuracy": 0.9518518518518518,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.002679000001080567,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 44,
+    "model": "logistic_regression",
+    "params": {
+      "C": 0.1,
+      "max_iter": 5000
+    },
+    "val_metric": 0.12245467996265981,
+    "test_metric": 0.11454567110392452,
+    "train_metric": 0.11688379362928898,
+    "test_accuracy": 0.9925925925925926,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.0030091000007814728,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 44,
+    "model": "logistic_regression",
+    "params": {
+      "C": 1,
+      "max_iter": 5000
+    },
+    "val_metric": 0.051278894374129025,
+    "test_metric": 0.03605760527115865,
+    "train_metric": 0.03801345616877094,
+    "test_accuracy": 0.9925925925925926,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.004961400001775473,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 44,
+    "model": "logistic_regression",
+    "params": {
+      "C": 10,
+      "max_iter": 5000
+    },
+    "val_metric": 0.03429312788348761,
+    "test_metric": 0.012802639022429571,
+    "train_metric": 0.016483046512494118,
+    "test_accuracy": 0.9962962962962963,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.004127700001845369,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 44,
+    "model": "logistic_regression",
+    "params": {
+      "C": 100,
+      "max_iter": 5000
+    },
+    "val_metric": 0.027526881514033427,
+    "test_metric": 0.007447419131976244,
+    "train_metric": 0.010275804466370516,
+    "test_accuracy": 0.9962962962962963,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.00477350000073784,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 44,
+    "model": "svm",
+    "params": {
+      "C": 0.1,
+      "gamma": "scale",
+      "kernel": "rbf",
+      "probability": true
+    },
+    "val_metric": 0.016808927095367014,
+    "test_metric": 0.004972438759561273,
+    "train_metric": 0.006445274218045655,
+    "test_accuracy": 1.0,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.038308999999571824,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 44,
+    "model": "svm",
+    "params": {
+      "C": 1,
+      "gamma": "scale",
+      "kernel": "rbf",
+      "probability": true
+    },
+    "val_metric": 0.009996545846053672,
+    "test_metric": 0.0034170022652080974,
+    "train_metric": 0.003248443377151882,
+    "test_accuracy": 1.0,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.013246099999378202,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 44,
+    "model": "svm",
+    "params": {
+      "C": 10,
+      "gamma": "scale",
+      "kernel": "rbf",
+      "probability": true
+    },
+    "val_metric": 0.004464066530097402,
+    "test_metric": 0.004166259488799341,
+    "train_metric": 0.0027933425458705886,
+    "test_accuracy": 1.0,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.008814700002403697,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 44,
+    "model": "svm",
+    "params": {
+      "C": 100,
+      "gamma": "scale",
+      "kernel": "rbf",
+      "probability": true
+    },
+    "val_metric": 0.004885888693763951,
+    "test_metric": 0.005263742382007166,
+    "train_metric": 0.0031853661358758763,
+    "test_accuracy": 1.0,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.00781980000101612,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 44,
+    "model": "random_forest",
+    "params": {
+      "max_depth": null,
+      "n_estimators": 300
+    },
+    "val_metric": 0.04382185676593714,
+    "test_metric": 0.04139203997613387,
+    "train_metric": 0.011049304309155468,
+    "test_accuracy": 0.9925925925925926,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.38091549999808194,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 44,
+    "model": "random_forest",
+    "params": {
+      "max_depth": 5,
+      "n_estimators": 300
+    },
+    "val_metric": 0.07643119071915225,
+    "test_metric": 0.06972064749506719,
+    "train_metric": 0.04579901023679866,
+    "test_accuracy": 0.9851851851851852,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.3687513000004401,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 44,
+    "model": "random_forest",
+    "params": {
+      "max_depth": 10,
+      "n_estimators": 300
+    },
+    "val_metric": 0.04366660703120071,
+    "test_metric": 0.04128494376362608,
+    "train_metric": 0.011050942895074491,
+    "test_accuracy": 0.9925925925925926,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.37239210000188905,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 44,
+    "model": "gradient_boosting",
+    "params": {
+      "learning_rate": 0.05,
+      "max_iter": 200
+    },
+    "val_metric": 0.027189199601808413,
+    "test_metric": 0.050376512508498235,
+    "train_metric": 0.00010506762885140586,
+    "test_accuracy": 0.9851851851851852,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.38812719999987166,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 44,
+    "model": "gradient_boosting",
+    "params": {
+      "learning_rate": 0.1,
+      "max_iter": 200
+    },
+    "val_metric": 0.01633711000542679,
+    "test_metric": 0.05210676708177173,
+    "train_metric": 4.070540561299227e-06,
+    "test_accuracy": 0.9888888888888889,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.2872414999983448,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 44,
+    "model": "gradient_boosting",
+    "params": {
+      "learning_rate": 0.3,
+      "max_iter": 200
+    },
+    "val_metric": 0.02045567610381651,
+    "test_metric": 0.05589569267528734,
+    "train_metric": 3.1080776440419423e-06,
+    "test_accuracy": 0.9888888888888889,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.1092400000015914,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 44,
+    "model": "mlp",
+    "params": {
+      "activation": "logistic",
+      "hidden_layer_sizes": [
+        32
+      ],
+      "learning_rate_init": 0.001,
+      "max_iter": 500
+    },
+    "val_metric": 0.04415597963532814,
+    "test_metric": 0.0269697607319665,
+    "train_metric": 0.028804608920905944,
+    "test_accuracy": 0.9962962962962963,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.96153140000024,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 44,
+    "model": "mlp",
+    "params": {
+      "activation": "logistic",
+      "hidden_layer_sizes": [
+        32
+      ],
+      "learning_rate_init": 0.01,
+      "max_iter": 500
+    },
+    "val_metric": 0.03557541216006321,
+    "test_metric": 0.008675342935810718,
+    "train_metric": 0.01243069761059751,
+    "test_accuracy": 1.0,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.3295753999991575,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 44,
+    "model": "mlp",
+    "params": {
+      "activation": "relu",
+      "hidden_layer_sizes": [
+        32,
+        32,
+        32
+      ],
+      "learning_rate_init": 0.001,
+      "max_iter": 500
+    },
+    "val_metric": 0.010432544789932302,
+    "test_metric": 0.0019677571236969044,
+    "train_metric": 0.0025625214498846698,
+    "test_accuracy": 1.0,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.29063549999773386,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 44,
+    "model": "mlp",
+    "params": {
+      "activation": "relu",
+      "hidden_layer_sizes": [
+        32,
+        32,
+        32
+      ],
+      "learning_rate_init": 0.01,
+      "max_iter": 500
+    },
+    "val_metric": 0.002316748726252704,
+    "test_metric": 0.00027632552837108387,
+    "train_metric": 0.0002422548749890498,
+    "test_accuracy": 1.0,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.08160040000075242,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 45,
+    "model": "logistic_regression",
+    "params": {
+      "C": 0.01,
+      "max_iter": 5000
+    },
+    "val_metric": 0.34527498920898736,
+    "test_metric": 0.3404027716227762,
+    "train_metric": 0.33809782422596424,
+    "test_accuracy": 0.9629629629629629,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.0025430999994568992,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 45,
+    "model": "logistic_regression",
+    "params": {
+      "C": 0.1,
+      "max_iter": 5000
+    },
+    "val_metric": 0.13226982617115443,
+    "test_metric": 0.11290185971403735,
+    "train_metric": 0.11914828427817203,
+    "test_accuracy": 0.9925925925925926,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.00275839999812888,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 45,
+    "model": "logistic_regression",
+    "params": {
+      "C": 1,
+      "max_iter": 5000
+    },
+    "val_metric": 0.055650482270831206,
+    "test_metric": 0.03312706436852474,
+    "train_metric": 0.03756143935843622,
+    "test_accuracy": 0.9962962962962963,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.0032876999975997023,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 45,
+    "model": "logistic_regression",
+    "params": {
+      "C": 10,
+      "max_iter": 5000
+    },
+    "val_metric": 0.038946442539723125,
+    "test_metric": 0.013038517017105667,
+    "train_metric": 0.014380747510086531,
+    "test_accuracy": 0.9962962962962963,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.003916900001058821,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 45,
+    "model": "logistic_regression",
+    "params": {
+      "C": 100,
+      "max_iter": 5000
+    },
+    "val_metric": 0.03846764294807777,
+    "test_metric": 0.006217987625223836,
+    "train_metric": 0.007968357792299666,
+    "test_accuracy": 1.0,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.004492500000196742,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 45,
+    "model": "svm",
+    "params": {
+      "C": 0.1,
+      "gamma": "scale",
+      "kernel": "rbf",
+      "probability": true
+    },
+    "val_metric": 0.017182182572574155,
+    "test_metric": 0.0058381956140536985,
+    "train_metric": 0.006227716799881433,
+    "test_accuracy": 1.0,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.0339161999982025,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 45,
+    "model": "svm",
+    "params": {
+      "C": 1,
+      "gamma": "scale",
+      "kernel": "rbf",
+      "probability": true
+    },
+    "val_metric": 0.011832777494583457,
+    "test_metric": 0.0038459251542420163,
+    "train_metric": 0.0032456239373613656,
+    "test_accuracy": 1.0,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.011663000001135515,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 45,
+    "model": "svm",
+    "params": {
+      "C": 10,
+      "gamma": "scale",
+      "kernel": "rbf",
+      "probability": true
+    },
+    "val_metric": 0.008067798339646444,
+    "test_metric": 0.0031434835983940074,
+    "train_metric": 0.003168312253033591,
+    "test_accuracy": 1.0,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.009244199998647673,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 45,
+    "model": "svm",
+    "params": {
+      "C": 100,
+      "gamma": "scale",
+      "kernel": "rbf",
+      "probability": true
+    },
+    "val_metric": 0.005092905210622561,
+    "test_metric": 0.002860429209052385,
+    "train_metric": 0.0033073882638022145,
+    "test_accuracy": 1.0,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.00877079999918351,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 45,
+    "model": "random_forest",
+    "params": {
+      "max_depth": null,
+      "n_estimators": 300
+    },
+    "val_metric": 0.05391410701808351,
+    "test_metric": 0.028551964724074744,
+    "train_metric": 0.011908309268759108,
+    "test_accuracy": 0.9962962962962963,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.3682699999990291,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 45,
+    "model": "random_forest",
+    "params": {
+      "max_depth": 5,
+      "n_estimators": 300
+    },
+    "val_metric": 0.09509489673130934,
+    "test_metric": 0.060510423178916715,
+    "train_metric": 0.044618854137290796,
+    "test_accuracy": 0.9851851851851852,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.36375409999891417,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 45,
+    "model": "random_forest",
+    "params": {
+      "max_depth": 10,
+      "n_estimators": 300
+    },
+    "val_metric": 0.05433503552870672,
+    "test_metric": 0.0288237780060154,
+    "train_metric": 0.012015390723737054,
+    "test_accuracy": 0.9962962962962963,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.3674429999991844,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 45,
+    "model": "gradient_boosting",
+    "params": {
+      "learning_rate": 0.05,
+      "max_iter": 200
+    },
+    "val_metric": 0.018157444074216544,
+    "test_metric": 0.0036896975067274335,
+    "train_metric": 0.00014915610066831053,
+    "test_accuracy": 1.0,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.354014599997754,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 45,
+    "model": "gradient_boosting",
+    "params": {
+      "learning_rate": 0.1,
+      "max_iter": 200
+    },
+    "val_metric": 0.01876346977311754,
+    "test_metric": 0.0050399304372465365,
+    "train_metric": 4.1079204801747055e-06,
+    "test_accuracy": 0.9962962962962963,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.2099517000024207,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 45,
+    "model": "gradient_boosting",
+    "params": {
+      "learning_rate": 0.3,
+      "max_iter": 200
+    },
+    "val_metric": 0.028890069948701746,
+    "test_metric": 0.0012509428700051637,
+    "train_metric": 2.999635926402547e-06,
+    "test_accuracy": 1.0,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.13775279999754275,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 45,
+    "model": "mlp",
+    "params": {
+      "activation": "logistic",
+      "hidden_layer_sizes": [
+        32
+      ],
+      "learning_rate_init": 0.001,
+      "max_iter": 500
+    },
+    "val_metric": 0.04760466461690148,
+    "test_metric": 0.022305236484353046,
+    "train_metric": 0.02582896889980153,
+    "test_accuracy": 0.9962962962962963,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 1.0182740000018384,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 45,
+    "model": "mlp",
+    "params": {
+      "activation": "logistic",
+      "hidden_layer_sizes": [
+        32
+      ],
+      "learning_rate_init": 0.01,
+      "max_iter": 500
+    },
+    "val_metric": 0.04004533840918829,
+    "test_metric": 0.006689507355190815,
+    "train_metric": 0.008628802996167062,
+    "test_accuracy": 0.9962962962962963,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.4051428000020678,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 45,
+    "model": "mlp",
+    "params": {
+      "activation": "relu",
+      "hidden_layer_sizes": [
+        32,
+        32,
+        32
+      ],
+      "learning_rate_init": 0.001,
+      "max_iter": 500
+    },
+    "val_metric": 0.018728006613960426,
+    "test_metric": 0.0037168844048582647,
+    "train_metric": 0.0027873949222212836,
+    "test_accuracy": 1.0,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.2659734999979264,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 45,
+    "model": "mlp",
+    "params": {
+      "activation": "relu",
+      "hidden_layer_sizes": [
+        32,
+        32,
+        32
+      ],
+      "learning_rate_init": 0.01,
+      "max_iter": 500
+    },
+    "val_metric": 0.0023045802118323543,
+    "test_metric": 0.00024933145616112644,
+    "train_metric": 0.00019768407972379446,
+    "test_accuracy": 1.0,
+    "baseline_test_metric": 0.6885060243638138,
+    "train_seconds": 0.08553799999936018,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 46,
+    "model": "logistic_regression",
+    "params": {
+      "C": 0.01,
+      "max_iter": 5000
+    },
+    "val_metric": 0.3557640612817459,
+    "test_metric": 0.354362531993001,
+    "train_metric": 0.3306294411277546,
+    "test_accuracy": 0.9074074074074074,
+    "baseline_test_metric": 0.6885060243638139,
+    "train_seconds": 0.0028216999999131076,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 46,
+    "model": "logistic_regression",
+    "params": {
+      "C": 0.1,
+      "max_iter": 5000
+    },
+    "val_metric": 0.135714018280768,
+    "test_metric": 0.13563737615932586,
+    "train_metric": 0.11463873823865178,
+    "test_accuracy": 0.9740740740740741,
+    "baseline_test_metric": 0.6885060243638139,
+    "train_seconds": 0.0029144000000087544,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 46,
+    "model": "logistic_regression",
+    "params": {
+      "C": 1,
+      "max_iter": 5000
+    },
+    "val_metric": 0.05141262615624327,
+    "test_metric": 0.05358184715754039,
+    "train_metric": 0.034797244961746965,
+    "test_accuracy": 0.9851851851851852,
+    "baseline_test_metric": 0.6885060243638139,
+    "train_seconds": 0.003260900000896072,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 46,
+    "model": "logistic_regression",
+    "params": {
+      "C": 10,
+      "max_iter": 5000
+    },
+    "val_metric": 0.02770698204322954,
+    "test_metric": 0.03219051417472536,
+    "train_metric": 0.013397472107826412,
+    "test_accuracy": 0.9888888888888889,
+    "baseline_test_metric": 0.6885060243638139,
+    "train_seconds": 0.0038328000009641983,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 46,
+    "model": "logistic_regression",
+    "params": {
+      "C": 100,
+      "max_iter": 5000
+    },
+    "val_metric": 0.02209801709218916,
+    "test_metric": 0.028326979877162147,
+    "train_metric": 0.0068248018245992345,
+    "test_accuracy": 0.9851851851851852,
+    "baseline_test_metric": 0.6885060243638139,
+    "train_seconds": 0.004881200002273545,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 46,
+    "model": "svm",
+    "params": {
+      "C": 0.1,
+      "gamma": "scale",
+      "kernel": "rbf",
+      "probability": true
+    },
+    "val_metric": 0.014296258025775634,
+    "test_metric": 0.015426918337099554,
+    "train_metric": 0.0063723022348162964,
+    "test_accuracy": 0.9962962962962963,
+    "baseline_test_metric": 0.6885060243638139,
+    "train_seconds": 0.032780300000013085,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 46,
+    "model": "svm",
+    "params": {
+      "C": 1,
+      "gamma": "scale",
+      "kernel": "rbf",
+      "probability": true
+    },
+    "val_metric": 0.008069884461435157,
+    "test_metric": 0.00837755092059441,
+    "train_metric": 0.0038773822530609814,
+    "test_accuracy": 0.9962962962962963,
+    "baseline_test_metric": 0.6885060243638139,
+    "train_seconds": 0.011676700003590668,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 46,
+    "model": "svm",
+    "params": {
+      "C": 10,
+      "gamma": "scale",
+      "kernel": "rbf",
+      "probability": true
+    },
+    "val_metric": 0.005010778835409785,
+    "test_metric": 0.00494461788599643,
+    "train_metric": 0.0029495124881092683,
+    "test_accuracy": 1.0,
+    "baseline_test_metric": 0.6885060243638139,
+    "train_seconds": 0.008941399999457644,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 46,
+    "model": "svm",
+    "params": {
+      "C": 100,
+      "gamma": "scale",
+      "kernel": "rbf",
+      "probability": true
+    },
+    "val_metric": 0.00445821579756185,
+    "test_metric": 0.004407229119659199,
+    "train_metric": 0.003222595344451588,
+    "test_accuracy": 1.0,
+    "baseline_test_metric": 0.6885060243638139,
+    "train_seconds": 0.007874200000514975,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 46,
+    "model": "random_forest",
+    "params": {
+      "max_depth": null,
+      "n_estimators": 300
+    },
+    "val_metric": 0.05057812990156211,
+    "test_metric": 0.04397688107426329,
+    "train_metric": 0.012000061582150742,
+    "test_accuracy": 0.9925925925925926,
+    "baseline_test_metric": 0.6885060243638139,
+    "train_seconds": 0.3732386999981827,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 46,
+    "model": "random_forest",
+    "params": {
+      "max_depth": 5,
+      "n_estimators": 300
+    },
+    "val_metric": 0.08458897284013432,
+    "test_metric": 0.06931882385692034,
+    "train_metric": 0.04290753866823013,
+    "test_accuracy": 0.9925925925925926,
+    "baseline_test_metric": 0.6885060243638139,
+    "train_seconds": 0.3751985999988392,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 46,
+    "model": "random_forest",
+    "params": {
+      "max_depth": 10,
+      "n_estimators": 300
+    },
+    "val_metric": 0.050612335235352385,
+    "test_metric": 0.04408431098136616,
+    "train_metric": 0.012014159531620237,
+    "test_accuracy": 0.9925925925925926,
+    "baseline_test_metric": 0.6885060243638139,
+    "train_seconds": 0.36814869999943767,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 46,
+    "model": "gradient_boosting",
+    "params": {
+      "learning_rate": 0.05,
+      "max_iter": 200
+    },
+    "val_metric": 0.05243574320048105,
+    "test_metric": 0.025464985917432386,
+    "train_metric": 0.00011201806601957092,
+    "test_accuracy": 0.9851851851851852,
+    "baseline_test_metric": 0.6885060243638139,
+    "train_seconds": 0.35062040000048,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 46,
+    "model": "gradient_boosting",
+    "params": {
+      "learning_rate": 0.1,
+      "max_iter": 200
+    },
+    "val_metric": 0.03508883910001909,
+    "test_metric": 0.0029488119369743947,
+    "train_metric": 4.0736884883379e-06,
+    "test_accuracy": 1.0,
+    "baseline_test_metric": 0.6885060243638139,
+    "train_seconds": 0.22562920000200393,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 46,
+    "model": "gradient_boosting",
+    "params": {
+      "learning_rate": 0.3,
+      "max_iter": 200
+    },
+    "val_metric": 0.03667839570323667,
+    "test_metric": 0.0008513691333910821,
+    "train_metric": 2.9098376045239683e-06,
+    "test_accuracy": 1.0,
+    "baseline_test_metric": 0.6885060243638139,
+    "train_seconds": 0.12054530000023078,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 46,
+    "model": "mlp",
+    "params": {
+      "activation": "logistic",
+      "hidden_layer_sizes": [
+        32
+      ],
+      "learning_rate_init": 0.001,
+      "max_iter": 500
+    },
+    "val_metric": 0.040764176215786097,
+    "test_metric": 0.04394930084351585,
+    "train_metric": 0.02505446816151536,
+    "test_accuracy": 0.9888888888888889,
+    "baseline_test_metric": 0.6885060243638139,
+    "train_seconds": 0.9516634000028716,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 46,
+    "model": "mlp",
+    "params": {
+      "activation": "logistic",
+      "hidden_layer_sizes": [
+        32
+      ],
+      "learning_rate_init": 0.01,
+      "max_iter": 500
+    },
+    "val_metric": 0.03049865474555657,
+    "test_metric": 0.03673792484089095,
+    "train_metric": 0.013299268252803361,
+    "test_accuracy": 0.9814814814814815,
+    "baseline_test_metric": 0.6885060243638139,
+    "train_seconds": 0.20983479999995325,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 46,
+    "model": "mlp",
+    "params": {
+      "activation": "relu",
+      "hidden_layer_sizes": [
+        32,
+        32,
+        32
+      ],
+      "learning_rate_init": 0.001,
+      "max_iter": 500
+    },
+    "val_metric": 0.005656518726850361,
+    "test_metric": 0.005685627007562105,
+    "train_metric": 0.002235468793862221,
+    "test_accuracy": 1.0,
+    "baseline_test_metric": 0.6885060243638139,
+    "train_seconds": 0.2241963999986183,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "classification",
+    "seed": 46,
+    "model": "mlp",
+    "params": {
+      "activation": "relu",
+      "hidden_layer_sizes": [
+        32,
+        32,
+        32
+      ],
+      "learning_rate_init": 0.01,
+      "max_iter": 500
+    },
+    "val_metric": 0.0007209123346559037,
+    "test_metric": 0.0007487433916631322,
+    "train_metric": 0.00012981618919712156,
+    "test_accuracy": 1.0,
+    "baseline_test_metric": 0.6885060243638139,
+    "train_seconds": 0.060384300002624514,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 42,
+    "model": "ridge",
+    "params": {
+      "alpha": 0.001
+    },
+    "val_metric": 9.233535928041867,
+    "test_metric": 8.809950554084002,
+    "train_metric": 8.24367997039675,
+    "test_r2": 0.9130688274399845,
+    "baseline_test_metric": 101.43352080227949,
+    "train_seconds": 0.0008998000012070406,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 42,
+    "model": "ridge",
+    "params": {
+      "alpha": 0.01
+    },
+    "val_metric": 9.234294178838548,
+    "test_metric": 8.810234715153442,
+    "train_metric": 8.243683526216508,
+    "test_r2": 0.9130660235133551,
+    "baseline_test_metric": 101.43352080227949,
+    "train_seconds": 0.0007207999988168012,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 42,
+    "model": "ridge",
+    "params": {
+      "alpha": 0.1
+    },
+    "val_metric": 9.241954477663205,
+    "test_metric": 8.813273142668825,
+    "train_metric": 8.24401381499425,
+    "test_r2": 0.9130360421797449,
+    "baseline_test_metric": 101.43352080227949,
+    "train_seconds": 0.0006494999979622662,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 42,
+    "model": "ridge",
+    "params": {
+      "alpha": 1
+    },
+    "val_metric": 9.318844768153978,
+    "test_metric": 8.85203865943539,
+    "train_metric": 8.262609839250903,
+    "test_r2": 0.9126535279071931,
+    "baseline_test_metric": 101.43352080227949,
+    "train_seconds": 0.0006518000009236857,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 42,
+    "model": "ridge",
+    "params": {
+      "alpha": 10
+    },
+    "val_metric": 9.922221296661323,
+    "test_metric": 9.252319849871641,
+    "train_metric": 8.605241817370805,
+    "test_r2": 0.9087037993559686,
+    "baseline_test_metric": 101.43352080227949,
+    "train_seconds": 0.0006548999990627635,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 42,
+    "model": "ridge",
+    "params": {
+      "alpha": 100
+    },
+    "val_metric": 12.836040156956955,
+    "test_metric": 11.88185523421676,
+    "train_metric": 11.195301317124722,
+    "test_r2": 0.8827571617618216,
+    "baseline_test_metric": 101.43352080227949,
+    "train_seconds": 0.000656100000924198,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 42,
+    "model": "svr",
+    "params": {
+      "C": 1,
+      "gamma": "scale",
+      "kernel": "rbf"
+    },
+    "val_metric": 9.059595085953294,
+    "test_metric": 9.0871405705191,
+    "train_metric": 7.417961722881389,
+    "test_r2": 0.910333686873337,
+    "baseline_test_metric": 101.43352080227949,
+    "train_seconds": 0.0070190000005823094,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 42,
+    "model": "svr",
+    "params": {
+      "C": 10,
+      "gamma": "scale",
+      "kernel": "rbf"
+    },
+    "val_metric": 5.470537793269685,
+    "test_metric": 6.536212134038456,
+    "train_metric": 4.8730976008334395,
+    "test_r2": 0.9355046794616156,
+    "baseline_test_metric": 101.43352080227949,
+    "train_seconds": 0.011852499999804422,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 42,
+    "model": "svr",
+    "params": {
+      "C": 100,
+      "gamma": "scale",
+      "kernel": "rbf"
+    },
+    "val_metric": 1.538922958879231,
+    "test_metric": 1.916487113142845,
+    "train_metric": 0.7956733775774099,
+    "test_r2": 0.9810892841090424,
+    "baseline_test_metric": 101.43352080227949,
+    "train_seconds": 0.05647319999843603,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 42,
+    "model": "svr",
+    "params": {
+      "C": 1000,
+      "gamma": "scale",
+      "kernel": "rbf"
+    },
+    "val_metric": 0.36112125166900877,
+    "test_metric": 0.3863230755796319,
+    "train_metric": 0.06098836556575734,
+    "test_r2": 0.9961880015397406,
+    "baseline_test_metric": 101.43352080227949,
+    "train_seconds": 1.1220314000020153,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 42,
+    "model": "random_forest",
+    "params": {
+      "max_depth": null,
+      "n_estimators": 300
+    },
+    "val_metric": 0.2518788385137101,
+    "test_metric": 0.25044685160173563,
+    "train_metric": 0.0388499068405795,
+    "test_r2": 0.9975287445326682,
+    "baseline_test_metric": 101.43352080227949,
+    "train_seconds": 0.3318863999993482,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 42,
+    "model": "random_forest",
+    "params": {
+      "max_depth": 5,
+      "n_estimators": 300
+    },
+    "val_metric": 1.0589661957819325,
+    "test_metric": 0.8683931061081344,
+    "train_metric": 0.7599978749025922,
+    "test_r2": 0.9914312310275091,
+    "baseline_test_metric": 101.43352080227949,
+    "train_seconds": 0.2669857000000775,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 42,
+    "model": "random_forest",
+    "params": {
+      "max_depth": 10,
+      "n_estimators": 300
+    },
+    "val_metric": 0.25508588253731646,
+    "test_metric": 0.24833991414854034,
+    "train_metric": 0.04311305502518162,
+    "test_r2": 0.9975495344953578,
+    "baseline_test_metric": 101.43352080227949,
+    "train_seconds": 0.3266650000005029,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 42,
+    "model": "gradient_boosting",
+    "params": {
+      "learning_rate": 0.05,
+      "max_iter": 200
+    },
+    "val_metric": 0.34485305793306315,
+    "test_metric": 0.36414706766420946,
+    "train_metric": 0.2297056255514182,
+    "test_r2": 0.9964068207441111,
+    "baseline_test_metric": 101.43352080227949,
+    "train_seconds": 0.17887870000049588,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 42,
+    "model": "gradient_boosting",
+    "params": {
+      "learning_rate": 0.1,
+      "max_iter": 200
+    },
+    "val_metric": 0.2525338527533571,
+    "test_metric": 0.3110200560920982,
+    "train_metric": 0.14078634321823555,
+    "test_r2": 0.996931045412822,
+    "baseline_test_metric": 101.43352080227949,
+    "train_seconds": 0.19579300000259536,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 42,
+    "model": "gradient_boosting",
+    "params": {
+      "learning_rate": 0.3,
+      "max_iter": 200
+    },
+    "val_metric": 0.1593236740797723,
+    "test_metric": 0.18724418377629343,
+    "train_metric": 0.04266558987161661,
+    "test_r2": 0.9981523895791707,
+    "baseline_test_metric": 101.43352080227949,
+    "train_seconds": 0.21667769999839948,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 42,
+    "model": "mlp",
+    "params": {
+      "activation": "logistic",
+      "hidden_layer_sizes": [
+        32
+      ],
+      "learning_rate_init": 0.001,
+      "max_iter": 1000
+    },
+    "val_metric": 9.977534828395742,
+    "test_metric": 8.616897804932815,
+    "train_metric": 8.964370371397814,
+    "test_r2": 0.9149737532107503,
+    "baseline_test_metric": 101.43352080227949,
+    "train_seconds": 1.2788409000022511,
+    "converged": false
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 42,
+    "model": "mlp",
+    "params": {
+      "activation": "logistic",
+      "hidden_layer_sizes": [
+        32
+      ],
+      "learning_rate_init": 0.01,
+      "max_iter": 1000
+    },
+    "val_metric": 1.491277502976113,
+    "test_metric": 1.2735244013485576,
+    "train_metric": 1.1186678169039024,
+    "test_r2": 0.9874336446256556,
+    "baseline_test_metric": 101.43352080227949,
+    "train_seconds": 1.1996809000011126,
+    "converged": false
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 42,
+    "model": "mlp",
+    "params": {
+      "activation": "relu",
+      "hidden_layer_sizes": [
+        32,
+        32,
+        32
+      ],
+      "learning_rate_init": 0.001,
+      "max_iter": 1000
+    },
+    "val_metric": 1.032857744339732,
+    "test_metric": 1.1071019902644037,
+    "train_metric": 0.4555790880702118,
+    "test_r2": 0.9890757986022297,
+    "baseline_test_metric": 101.43352080227949,
+    "train_seconds": 1.5289024000012432,
+    "converged": false
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 42,
+    "model": "mlp",
+    "params": {
+      "activation": "relu",
+      "hidden_layer_sizes": [
+        32,
+        32,
+        32
+      ],
+      "learning_rate_init": 0.01,
+      "max_iter": 1000
+    },
+    "val_metric": 0.37207473580538,
+    "test_metric": 0.32247621281679223,
+    "train_metric": 0.22837164980509464,
+    "test_r2": 0.9968180031056041,
+    "baseline_test_metric": 101.43352080227949,
+    "train_seconds": 0.38005649999831803,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 43,
+    "model": "ridge",
+    "params": {
+      "alpha": 0.001
+    },
+    "val_metric": 6.5837428137196445,
+    "test_metric": 10.615705970016826,
+    "train_metric": 8.510817121057052,
+    "test_r2": 0.897331151485187,
+    "baseline_test_metric": 103.40305110598287,
+    "train_seconds": 0.0007593000009364914,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 43,
+    "model": "ridge",
+    "params": {
+      "alpha": 0.01
+    },
+    "val_metric": 6.5842808725870405,
+    "test_metric": 10.616268133456801,
+    "train_metric": 8.510820017020263,
+    "test_r2": 0.8973257145718794,
+    "baseline_test_metric": 103.40305110598287,
+    "train_seconds": 0.0006481999989773612,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 43,
+    "model": "ridge",
+    "params": {
+      "alpha": 0.1
+    },
+    "val_metric": 6.589581918351227,
+    "test_metric": 10.621931190721515,
+    "train_metric": 8.51108907523972,
+    "test_r2": 0.8972709448212773,
+    "baseline_test_metric": 103.40305110598287,
+    "train_seconds": 0.0006619000014325138,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 43,
+    "model": "ridge",
+    "params": {
+      "alpha": 1
+    },
+    "val_metric": 6.632829750534548,
+    "test_metric": 10.677505256380389,
+    "train_metric": 8.526516138584363,
+    "test_r2": 0.8967334652278713,
+    "baseline_test_metric": 103.40305110598287,
+    "train_seconds": 0.0006520999995700549,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 43,
+    "model": "ridge",
+    "params": {
+      "alpha": 10
+    },
+    "val_metric": 6.871381717947209,
+    "test_metric": 11.151356364453054,
+    "train_metric": 8.869960515018247,
+    "test_r2": 0.892150656720298,
+    "baseline_test_metric": 103.40305110598287,
+    "train_seconds": 0.0006558999994012993,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 43,
+    "model": "ridge",
+    "params": {
+      "alpha": 100
+    },
+    "val_metric": 9.296173366253898,
+    "test_metric": 14.276560146626284,
+    "train_metric": 11.671436753198064,
+    "test_r2": 0.8619255285379512,
+    "baseline_test_metric": 103.40305110598287,
+    "train_seconds": 0.000654499999654945,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 43,
+    "model": "svr",
+    "params": {
+      "C": 1,
+      "gamma": "scale",
+      "kernel": "rbf"
+    },
+    "val_metric": 7.4243968057537275,
+    "test_metric": 10.03247219175114,
+    "train_metric": 7.354308251357289,
+    "test_r2": 0.9029718446805909,
+    "baseline_test_metric": 103.40305110598287,
+    "train_seconds": 0.006589799999346724,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 43,
+    "model": "svr",
+    "params": {
+      "C": 10,
+      "gamma": "scale",
+      "kernel": "rbf"
+    },
+    "val_metric": 5.2671213331183715,
+    "test_metric": 6.794842226709921,
+    "train_metric": 5.1251388047855455,
+    "test_r2": 0.9342842926107316,
+    "baseline_test_metric": 103.40305110598287,
+    "train_seconds": 0.01188920000276994,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 43,
+    "model": "svr",
+    "params": {
+      "C": 100,
+      "gamma": "scale",
+      "kernel": "rbf"
+    },
+    "val_metric": 0.9591939421967138,
+    "test_metric": 1.5575338866783461,
+    "train_metric": 0.6309553321008277,
+    "test_r2": 0.9849364506590782,
+    "baseline_test_metric": 103.40305110598287,
+    "train_seconds": 0.06453859999965061,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 43,
+    "model": "svr",
+    "params": {
+      "C": 1000,
+      "gamma": "scale",
+      "kernel": "rbf"
+    },
+    "val_metric": 0.21208209729393138,
+    "test_metric": 0.35890335279712826,
+    "train_metric": 0.06649071908822554,
+    "test_r2": 0.9965288984016831,
+    "baseline_test_metric": 103.40305110598287,
+    "train_seconds": 1.1743903999995382,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 43,
+    "model": "random_forest",
+    "params": {
+      "max_depth": null,
+      "n_estimators": 300
+    },
+    "val_metric": 0.16501390393939339,
+    "test_metric": 0.31433510186146874,
+    "train_metric": 0.03763325116907986,
+    "test_r2": 0.996959936244744,
+    "baseline_test_metric": 103.40305110598287,
+    "train_seconds": 0.3417604999995092,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 43,
+    "model": "random_forest",
+    "params": {
+      "max_depth": 5,
+      "n_estimators": 300
+    },
+    "val_metric": 0.7890527103310524,
+    "test_metric": 0.9709303425684538,
+    "train_metric": 0.8145871533068572,
+    "test_r2": 0.9906097342427206,
+    "baseline_test_metric": 103.40305110598287,
+    "train_seconds": 0.2645458000006329,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 43,
+    "model": "random_forest",
+    "params": {
+      "max_depth": 10,
+      "n_estimators": 300
+    },
+    "val_metric": 0.16447164078490192,
+    "test_metric": 0.3149059684038633,
+    "train_metric": 0.04247503418411883,
+    "test_r2": 0.9969544151601615,
+    "baseline_test_metric": 103.40305110598287,
+    "train_seconds": 0.3409490999983973,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 43,
+    "model": "gradient_boosting",
+    "params": {
+      "learning_rate": 0.05,
+      "max_iter": 200
+    },
+    "val_metric": 0.1905213057832704,
+    "test_metric": 0.32583518979193477,
+    "train_metric": 0.23834457820726393,
+    "test_r2": 0.9968487141753899,
+    "baseline_test_metric": 103.40305110598287,
+    "train_seconds": 0.19529809999949066,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 43,
+    "model": "gradient_boosting",
+    "params": {
+      "learning_rate": 0.1,
+      "max_iter": 200
+    },
+    "val_metric": 0.1458108266095723,
+    "test_metric": 0.2540236703278856,
+    "train_metric": 0.13722839357571257,
+    "test_r2": 0.9975432328474685,
+    "baseline_test_metric": 103.40305110598287,
+    "train_seconds": 0.17928910000046017,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 43,
+    "model": "gradient_boosting",
+    "params": {
+      "learning_rate": 0.3,
+      "max_iter": 200
+    },
+    "val_metric": 0.1115731210548538,
+    "test_metric": 0.21136582843981616,
+    "train_metric": 0.04336479475902695,
+    "test_r2": 0.9979557943407074,
+    "baseline_test_metric": 103.40305110598287,
+    "train_seconds": 0.1966078999976162,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 43,
+    "model": "mlp",
+    "params": {
+      "activation": "logistic",
+      "hidden_layer_sizes": [
+        32
+      ],
+      "learning_rate_init": 0.001,
+      "max_iter": 1000
+    },
+    "val_metric": 7.883313342672716,
+    "test_metric": 11.077581315258477,
+    "train_metric": 8.843106756514874,
+    "test_r2": 0.892864165494121,
+    "baseline_test_metric": 103.40305110598287,
+    "train_seconds": 1.2558792000018002,
+    "converged": false
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 43,
+    "model": "mlp",
+    "params": {
+      "activation": "logistic",
+      "hidden_layer_sizes": [
+        32
+      ],
+      "learning_rate_init": 0.01,
+      "max_iter": 1000
+    },
+    "val_metric": 1.2325353457562465,
+    "test_metric": 1.6317219157499845,
+    "train_metric": 1.1595686497199713,
+    "test_r2": 0.9842189477874009,
+    "baseline_test_metric": 103.40305110598287,
+    "train_seconds": 1.1928504999996221,
+    "converged": false
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 43,
+    "model": "mlp",
+    "params": {
+      "activation": "relu",
+      "hidden_layer_sizes": [
+        32,
+        32,
+        32
+      ],
+      "learning_rate_init": 0.001,
+      "max_iter": 1000
+    },
+    "val_metric": 0.4704421526578818,
+    "test_metric": 0.5144316703087152,
+    "train_metric": 0.30240264909195363,
+    "test_r2": 0.9950247202230994,
+    "baseline_test_metric": 103.40305110598287,
+    "train_seconds": 1.5202535999997053,
+    "converged": false
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 43,
+    "model": "mlp",
+    "params": {
+      "activation": "relu",
+      "hidden_layer_sizes": [
+        32,
+        32,
+        32
+      ],
+      "learning_rate_init": 0.01,
+      "max_iter": 1000
+    },
+    "val_metric": 2.445829253554529,
+    "test_metric": 3.28907016536552,
+    "train_metric": 2.2207813006218236,
+    "test_r2": 0.9681900527844058,
+    "baseline_test_metric": 103.40305110598287,
+    "train_seconds": 0.23034040000129608,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 44,
+    "model": "ridge",
+    "params": {
+      "alpha": 0.001
+    },
+    "val_metric": 8.695619613220185,
+    "test_metric": 9.661319243774164,
+    "train_metric": 8.215192487426664,
+    "test_r2": 0.904222242756582,
+    "baseline_test_metric": 101.03861843869223,
+    "train_seconds": 0.0007507999980589375,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 44,
+    "model": "ridge",
+    "params": {
+      "alpha": 0.01
+    },
+    "val_metric": 8.696933322928086,
+    "test_metric": 9.662194134624668,
+    "train_metric": 8.21519515275557,
+    "test_r2": 0.9042135695017832,
+    "baseline_test_metric": 101.03861843869223,
+    "train_seconds": 0.0006297999971138779,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 44,
+    "model": "ridge",
+    "params": {
+      "alpha": 0.1
+    },
+    "val_metric": 8.709873630168213,
+    "test_metric": 9.670824322107016,
+    "train_metric": 8.215442549451584,
+    "test_r2": 0.9041280138979579,
+    "baseline_test_metric": 101.03861843869223,
+    "train_seconds": 0.0006332000011752825,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 44,
+    "model": "ridge",
+    "params": {
+      "alpha": 1
+    },
+    "val_metric": 8.821953909811631,
+    "test_metric": 9.745622454556635,
+    "train_metric": 8.229533546449087,
+    "test_r2": 0.9033865005299324,
+    "baseline_test_metric": 101.03861843869223,
+    "train_seconds": 0.0006152999994810671,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 44,
+    "model": "ridge",
+    "params": {
+      "alpha": 10
+    },
+    "val_metric": 9.524556643162452,
+    "test_metric": 10.233520075051612,
+    "train_metric": 8.536550283866505,
+    "test_r2": 0.8985497138886545,
+    "baseline_test_metric": 101.03861843869223,
+    "train_seconds": 0.0006183999976201449,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 44,
+    "model": "ridge",
+    "params": {
+      "alpha": 100
+    },
+    "val_metric": 12.851170342231534,
+    "test_metric": 12.912987931377952,
+    "train_metric": 11.030898443017735,
+    "test_r2": 0.871986734712685,
+    "baseline_test_metric": 101.03861843869223,
+    "train_seconds": 0.0006156000017654151,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 44,
+    "model": "svr",
+    "params": {
+      "C": 1,
+      "gamma": "scale",
+      "kernel": "rbf"
+    },
+    "val_metric": 9.577891402140034,
+    "test_metric": 8.639108747102096,
+    "train_metric": 6.723565470717428,
+    "test_r2": 0.914355954968299,
+    "baseline_test_metric": 101.03861843869223,
+    "train_seconds": 0.006724600003508385,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 44,
+    "model": "svr",
+    "params": {
+      "C": 10,
+      "gamma": "scale",
+      "kernel": "rbf"
+    },
+    "val_metric": 7.214937136529208,
+    "test_metric": 7.626321532929444,
+    "train_metric": 4.640294090569299,
+    "test_r2": 0.9243962492066635,
+    "baseline_test_metric": 101.03861843869223,
+    "train_seconds": 0.012463499999284977,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 44,
+    "model": "svr",
+    "params": {
+      "C": 100,
+      "gamma": "scale",
+      "kernel": "rbf"
+    },
+    "val_metric": 2.1389458421370877,
+    "test_metric": 2.4855717805432196,
+    "train_metric": 1.0287644186541667,
+    "test_r2": 0.9753592149683524,
+    "baseline_test_metric": 101.03861843869223,
+    "train_seconds": 0.06745930000033695,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 44,
+    "model": "svr",
+    "params": {
+      "C": 1000,
+      "gamma": "scale",
+      "kernel": "rbf"
+    },
+    "val_metric": 0.32324221471712605,
+    "test_metric": 0.31613831537202236,
+    "train_metric": 0.08024397708278064,
+    "test_r2": 0.9968659540109331,
+    "baseline_test_metric": 101.03861843869223,
+    "train_seconds": 1.18640669999877,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 44,
+    "model": "random_forest",
+    "params": {
+      "max_depth": null,
+      "n_estimators": 300
+    },
+    "val_metric": 0.21515909671717226,
+    "test_metric": 0.25805662992062883,
+    "train_metric": 0.043009850579709685,
+    "test_r2": 0.9974417484163439,
+    "baseline_test_metric": 101.03861843869223,
+    "train_seconds": 0.3363539000019955,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 44,
+    "model": "random_forest",
+    "params": {
+      "max_depth": 5,
+      "n_estimators": 300
+    },
+    "val_metric": 0.720097019148313,
+    "test_metric": 0.8559191681473496,
+    "train_metric": 0.829604527671373,
+    "test_r2": 0.9915148215022879,
+    "baseline_test_metric": 101.03861843869223,
+    "train_seconds": 0.268340900001931,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 44,
+    "model": "random_forest",
+    "params": {
+      "max_depth": 10,
+      "n_estimators": 300
+    },
+    "val_metric": 0.21879817908445462,
+    "test_metric": 0.25850389734097073,
+    "train_metric": 0.05004144233278329,
+    "test_r2": 0.9974373144183227,
+    "baseline_test_metric": 101.03861843869223,
+    "train_seconds": 0.3339653000002727,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 44,
+    "model": "gradient_boosting",
+    "params": {
+      "learning_rate": 0.05,
+      "max_iter": 200
+    },
+    "val_metric": 0.2705070595482215,
+    "test_metric": 0.2713380994549152,
+    "train_metric": 0.20424268177550423,
+    "test_r2": 0.9973100821984295,
+    "baseline_test_metric": 101.03861843869223,
+    "train_seconds": 0.17745329999888781,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 44,
+    "model": "gradient_boosting",
+    "params": {
+      "learning_rate": 0.1,
+      "max_iter": 200
+    },
+    "val_metric": 0.16900933998095824,
+    "test_metric": 0.18702335711948628,
+    "train_metric": 0.10777111728609932,
+    "test_r2": 0.9981459387434504,
+    "baseline_test_metric": 101.03861843869223,
+    "train_seconds": 0.1873520000008284,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 44,
+    "model": "gradient_boosting",
+    "params": {
+      "learning_rate": 0.3,
+      "max_iter": 200
+    },
+    "val_metric": 0.1417209751575378,
+    "test_metric": 0.1657185609714266,
+    "train_metric": 0.04652848824800021,
+    "test_r2": 0.9983571444330775,
+    "baseline_test_metric": 101.03861843869223,
+    "train_seconds": 0.17297340000004624,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 44,
+    "model": "mlp",
+    "params": {
+      "activation": "logistic",
+      "hidden_layer_sizes": [
+        32
+      ],
+      "learning_rate_init": 0.001,
+      "max_iter": 1000
+    },
+    "val_metric": 9.747881377464545,
+    "test_metric": 10.278851760596321,
+    "train_metric": 7.989608088791951,
+    "test_r2": 0.8981003169622115,
+    "baseline_test_metric": 101.03861843869223,
+    "train_seconds": 1.2371659000018553,
+    "converged": false
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 44,
+    "model": "mlp",
+    "params": {
+      "activation": "logistic",
+      "hidden_layer_sizes": [
+        32
+      ],
+      "learning_rate_init": 0.01,
+      "max_iter": 1000
+    },
+    "val_metric": 1.346719792724212,
+    "test_metric": 1.395787625933161,
+    "train_metric": 0.8875392460257432,
+    "test_r2": 0.9861628205189327,
+    "baseline_test_metric": 101.03861843869223,
+    "train_seconds": 1.2006675000011455,
+    "converged": false
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 44,
+    "model": "mlp",
+    "params": {
+      "activation": "relu",
+      "hidden_layer_sizes": [
+        32,
+        32,
+        32
+      ],
+      "learning_rate_init": 0.001,
+      "max_iter": 1000
+    },
+    "val_metric": 0.408094633407473,
+    "test_metric": 0.5053291599296157,
+    "train_metric": 0.21732920363133182,
+    "test_r2": 0.9949904053073344,
+    "baseline_test_metric": 101.03861843869223,
+    "train_seconds": 1.2803597999991325,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 44,
+    "model": "mlp",
+    "params": {
+      "activation": "relu",
+      "hidden_layer_sizes": [
+        32,
+        32,
+        32
+      ],
+      "learning_rate_init": 0.01,
+      "max_iter": 1000
+    },
+    "val_metric": 1.0923655975329332,
+    "test_metric": 1.2028124678685232,
+    "train_metric": 0.7107674466897925,
+    "test_r2": 0.9880758851198188,
+    "baseline_test_metric": 101.03861843869223,
+    "train_seconds": 0.46645279999938793,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 45,
+    "model": "ridge",
+    "params": {
+      "alpha": 0.001
+    },
+    "val_metric": 8.340322781732246,
+    "test_metric": 8.8360913886433,
+    "train_metric": 8.553396404392878,
+    "test_r2": 0.9167608912332537,
+    "baseline_test_metric": 106.16179073237915,
+    "train_seconds": 0.0007640999974682927,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 45,
+    "model": "ridge",
+    "params": {
+      "alpha": 0.01
+    },
+    "val_metric": 8.340878449178541,
+    "test_metric": 8.835527449862074,
+    "train_metric": 8.553400072478087,
+    "test_r2": 0.9167662037362014,
+    "baseline_test_metric": 106.16179073237915,
+    "train_seconds": 0.0006572999991476536,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 45,
+    "model": "ridge",
+    "params": {
+      "alpha": 0.1
+    },
+    "val_metric": 8.34656308760183,
+    "test_metric": 8.830158680947616,
+    "train_metric": 8.553742528651664,
+    "test_r2": 0.9168167794398647,
+    "baseline_test_metric": 106.16179073237915,
+    "train_seconds": 0.0006285999988904223,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 45,
+    "model": "ridge",
+    "params": {
+      "alpha": 1
+    },
+    "val_metric": 8.408543255255351,
+    "test_metric": 8.79159818272391,
+    "train_metric": 8.57370247433022,
+    "test_r2": 0.917180032983153,
+    "baseline_test_metric": 106.16179073237915,
+    "train_seconds": 0.0006231000006664544,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 45,
+    "model": "ridge",
+    "params": {
+      "alpha": 10
+    },
+    "val_metric": 9.021662833492027,
+    "test_metric": 8.697579903126694,
+    "train_metric": 8.957299646611192,
+    "test_r2": 0.9180657184584654,
+    "baseline_test_metric": 106.16179073237915,
+    "train_seconds": 0.0006253999999898952,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 45,
+    "model": "ridge",
+    "params": {
+      "alpha": 100
+    },
+    "val_metric": 12.126512289688055,
+    "test_metric": 10.094263878886464,
+    "train_metric": 11.75550541585166,
+    "test_r2": 0.9049084609950058,
+    "baseline_test_metric": 106.16179073237915,
+    "train_seconds": 0.0006147999993117992,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 45,
+    "model": "svr",
+    "params": {
+      "C": 1,
+      "gamma": "scale",
+      "kernel": "rbf"
+    },
+    "val_metric": 7.859346188130363,
+    "test_metric": 8.828075201896665,
+    "train_metric": 7.39019407930344,
+    "test_r2": 0.9168364065500549,
+    "baseline_test_metric": 106.16179073237915,
+    "train_seconds": 0.006233799998881295,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 45,
+    "model": "svr",
+    "params": {
+      "C": 10,
+      "gamma": "scale",
+      "kernel": "rbf"
+    },
+    "val_metric": 5.2079523851353535,
+    "test_metric": 6.92722386422408,
+    "train_metric": 4.901939465941926,
+    "test_r2": 0.9347430990328086,
+    "baseline_test_metric": 106.16179073237915,
+    "train_seconds": 0.011447199998656288,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 45,
+    "model": "svr",
+    "params": {
+      "C": 100,
+      "gamma": "scale",
+      "kernel": "rbf"
+    },
+    "val_metric": 2.367549086528132,
+    "test_metric": 2.0368651239472317,
+    "train_metric": 0.8157157956168226,
+    "test_r2": 0.9808120095030538,
+    "baseline_test_metric": 106.16179073237915,
+    "train_seconds": 0.06644489999962389,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 45,
+    "model": "svr",
+    "params": {
+      "C": 1000,
+      "gamma": "scale",
+      "kernel": "rbf"
+    },
+    "val_metric": 0.502077216858773,
+    "test_metric": 0.31397638360482877,
+    "train_metric": 0.07795715452339154,
+    "test_r2": 0.997042231322023,
+    "baseline_test_metric": 106.16179073237915,
+    "train_seconds": 0.8784709999999905,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 45,
+    "model": "random_forest",
+    "params": {
+      "max_depth": null,
+      "n_estimators": 300
+    },
+    "val_metric": 0.2256724476262608,
+    "test_metric": 0.1789383141558504,
+    "train_metric": 0.04625464758212596,
+    "test_r2": 0.9983143377383239,
+    "baseline_test_metric": 106.16179073237915,
+    "train_seconds": 0.33690019999994547,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 45,
+    "model": "random_forest",
+    "params": {
+      "max_depth": 5,
+      "n_estimators": 300
+    },
+    "val_metric": 1.2551247548104665,
+    "test_metric": 0.7376965989283779,
+    "train_metric": 0.7698722307992566,
+    "test_r2": 0.9930506369010647,
+    "baseline_test_metric": 106.16179073237915,
+    "train_seconds": 0.26765750000049593,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 45,
+    "model": "random_forest",
+    "params": {
+      "max_depth": 10,
+      "n_estimators": 300
+    },
+    "val_metric": 0.23071387917904107,
+    "test_metric": 0.18040015906424164,
+    "train_metric": 0.05131291663479434,
+    "test_r2": 0.9983005666418088,
+    "baseline_test_metric": 106.16179073237915,
+    "train_seconds": 0.3254028000010294,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 45,
+    "model": "gradient_boosting",
+    "params": {
+      "learning_rate": 0.05,
+      "max_iter": 200
+    },
+    "val_metric": 0.31639925169464805,
+    "test_metric": 0.2145182929702948,
+    "train_metric": 0.23528394971080643,
+    "test_r2": 0.9979791617429443,
+    "baseline_test_metric": 106.16179073237915,
+    "train_seconds": 0.17909019999933662,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 45,
+    "model": "gradient_boosting",
+    "params": {
+      "learning_rate": 0.1,
+      "max_iter": 200
+    },
+    "val_metric": 0.24312926009502756,
+    "test_metric": 0.1565886845547855,
+    "train_metric": 0.13261619891707438,
+    "test_r2": 0.9985248791607056,
+    "baseline_test_metric": 106.16179073237915,
+    "train_seconds": 0.176579999999376,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 45,
+    "model": "gradient_boosting",
+    "params": {
+      "learning_rate": 0.3,
+      "max_iter": 200
+    },
+    "val_metric": 0.20644610435407276,
+    "test_metric": 0.1195789743038956,
+    "train_metric": 0.04586956061497462,
+    "test_r2": 0.9988735237323269,
+    "baseline_test_metric": 106.16179073237915,
+    "train_seconds": 0.16975440000169328,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 45,
+    "model": "mlp",
+    "params": {
+      "activation": "logistic",
+      "hidden_layer_sizes": [
+        32
+      ],
+      "learning_rate_init": 0.001,
+      "max_iter": 1000
+    },
+    "val_metric": 8.102793064438059,
+    "test_metric": 9.082282735967489,
+    "train_metric": 9.018844984187213,
+    "test_r2": 0.9144416815922479,
+    "baseline_test_metric": 106.16179073237915,
+    "train_seconds": 1.2615933999986737,
+    "converged": false
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 45,
+    "model": "mlp",
+    "params": {
+      "activation": "logistic",
+      "hidden_layer_sizes": [
+        32
+      ],
+      "learning_rate_init": 0.01,
+      "max_iter": 1000
+    },
+    "val_metric": 1.2136445520955126,
+    "test_metric": 1.0326578610253503,
+    "train_metric": 1.0589965582588488,
+    "test_r2": 0.9902719973988496,
+    "baseline_test_metric": 106.16179073237915,
+    "train_seconds": 1.1920766000002914,
+    "converged": false
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 45,
+    "model": "mlp",
+    "params": {
+      "activation": "relu",
+      "hidden_layer_sizes": [
+        32,
+        32,
+        32
+      ],
+      "learning_rate_init": 0.001,
+      "max_iter": 1000
+    },
+    "val_metric": 0.47980937220993647,
+    "test_metric": 0.5883379200314324,
+    "train_metric": 0.34789678611376945,
+    "test_r2": 0.9944576485277143,
+    "baseline_test_metric": 106.16179073237915,
+    "train_seconds": 1.5366584000003058,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 45,
+    "model": "mlp",
+    "params": {
+      "activation": "relu",
+      "hidden_layer_sizes": [
+        32,
+        32,
+        32
+      ],
+      "learning_rate_init": 0.01,
+      "max_iter": 1000
+    },
+    "val_metric": 2.256741311714348,
+    "test_metric": 2.3935353517954523,
+    "train_metric": 1.6621513541666104,
+    "test_r2": 0.977452049699121,
+    "baseline_test_metric": 106.16179073237915,
+    "train_seconds": 0.30720499999733875,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 46,
+    "model": "ridge",
+    "params": {
+      "alpha": 0.001
+    },
+    "val_metric": 8.078226139575495,
+    "test_metric": 7.641349458239802,
+    "train_metric": 9.103195057915125,
+    "test_r2": 0.9156379557581416,
+    "baseline_test_metric": 90.84214148903837,
+    "train_seconds": 0.0007350000014412217,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 46,
+    "model": "ridge",
+    "params": {
+      "alpha": 0.01
+    },
+    "val_metric": 8.07736042502156,
+    "test_metric": 7.641816939223471,
+    "train_metric": 9.103198241524613,
+    "test_r2": 0.9156327946734873,
+    "baseline_test_metric": 90.84214148903837,
+    "train_seconds": 0.0006586999988940079,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 46,
+    "model": "ridge",
+    "params": {
+      "alpha": 0.1
+    },
+    "val_metric": 8.068942797195051,
+    "test_metric": 7.646462862583511,
+    "train_metric": 9.103496554284469,
+    "test_r2": 0.9155815027394925,
+    "baseline_test_metric": 90.84214148903837,
+    "train_seconds": 0.0006357999991450924,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 46,
+    "model": "ridge",
+    "params": {
+      "alpha": 1
+    },
+    "val_metric": 7.9989287100714055,
+    "test_metric": 7.688743052460123,
+    "train_metric": 9.121542946114284,
+    "test_r2": 0.9151147208878814,
+    "baseline_test_metric": 90.84214148903837,
+    "train_seconds": 0.000636800003121607,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 46,
+    "model": "ridge",
+    "params": {
+      "alpha": 10
+    },
+    "val_metric": 7.705530722858683,
+    "test_metric": 8.106326383876372,
+    "train_metric": 9.531695497723566,
+    "test_r2": 0.9105045164112868,
+    "baseline_test_metric": 90.84214148903837,
+    "train_seconds": 0.0006390999988070689,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 46,
+    "model": "ridge",
+    "params": {
+      "alpha": 100
+    },
+    "val_metric": 8.828843723347784,
+    "test_metric": 11.07712378023465,
+    "train_metric": 12.52231913062502,
+    "test_r2": 0.8777063120162603,
+    "baseline_test_metric": 90.84214148903837,
+    "train_seconds": 0.000632199997198768,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 46,
+    "model": "svr",
+    "params": {
+      "C": 1,
+      "gamma": "scale",
+      "kernel": "rbf"
+    },
+    "val_metric": 8.369060051304645,
+    "test_metric": 7.236823585800554,
+    "train_metric": 7.216461635708101,
+    "test_r2": 0.9201040032454604,
+    "baseline_test_metric": 90.84214148903837,
+    "train_seconds": 0.00656630000230507,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 46,
+    "model": "svr",
+    "params": {
+      "C": 10,
+      "gamma": "scale",
+      "kernel": "rbf"
+    },
+    "val_metric": 7.332981788183316,
+    "test_metric": 6.9344808173030765,
+    "train_metric": 4.974701169558792,
+    "test_r2": 0.9234419285885667,
+    "baseline_test_metric": 90.84214148903837,
+    "train_seconds": 0.012698899998213165,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 46,
+    "model": "svr",
+    "params": {
+      "C": 100,
+      "gamma": "scale",
+      "kernel": "rbf"
+    },
+    "val_metric": 2.0009989581433376,
+    "test_metric": 2.0706601579746606,
+    "train_metric": 0.8544625696467508,
+    "test_r2": 0.9771394928590073,
+    "baseline_test_metric": 90.84214148903837,
+    "train_seconds": 0.06615230000170413,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 46,
+    "model": "svr",
+    "params": {
+      "C": 1000,
+      "gamma": "scale",
+      "kernel": "rbf"
+    },
+    "val_metric": 0.6414599423124374,
+    "test_metric": 0.589728820980463,
+    "train_metric": 0.07242732272612605,
+    "test_r2": 0.9934892744850707,
+    "baseline_test_metric": 90.84214148903837,
+    "train_seconds": 1.5122036000029766,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 46,
+    "model": "random_forest",
+    "params": {
+      "max_depth": null,
+      "n_estimators": 300
+    },
+    "val_metric": 0.2730598640764771,
+    "test_metric": 0.34662796870851165,
+    "train_metric": 0.050071534400965304,
+    "test_r2": 0.9961731570854778,
+    "baseline_test_metric": 90.84214148903837,
+    "train_seconds": 0.3326968000001216,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 46,
+    "model": "random_forest",
+    "params": {
+      "max_depth": 5,
+      "n_estimators": 300
+    },
+    "val_metric": 0.8277509292130467,
+    "test_metric": 1.0752598197799768,
+    "train_metric": 0.6836666271500771,
+    "test_r2": 0.9881289140113916,
+    "baseline_test_metric": 90.84214148903837,
+    "train_seconds": 0.26920609999797307,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 46,
+    "model": "random_forest",
+    "params": {
+      "max_depth": 10,
+      "n_estimators": 300
+    },
+    "val_metric": 0.27494320035134534,
+    "test_metric": 0.34943639728273873,
+    "train_metric": 0.05653737135431871,
+    "test_r2": 0.9961421514657344,
+    "baseline_test_metric": 90.84214148903837,
+    "train_seconds": 0.3241474999995262,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 46,
+    "model": "gradient_boosting",
+    "params": {
+      "learning_rate": 0.05,
+      "max_iter": 200
+    },
+    "val_metric": 0.3550903420660499,
+    "test_metric": 0.44959649980423244,
+    "train_metric": 0.23090486417083933,
+    "test_r2": 0.995036363666555,
+    "baseline_test_metric": 90.84214148903837,
+    "train_seconds": 0.2272635999979684,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 46,
+    "model": "gradient_boosting",
+    "params": {
+      "learning_rate": 0.1,
+      "max_iter": 200
+    },
+    "val_metric": 0.2682166266688167,
+    "test_metric": 0.3250663666236311,
+    "train_metric": 0.13683557755770112,
+    "test_r2": 0.9964112015354732,
+    "baseline_test_metric": 90.84214148903837,
+    "train_seconds": 0.16646879999825615,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 46,
+    "model": "gradient_boosting",
+    "params": {
+      "learning_rate": 0.3,
+      "max_iter": 200
+    },
+    "val_metric": 0.1914097833297404,
+    "test_metric": 0.23717311059578788,
+    "train_metric": 0.054865556548803304,
+    "test_r2": 0.9973815608671731,
+    "baseline_test_metric": 90.84214148903837,
+    "train_seconds": 0.17061580000154208,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 46,
+    "model": "mlp",
+    "params": {
+      "activation": "logistic",
+      "hidden_layer_sizes": [
+        32
+      ],
+      "learning_rate_init": 0.001,
+      "max_iter": 1000
+    },
+    "val_metric": 8.621920446136075,
+    "test_metric": 8.44429855749641,
+    "train_metric": 9.160712038558351,
+    "test_r2": 0.9067732352260368,
+    "baseline_test_metric": 90.84214148903837,
+    "train_seconds": 1.2592996999992465,
+    "converged": false
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 46,
+    "model": "mlp",
+    "params": {
+      "activation": "logistic",
+      "hidden_layer_sizes": [
+        32
+      ],
+      "learning_rate_init": 0.01,
+      "max_iter": 1000
+    },
+    "val_metric": 1.4194975918122172,
+    "test_metric": 1.1382154688813586,
+    "train_metric": 1.0165342962818085,
+    "test_r2": 0.9874338709062711,
+    "baseline_test_metric": 90.84214148903837,
+    "train_seconds": 1.2039024000005156,
+    "converged": false
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 46,
+    "model": "mlp",
+    "params": {
+      "activation": "relu",
+      "hidden_layer_sizes": [
+        32,
+        32,
+        32
+      ],
+      "learning_rate_init": 0.001,
+      "max_iter": 1000
+    },
+    "val_metric": 2.34943147450474,
+    "test_metric": 1.9274441542634764,
+    "train_metric": 1.3035743422993231,
+    "test_r2": 0.978720626519659,
+    "baseline_test_metric": 90.84214148903837,
+    "train_seconds": 1.0754516999986663,
+    "converged": true
+  },
+  {
+    "library": "sklearn",
+    "problem_name": "regression",
+    "seed": 46,
+    "model": "mlp",
+    "params": {
+      "activation": "relu",
+      "hidden_layer_sizes": [
+        32,
+        32,
+        32
+      ],
+      "learning_rate_init": 0.01,
+      "max_iter": 1000
+    },
+    "val_metric": 0.6851895852345423,
+    "test_metric": 0.7879877203700716,
+    "train_metric": 0.47098067607875316,
+    "test_r2": 0.9913004561182294,
+    "baseline_test_metric": 90.84214148903837,
+    "train_seconds": 0.3757027999999991,
+    "converged": true
+  }
+]

@@ -28,7 +28,12 @@ from nn_from_scratch.dataset import Fetch
 from nn_from_scratch.features import PreprocessBanknote, PreprocessEnergy
 from nn_from_scratch.modeling.trainer import Trainer
 from nn_from_scratch.nn.losses import get_loss
-from nn_from_scratch.nn.metrics import binary_cross_entropy, mean_squared_error
+from nn_from_scratch.nn.metrics import (
+    accuracy,
+    binary_cross_entropy,
+    mean_squared_error,
+    r2_score,
+)
 from nn_from_scratch.nn.network import NeuralNetwork
 from nn_from_scratch.nn.optimizers import get_optimizer
 
@@ -215,7 +220,9 @@ def run_single_experiment(
         - training outcome: "epochs_ran", "stopped_early", "diverged",
           "best_epoch", "best_val_loss";
         - metrics (float): "test_loss", "test_metric", "train_metric",
-          "baseline_test_metric" (float or None);
+          "baseline_test_metric" (float or None), and "test_accuracy"
+          (classification) or "test_r2" (regression);
+        - "train_seconds" (float): wall-clock time of Trainer.fit;
         - histories (list of float, one value per epoch):
           "train_loss_history", "val_loss_history", "val_metric_history".
 
@@ -237,7 +244,9 @@ def run_single_experiment(
        validation set each epoch.
     6. Evaluate on the test set, and score the training set in evaluation
        mode (no dropout) for the generalization gap.
-    7. Collect settings, results and histories into one dictionary.
+    7. Compute test accuracy (classification) or test R² (regression), and
+       record the training time.
+    8. Collect settings, results and histories into one dictionary.
     """
     print("\n" + "=" * 70)
     print(
@@ -286,7 +295,9 @@ def run_single_experiment(
         random_seed=seed,
     )
 
-    # Train the model and collect history
+    # Train the model and collect history. The wall-clock training time is
+    # recorded so it can be compared with other libraries.
+    fit_start = time.perf_counter()
     history = trainer.fit(
         X_train=X_train,
         y_train=y_train,
@@ -296,6 +307,7 @@ def run_single_experiment(
         batch_size=batch_size,
         verbose=False,
     )
+    train_seconds = time.perf_counter() - fit_start
 
     # Evaluate on the held-out test set
     results = trainer.evaluate(X_test, y_test)
@@ -304,6 +316,15 @@ def run_single_experiment(
     # generalization gap (test - train). The training loss recorded during
     # fit() can't be used for this: with dropout it includes dropout noise.
     train_metric = trainer.score(X_train, y_train)
+
+    # An easier-to-read secondary test metric: accuracy for classification,
+    # R² for regression. These use the same NumPy functions as the library
+    # comparisons in nn_from_scratch.benchmarks.
+    test_predictions = trainer.predict(X_test)
+    if experiment_config["task_type"] == "classification":
+        secondary_name, secondary_value = "test_accuracy", accuracy(y_test, test_predictions)
+    else:
+        secondary_name, secondary_value = "test_r2", r2_score(y_test, test_predictions)
 
     # Build a summary record for this run.
     # Keep the full JSON informative for later plotting/analysis,
@@ -331,6 +352,8 @@ def run_single_experiment(
         "test_metric": float(results["test_metric"]),
         "train_metric": train_metric,
         "baseline_test_metric": baseline_test_metric,
+        secondary_name: secondary_value,
+        "train_seconds": train_seconds,
         "train_loss_history": [float(x) for x in history["train_loss"]],
         "val_loss_history": [float(x) for x in history["val_loss"]],
         "val_metric_history": [float(x) for x in history["val_metric"]],

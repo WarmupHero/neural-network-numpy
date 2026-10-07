@@ -5,7 +5,7 @@ A feed-forward neural network built with **NumPy only**, with no TensorFlow, PyT
 - **Binary classification:** detecting forged banknotes (UCI Banknote Authentication)
 - **Regression:** predicting a building's heating load (UCI Energy Efficiency)
 
-Each task is benchmarked across a grid of 8 architectures × 3 optimizers × 2 learning rates × 2 batch sizes, and every configuration is repeated with 5 random seeds: 960 training runs in total.
+Each task is benchmarked across a grid of 8 architectures × 3 optimizers × 2 learning rates × 2 batch sizes, and every configuration is repeated with 5 random seeds: 960 training runs in total. The results are then [compared with scikit-learn](#comparison-with-scikit-learn) on exactly the same data.
 
 ![Python](https://img.shields.io/badge/python-3.12-blue)
 ![NumPy only](https://img.shields.io/badge/built%20with-NumPy%20only-informational)
@@ -24,6 +24,7 @@ Each task is benchmarked across a grid of 8 architectures × 3 optimizers × 2 l
 - **Verified correctness.** Every analytic gradient (activations, losses, batch norm in both modes, and whole networks with and without bias and batch norm) is checked against central finite differences with `pytest`: 105 tests in total.
 - **Multi-seed results.** Every configuration runs with 5 seeds, and each seed changes the data split, the initial weights, the dropout masks and the shuffling. Results are reported as mean ± standard deviation, so they don't rest on one lucky draw.
 - **Leak-free preprocessing, also in NumPy.** Duplicates are removed, the data gets a 60 / 20 / 20 train / validation / test split (stratified by class for classification), and the standard scaler is fit on the training split only.
+- **Compared with standard practice.** Five scikit-learn models per task, trained on the same splits and selected by the same validation rule, put the from-scratch network's results in context.
 - **Config-driven experiments.** Architectures (including bias, initialization, batch norm and dropout per layer), optimizers, learning rates, batch sizes, seeds and early-stopping settings are defined in JSON. One command runs the whole sweep.
 
 ## Results
@@ -43,7 +44,7 @@ When all 8 architectures are allowed, the selection changes for classification. 
 
 The typical run is strong too. Across seeds, the median A1 / A2 run removes 97.2% ± 1.6% of the baseline error on classification and 91.1% ± 0.9% on regression. The weaker runs are the failure modes described below.
 
-*A1* = 1 hidden layer (32 units, sigmoid). *A2* = 3 hidden layers (32 units each, ReLU). The other six architectures are variants of these; see [Architectures](#architectures). Full per-run results are in [`main_summary_20261007-160408.csv`](reports/main_summary_20261007-160408.csv).
+*A1* = 1 hidden layer (32 units, sigmoid). *A2* = 3 hidden layers (32 units each, ReLU). The other six architectures are variants of these; see [Architectures](#architectures). Full per-run results are in [`main_summary_20261007-165753.csv`](reports/main_summary_20261007-165753.csv).
 
 ### Key findings
 
@@ -54,17 +55,17 @@ The typical run is strong too. Across seeds, the median A1 / A2 run removes 97.2
 - **Dropout doesn't help here, because nothing overfits.** The gap between training and test metric is tiny (about 0.0002 BCE on classification). With no overfitting to correct, dropout only removes capacity. It wins only 30 of 120 matched classification comparisons and 12 of 110 regression ones.
 
 <p align="center">
-  <img src="reports/figures/comparisons/a2_variants_regression_momentum_lr01_bs64_20261007-161030.png" width="85%" alt="A2 and its variants on regression with momentum at LR 0.1: only the batch-norm variant learns">
+  <img src="reports/figures/comparisons/a2_variants_regression_momentum_lr01_bs64_20261007-170419.png" width="85%" alt="A2 and its variants on regression with momentum at LR 0.1: only the batch-norm variant learns">
 </p>
 <p align="center">
-  <img src="reports/figures/comparisons/optimizers_classification_A1_lr01_bs16_20261007-161030.png" width="85%" alt="Training and validation loss for SGD, Momentum and AdaBelief on banknote classification">
+  <img src="reports/figures/comparisons/optimizers_classification_A1_lr01_bs16_20261007-170419.png" width="85%" alt="Training and validation loss for SGD, Momentum and AdaBelief on banknote classification">
 </p>
 <p align="center">
-  <img src="reports/figures/comparisons/depth_classification_sgd_lr01_bs16_20261007-161030.png" width="48%" alt="Depth comparison: A1 vs A2">
-  <img src="reports/figures/comparisons/learning_rate_classification_A1_sgd_bs16_20261007-161030.png" width="48%" alt="Learning-rate comparison: 0.1 vs 0.001">
+  <img src="reports/figures/comparisons/depth_classification_sgd_lr01_bs16_20261007-170419.png" width="48%" alt="Depth comparison: A1 vs A2">
+  <img src="reports/figures/comparisons/learning_rate_classification_A1_sgd_bs16_20261007-170419.png" width="48%" alt="Learning-rate comparison: 0.1 vs 0.001">
 </p>
 
-The plots show seed 42. More plots, including the dropout comparison, EDA, scaling comparisons and correlation heatmaps, are in [`reports/`](reports/). The written analysis, including all multi-seed tables, is in [`analysis_20261007-170828.txt`](reports/analysis_20261007-170828.txt).
+The plots show seed 42. More plots, including the dropout comparison, EDA, scaling comparisons and correlation heatmaps, are in [`reports/`](reports/). The written analysis, including all multi-seed tables, is in [`analysis_20261007-172708.txt`](reports/analysis_20261007-172708.txt).
 
 ### Architectures
 
@@ -79,6 +80,34 @@ The plots show seed 42. More plots, including the dropout comparison, EDA, scali
 | `A1-dropout` | A1 + dropout 0.2 | regularization of the best shallow model |
 | `A2-bn-dropout` | A2-bn + dropout 0.2 | regularization of the deep model that learns |
 
+## Comparison with scikit-learn
+
+How does a network written from scratch compare with standard practice? Five scikit-learn models per task were trained on **exactly the same splits** (same 5 seeds), scored with **the same NumPy metric functions**, and selected with **the same rule**: for every model, the configuration with the lowest validation loss on each seed, then its test score. The from-scratch network itself stays NumPy-only; scikit-learn is an optional install used only for this comparison.
+
+| Model | Classification: test BCE | Accuracy | Regression: test MSE | R² |
+|---|---|---|---|---|
+| **NumPy NN (from scratch), A1 / A2** | 0.0017 ± 0.0021 | 100% | 0.52 ± 0.19 | 0.995 |
+| **NumPy NN (from scratch), all 8 architectures** | **0.00009 ± 0.00013** | 100% | 0.50 ± 0.20 | 0.995 |
+| scikit-learn MLP | 0.00033 ± 0.00023 | 100% | 0.54 ± 0.17 | 0.994 |
+| scikit-learn SVM / SVR (RBF) | 0.0036 ± 0.0008 | 100% | 0.39 ± 0.11 | 0.996 |
+| scikit-learn gradient boosting | 0.024 ± 0.030 | 99.5% | **0.18 ± 0.04** | **0.998** |
+| scikit-learn random forest | 0.038 ± 0.009 | 99.4% | 0.27 ± 0.06 | 0.997 |
+| scikit-learn logistic / ridge regression | 0.011 ± 0.010 | 99.6% | 9.21 ± 0.96 | 0.908 |
+
+Mean ± standard deviation over 5 seeds. Lower BCE / MSE is better, and higher accuracy / R² is better.
+
+- **Classification: the from-scratch network wins.** Allowing all 8 architectures, it has the lowest test BCE of any model and beats scikit-learn's best model (its MLP, chosen on every seed) on 4 of 5 seeds. Every neural network and the SVM classify the test set perfectly; the BCE differences are about how confident the correct predictions are.
+- **Regression: tree ensembles win.** Gradient boosting has about a third of the network's error (MSE 0.18 vs. 0.50) and beats it on all 5 seeds. Random forest and SVR also do better. Tree models suit this dataset, whose 8 building features each take only 2 to 12 distinct values.
+- **The from-scratch network matches scikit-learn's own neural network.** On regression, its MSE (0.52 for A1 / A2) is in line with scikit-learn's MLP (0.54), which suggests the implementation performs like a standard library one.
+- **Training cost is comparable.** The selected configurations train in about 0.2–0.3 s for the NumPy network and from a few milliseconds to 1.2 s for the scikit-learn models, per seed, on one CPU.
+
+<p align="center">
+  <img src="reports/figures/benchmarks/benchmark_classification_20261007-172710.png" width="48%" alt="Classification test BCE: NumPy network vs. scikit-learn models">
+  <img src="reports/figures/benchmarks/benchmark_regression_20261007-172710.png" width="48%" alt="Regression test MSE: NumPy network vs. scikit-learn models">
+</p>
+
+The full tables, the configuration each model selected most often and a seed-by-seed head-to-head are in [`benchmark_report_20261007-172710.txt`](reports/benchmark_report_20261007-172710.txt).
+
 ## Quickstart
 
 The project follows the [Cookiecutter Data Science](https://cookiecutter-data-science.drivendata.org/) layout, and a `Makefile` wraps the common commands:
@@ -91,6 +120,10 @@ make train                        # run all 960 experiments (~10 min)
 make plots                        # optimizer / depth / learning-rate / variant / dropout plots
 make analysis                     # summary report -> reports/analysis_<stamp>.txt
 make all                          # train, plots and analysis in one go
+
+make benchmark-requirements       # optional: scikit-learn, for the library comparison
+make benchmarks                   # train the scikit-learn models on the same splits (~1 min)
+make benchmark-report             # comparison report -> reports/benchmark_report_<stamp>.txt
 
 make test                         # gradient checks, layer tests, split checks, training tests
 make lint                         # check style and lint with ruff (changes nothing)
@@ -110,11 +143,15 @@ python -m nn_from_scratch.modeling.train   # run all experiments
 python -m nn_from_scratch.comparisons      # comparison plots
 python -m nn_from_scratch.analysis         # analysis report
 python -m pytest                           # tests
+
+pip install -e ".[benchmarks]"             # optional: scikit-learn
+python -m nn_from_scratch.benchmarks.run   # library comparison
+python -m nn_from_scratch.benchmarks.report
 ```
 
 For a quicker run, set `"seeds": [42]` in both files in `configs/`. That runs the 192 experiments of a single seed in about 2 minutes, and seed 42 reproduces the single-seed results exactly.
 
-Every output file is stamped with the time of the run, as `name_YYYYMMDD-HHMMSS.ext`, so a new run never overwrites an earlier one. `nn_from_scratch.comparisons` and `nn_from_scratch.analysis` use the newest `reports/main_results_full_*.json` by default; pass a path as the first argument to pick a specific one, e.g. `python -m nn_from_scratch.analysis reports/main_results_full_20261007-160408.json`. When run directly (not through `make plots`), set `MPLBACKEND=Agg` to stop plot windows from opening.
+Every output file is stamped with the time of the run, as `name_YYYYMMDD-HHMMSS.ext`, so a new run never overwrites an earlier one. `nn_from_scratch.comparisons` and `nn_from_scratch.analysis` use the newest `reports/main_results_full_*.json` by default; pass a path as the first argument to pick a specific one, e.g. `python -m nn_from_scratch.analysis reports/main_results_full_20261007-165753.json`. When run directly (not through `make plots`), set `MPLBACKEND=Agg` to stop plot windows from opening.
 
 Older runs stay on your disk, but only the newest version of each output is committed. Stamped outputs are git-ignored, and a pre-commit hook ([`tools/stage_latest_outputs.py`](tools/stage_latest_outputs.py)) stages the newest ones, untracks older ones, and updates the stamped links in this README. Enable it once per clone with `git config core.hooksPath .githooks`.
 
@@ -125,7 +162,7 @@ neural-network-from-scratch/
 ├── Makefile                     # make train / plots / analysis / test / lint / format / ...
 ├── pyproject.toml               # package metadata, dev tools, pytest and ruff settings
 ├── requirements.txt             # pinned runtime dependencies
-├── configs/                     # JSON experiment definitions (one per task)
+├── configs/                     # JSON experiment definitions (one per task) and the library comparison's models
 ├── data/
 │   ├── external/                # (empty) data from third-party sources
 │   ├── interim/                 # (empty) intermediate transformed data
@@ -139,6 +176,7 @@ neural-network-from-scratch/
 ├── reports/                     # generated results: summary CSV, full results JSON, analysis
 │   ├── comparisons/             # short text analyses next to the comparison plots
 │   └── figures/
+│       ├── benchmarks/          # NumPy network vs. scikit-learn
 │       ├── comparisons/         # loss-curve comparison plots
 │       └── eda/                 # exploratory and preprocessing plots
 ├── nn_from_scratch/             # the source package
@@ -150,6 +188,11 @@ neural-network-from-scratch/
 │   ├── plots.py                 # EDA and preprocessing figures
 │   ├── comparisons.py           # optimizer / depth / learning-rate / variant / dropout plots
 │   ├── analysis.py              # aggregate analysis report, including multi-seed results
+│   ├── benchmarks/              # comparison with scikit-learn on the same splits (optional dependency)
+│   │   ├── data.py              # the main pipeline's exact splits, per seed
+│   │   ├── sklearn_models.py    # scikit-learn models and their grids
+│   │   ├── run.py               # trains the library models
+│   │   └── report.py            # comparison tables and figures
 │   ├── nn/                      # the neural-network library
 │   │   ├── layers.py            # Dense (bias, initialization), BatchNorm, Dropout
 │   │   ├── activations.py       # ReLU, Sigmoid, Tanh, Linear
@@ -160,7 +203,7 @@ neural-network-from-scratch/
 │   └── modeling/
 │       ├── train.py             # runs the full experiment grid, for every seed
 │       └── trainer.py           # training loop, early stopping, divergence detection, evaluation
-├── tests/                       # pytest: gradient checks, layers, batch norm, dropout, seeds, training
+├── tests/                       # pytest: gradient checks, layers, batch norm, dropout, seeds, training, metrics, benchmarks
 ├── tools/                       # pre-commit helper (newest outputs only) and make help
 └── .githooks/                   # the pre-commit hook
 ```

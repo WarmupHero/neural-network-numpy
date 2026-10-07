@@ -24,6 +24,14 @@ dev = [
     "pytest>=8",
     "ruff==0.16.10",
 ]
+# Libraries the from-scratch network is compared against (nn_from_scratch.benchmarks).
+# Install with  pip install -e ".[benchmarks]"  (or  make benchmark-requirements).
+# scipy is pinned because newer releases require NumPy 2, which would replace
+# the project's pinned NumPy 1.26.4.
+benchmarks = [
+    "scikit-learn==1.9.1",
+    "scipy==1.17.1",
+]
 
 [tool.setuptools.packages.find]
 include = ["nn_from_scratch*"]

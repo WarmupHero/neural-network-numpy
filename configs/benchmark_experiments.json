@@ -1,0 +1,71 @@
+{
+  "description": "Library models compared with the from-scratch NumPy network. Each model's grid is tried in full on every seed's split; the configuration with the lowest validation metric is selected and its test metric reported. Seeds and splits come from the main experiment configs.",
+  "sklearn": {
+    "classification": {
+      "logistic_regression": {
+        "C": [0.01, 0.1, 1, 10, 100],
+        "max_iter": [5000]
+      },
+      "svm": {
+        "kernel": ["rbf"],
+        "C": [0.1, 1, 10, 100],
+        "gamma": ["scale"],
+        "probability": [true]
+      },
+      "random_forest": {
+        "n_estimators": [300],
+        "max_depth": [null, 5, 10]
+      },
+      "gradient_boosting": {
+        "learning_rate": [0.05, 0.1, 0.3],
+        "max_iter": [200]
+      },
+      "mlp": [
+        {
+          "hidden_layer_sizes": [[32]],
+          "activation": ["logistic"],
+          "learning_rate_init": [0.001, 0.01],
+          "max_iter": [500]
+        },
+        {
+          "hidden_layer_sizes": [[32, 32, 32]],
+          "activation": ["relu"],
+          "learning_rate_init": [0.001, 0.01],
+          "max_iter": [500]
+        }
+      ]
+    },
+    "regression": {
+      "ridge": {
+        "alpha": [0.001, 0.01, 0.1, 1, 10, 100]
+      },
+      "svr": {
+        "kernel": ["rbf"],
+        "C": [1, 10, 100, 1000],
+        "gamma": ["scale"]
+      },
+      "random_forest": {
+        "n_estimators": [300],
+        "max_depth": [null, 5, 10]
+      },
+      "gradient_boosting": {
+        "learning_rate": [0.05, 0.1, 0.3],
+        "max_iter": [200]
+      },
+      "mlp": [
+        {
+          "hidden_layer_sizes": [[32]],
+          "activation": ["logistic"],
+          "learning_rate_init": [0.001, 0.01],
+          "max_iter": [1000]
+        },
+        {
+          "hidden_layer_sizes": [[32, 32, 32]],
+          "activation": ["relu"],
+          "learning_rate_init": [0.001, 0.01],
+          "max_iter": [1000]
+        }
+      ]
+    }
+  }
+}
