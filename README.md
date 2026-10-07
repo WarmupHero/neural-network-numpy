@@ -144,6 +144,17 @@ Each cell is the best configuration per seed (selected on validation), mean ± s
 
 The bar charts include every library model and each framework architecture. The curves show the selected NumPy and framework models on seed 42. The full tables, the configuration each model selected most often and the seed-by-seed head-to-heads are in [`benchmark_report_20261007-230943.txt`](reports/benchmark_report_20261007-230943.txt).
 
+### Limitations
+
+These comparisons show that a from-scratch network can match standard libraries on these two tasks. They don't show that it's better in general.
+
+- **Small, nearly solved datasets.** The test sets have 270 and 154 samples, and the best neural networks reach about 100% accuracy and an R² of about 0.995. Most differences between neural networks are within the variation across the 5 seeds, and no significance tests were run.
+- **Not equally tuned.** The grid (learning rates, batch sizes, early stopping) and the architectures were designed around the NumPy network. The frameworks run with their default initialization, optimizers and batch-norm settings, without per-framework tuning such as learning-rate schedules or weight decay.
+- **Unequal search space.** The NumPy network's best model is selected from 8 architectures, while each framework's comes from 4. Choosing among more candidates is an advantage on its own.
+- **Different optimizers and precision.** The NumPy network uses AdaBelief, moving-average momentum and float64; the frameworks use Adam, classical momentum and float32.
+- **Timing is specific to this setup.** Times were measured on one CPU with small layers and batches, where each framework's per-step overhead dominates. On larger data, larger models or a GPU, the frameworks are much faster.
+- **Two datasets.** The results shouldn't be generalized beyond these two UCI tasks.
+
 ## Quickstart
 
 The project follows the [Cookiecutter Data Science](https://cookiecutter-data-science.drivendata.org/) layout, and a `Makefile` wraps the common commands:
