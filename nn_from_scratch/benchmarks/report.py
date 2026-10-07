@@ -338,8 +338,8 @@ def build_rows(problem_name, numpy_runs, library_runs):
     )
     numpy_all = select_per_seed(numpy_ok, "best_val_loss")
     rows = [
-        summarize("NumPy NN (from scratch) · A1 / A2", numpy_baseline, secondary_key),
-        summarize("NumPy NN (from scratch) · all 8 architectures", numpy_all, secondary_key),
+        summarize("NumPy NN · A1 / A2", numpy_baseline, secondary_key),
+        summarize("NumPy NN · all 8 architectures", numpy_all, secondary_key),
     ]
     selections = {"numpy": numpy_all}
 
@@ -496,7 +496,7 @@ def format_architecture_table(problem_name, numpy_runs, framework, framework_run
     title = f"Same architecture, different implementation — {problem_name} (test {metric})"
     lines = [title, "-" * len(title)]
     lines.append(
-        f"{'Architecture':<14}{'NumPy (from scratch)':<24}{label:<24}"
+        f"{'Architecture':<14}{'NumPy NN':<24}{label:<24}"
         f"{'NumPy better':<14}Diverged runs (NumPy / framework)"
     )
     for arch in dict.fromkeys(r["model"] for r in framework_runs):

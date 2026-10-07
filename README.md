@@ -1,4 +1,4 @@
-# Neural Network from Scratch in NumPy
+# A NumPy Neural Network vs. scikit-learn, TensorFlow and PyTorch
 
 A feed-forward neural network built with **NumPy only**, with no TensorFlow, PyTorch or scikit-learn. It includes the forward pass, backpropagation, bias terms, three weight-initialization schemes, batch normalization, dropout, three optimizers, and early stopping. It's applied to two complete examples:
 
@@ -95,8 +95,8 @@ The table also lists each framework's best model; the next section compares the 
 
 | Model | Classification: test BCE | Accuracy | Regression: test MSE | R² |
 |---|---|---|---|---|
-| **NumPy NN (from scratch), A1 / A2** | 0.0017 ± 0.0021 | 100% | 0.52 ± 0.19 | 0.995 |
-| **NumPy NN (from scratch), all 8 architectures** | **0.00009 ± 0.00013** | 100% | 0.50 ± 0.20 | 0.995 |
+| **NumPy NN, A1 / A2** | 0.0017 ± 0.0021 | 100% | 0.52 ± 0.19 | 0.995 |
+| **NumPy NN, all 8 architectures** | **0.00009 ± 0.00013** | 100% | 0.50 ± 0.20 | 0.995 |
 | scikit-learn MLP | 0.00033 ± 0.00023 | 100% | 0.54 ± 0.17 | 0.994 |
 | scikit-learn SVM / SVR (RBF) | 0.0036 ± 0.0008 | 100% | 0.39 ± 0.11 | 0.996 |
 | scikit-learn gradient boosting | 0.024 ± 0.030 | 99.5% | **0.18 ± 0.04** | **0.998** |
@@ -132,17 +132,17 @@ Each cell is the best configuration per seed (selected on validation), mean ± s
 - **The frameworks are slower on data this small.** A selected model takes 0.2–0.3 s to train in the NumPy network, 0.6–1.6 s in PyTorch, and 4–13 s in Keras. With a few hundred training samples, each step is tiny, and per-step framework overhead dominates; Keras's `fit()` adds the most. The 480 runs took 9 minutes in PyTorch and 81 in Keras on one CPU; the NumPy network's 960 runs take about 10.
 
 <p align="center">
-  <img src="reports/figures/benchmarks/benchmark_classification_20261007-223117.png" width="48%" alt="Classification test BCE: NumPy network vs. scikit-learn, Keras and PyTorch models">
-  <img src="reports/figures/benchmarks/benchmark_regression_20261007-223117.png" width="48%" alt="Regression test MSE: NumPy network vs. scikit-learn, Keras and PyTorch models">
+  <img src="reports/figures/benchmarks/benchmark_classification_20261007-230943.png" width="48%" alt="Classification test BCE: NumPy network vs. scikit-learn, Keras and PyTorch models">
+  <img src="reports/figures/benchmarks/benchmark_regression_20261007-230943.png" width="48%" alt="Regression test MSE: NumPy network vs. scikit-learn, Keras and PyTorch models">
 </p>
 <p align="center">
-  <img src="reports/figures/benchmarks/benchmark_curves_tensorflow_20261007-223117.png" width="85%" alt="Validation loss of the selected NumPy and Keras models, seed 42">
+  <img src="reports/figures/benchmarks/benchmark_curves_tensorflow_20261007-230943.png" width="85%" alt="Validation loss of the selected NumPy and Keras models, seed 42">
 </p>
 <p align="center">
-  <img src="reports/figures/benchmarks/benchmark_curves_pytorch_20261007-223117.png" width="85%" alt="Validation loss of the selected NumPy and PyTorch models, seed 42">
+  <img src="reports/figures/benchmarks/benchmark_curves_pytorch_20261007-230943.png" width="85%" alt="Validation loss of the selected NumPy and PyTorch models, seed 42">
 </p>
 
-The bar charts include every library model and each framework architecture. The curves show the selected NumPy and framework models on seed 42. The full tables, the configuration each model selected most often and the seed-by-seed head-to-heads are in [`benchmark_report_20261007-223117.txt`](reports/benchmark_report_20261007-223117.txt).
+The bar charts include every library model and each framework architecture. The curves show the selected NumPy and framework models on seed 42. The full tables, the configuration each model selected most often and the seed-by-seed head-to-heads are in [`benchmark_report_20261007-230943.txt`](reports/benchmark_report_20261007-230943.txt).
 
 ## Quickstart
 

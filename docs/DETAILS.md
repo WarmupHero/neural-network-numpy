@@ -1,4 +1,4 @@
-# Neural Network from Scratch in NumPy: Detailed Documentation
+# A NumPy Neural Network vs. scikit-learn, TensorFlow and PyTorch: Detailed Documentation
 
 This is the in-depth reference for the project. For a quick overview, results, and plots, see the [repository README](../README.md).
 
