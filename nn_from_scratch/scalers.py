@@ -8,6 +8,7 @@ transformation to any other split.
 
 import numpy as np
 
+
 class StandardScaler:
     """
     Standardize features by removing the mean and scaling by the standard deviation.

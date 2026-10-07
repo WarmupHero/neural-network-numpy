@@ -9,10 +9,11 @@ name of every output file, and provides helpers that find the newest
 stamped output on disk so that downstream scripts (analysis, plots, the
 git pre-commit tool) can read the most recent results.
 """
+
+from datetime import datetime
 import glob
 import os
 import re
-from datetime import datetime
 
 # Paths are calculated from where this file lives: the package folder
 # (nn_from_scratch/) sits directly inside the project root.
@@ -128,7 +129,8 @@ def latest_stamped_file(directory, basename, ext):
     if not candidates:
         raise FileNotFoundError(
             f"No file matching {basename}_<YYYYMMDD-HHMMSS>{ext} found in "
-            f"{directory}. Run python -m nn_from_scratch.modeling.train first to produce one.")
+            f"{directory}. Run python -m nn_from_scratch.modeling.train first to produce one."
+        )
 
     return max(candidates, key=os.path.basename)
 
@@ -176,7 +178,7 @@ def latest_stamped_outputs(directory):
 
         # Strip the stamp to get the output's stable name.
         relative_dir = os.path.relpath(os.path.dirname(path), directory)
-        name = stem[:match.start()] + ext
+        name = stem[: match.start()] + ext
         key = name if relative_dir == "." else os.path.join(relative_dir, name)
 
         # Fixed-width stamps sort alphabetically in time order.

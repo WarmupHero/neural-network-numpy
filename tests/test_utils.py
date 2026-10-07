@@ -3,11 +3,11 @@ Tests for the timestamped output-file helpers in nn_from_scratch.config: buildin
 stamped filename and finding the newest stamped file(s) in a folder.
 """
 
-import pytest
-
 import os
 
-from nn_from_scratch.config import stamped_filename, latest_stamped_file, latest_stamped_outputs
+import pytest
+
+from nn_from_scratch.config import latest_stamped_file, latest_stamped_outputs, stamped_filename
 
 
 def test_stamped_filename_inserts_stamp_before_extension():
@@ -19,7 +19,10 @@ def test_stamped_filename_inserts_stamp_before_extension():
     "main_summary.csv" must become "main_summary_<stamp>.csv", and for
     "a.b.csv" only the last dot counts as the extension separator.
     """
-    assert stamped_filename("main_summary.csv", "20260101-000000") == "main_summary_20260101-000000.csv"
+    assert (
+        stamped_filename("main_summary.csv", "20260101-000000")
+        == "main_summary_20260101-000000.csv"
+    )
     # Only the last dot is treated as the extension separator.
     assert stamped_filename("a.b.csv", "20260101-000000") == "a.b_20260101-000000.csv"
 
@@ -44,8 +47,8 @@ def test_latest_stamped_file_picks_newest_and_ignores_decoys(tmp_path):
         "main_results_full_20260101-000000.json",
         "main_results_full_20260301-120000.json",
         "main_results_full_20260201-000000.json",
-        "main_results_full_backup.json",            # not a stamp: must be ignored
-        "main_results_full_20260401-000000.csv",    # wrong extension
+        "main_results_full_backup.json",  # not a stamp: must be ignored
+        "main_results_full_20260401-000000.csv",  # wrong extension
     ]:
         (tmp_path / name).write_text("[]")
 
@@ -93,7 +96,7 @@ def test_latest_stamped_outputs_keeps_newest_per_output(tmp_path):
         "analysis_20260101-000000.txt",
         "comparisons/depth_analysis_20260301-000000.txt",
         "comparisons/depth_analysis_20260101-000000.txt",
-        "notes.txt",                                   # not stamped: ignored
+        "notes.txt",  # not stamped: ignored
     ]:
         (tmp_path / name).write_text("x")
 
@@ -102,6 +105,7 @@ def test_latest_stamped_outputs_keeps_newest_per_output(tmp_path):
     assert latest == {
         "main_summary.csv": str(tmp_path / "main_summary_20260201-000000.csv"),
         "analysis.txt": str(tmp_path / "analysis_20260101-000000.txt"),
-        os.path.join("comparisons", "depth_analysis.txt"):
-            str(tmp_path / "comparisons" / "depth_analysis_20260301-000000.txt"),
+        os.path.join("comparisons", "depth_analysis.txt"): str(
+            tmp_path / "comparisons" / "depth_analysis_20260301-000000.txt"
+        ),
     }

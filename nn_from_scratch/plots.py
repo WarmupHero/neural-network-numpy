@@ -7,10 +7,12 @@ nn_from_scratch.features, always taken from the training split.
 Output: PNG files in ``reports/figures/eda/``, each with the run
 stamp in its name, optionally also shown on screen.
 """
+
 import os
+
 import matplotlib.pyplot as plt
-import seaborn as sns
 import pandas as pd
+import seaborn as sns
 
 from nn_from_scratch.config import PREPROCESSING_GRAPHS_DIR, stamped_filename
 
@@ -61,7 +63,9 @@ class Visualizer:
         os.makedirs(PREPROCESSING_GRAPHS_DIR, exist_ok=True)
 
     @staticmethod
-    def plot_scaling_comparison(X_unscaled, X_scaled_arr, filename="scaling_comparison.png", label="Dataset"):
+    def plot_scaling_comparison(
+        X_unscaled, X_scaled_arr, filename="scaling_comparison.png", label="Dataset"
+    ):
         """
         Create and save side-by-side boxplots showing feature distributions
         before and after scaling.
@@ -175,8 +179,10 @@ class Visualizer:
         pairplot = sns.pairplot(data=df, hue=target_col)
         pairplot.fig.suptitle("Classification: Feature Relationships by Class", y=1.02)
         pairplot.fig.savefig(
-            os.path.join(PREPROCESSING_GRAPHS_DIR, stamped_filename("classification_pairplot.png")),
-            bbox_inches="tight"
+            os.path.join(
+                PREPROCESSING_GRAPHS_DIR, stamped_filename("classification_pairplot.png")
+            ),
+            bbox_inches="tight",
         )
 
         if show:
@@ -192,8 +198,10 @@ class Visualizer:
         plt.ylabel("Count")
         plt.tight_layout()
         plt.savefig(
-            os.path.join(PREPROCESSING_GRAPHS_DIR, stamped_filename("classification_class_distribution.png")),
-            bbox_inches="tight"
+            os.path.join(
+                PREPROCESSING_GRAPHS_DIR, stamped_filename("classification_class_distribution.png")
+            ),
+            bbox_inches="tight",
         )
 
         if show:
@@ -245,8 +253,10 @@ class Visualizer:
         plt.ylabel("Frequency")
         plt.tight_layout()
         plt.savefig(
-            os.path.join(PREPROCESSING_GRAPHS_DIR, stamped_filename("regression_target_distribution.png")),
-            bbox_inches="tight"
+            os.path.join(
+                PREPROCESSING_GRAPHS_DIR, stamped_filename("regression_target_distribution.png")
+            ),
+            bbox_inches="tight",
         )
 
         if show:
@@ -260,8 +270,10 @@ class Visualizer:
         plt.title("Regression: Feature Correlation Heatmap")
         plt.tight_layout()
         plt.savefig(
-            os.path.join(PREPROCESSING_GRAPHS_DIR, stamped_filename("regression_correlation_heatmap.png")),
-            bbox_inches="tight"
+            os.path.join(
+                PREPROCESSING_GRAPHS_DIR, stamped_filename("regression_correlation_heatmap.png")
+            ),
+            bbox_inches="tight",
         )
 
         if show:

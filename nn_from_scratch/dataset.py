@@ -9,10 +9,13 @@ Output: two CSV files in ``data/raw/`` (``banknote_auth.csv`` and
 ``energy_efficiency.csv``), each holding the feature columns followed by
 the target column(s). A file that already exists is not downloaded again.
 """
+
 import os
+
 import pandas as pd
 
 from nn_from_scratch.config import DATASETS_DIR
+
 
 class Fetch:
     """
@@ -104,6 +107,7 @@ class Fetch:
         if not os.path.exists(self.banknote_path):
             # In case of module error, pip install ucimlrepo
             from ucimlrepo import fetch_ucirepo
+
             print("Downloading Banknote Authentication dataset...")
             banknote = fetch_ucirepo(id=267)
             # Re-attach X and y for EDA
@@ -116,6 +120,7 @@ class Fetch:
         # Energy Efficiency (Regression)
         if not os.path.exists(self.energy_path):
             from ucimlrepo import fetch_ucirepo
+
             print("Downloading Energy Efficiency dataset...")
             energy = fetch_ucirepo(id=242)
             # Re-attach X and y for EDA
@@ -123,16 +128,16 @@ class Fetch:
 
             # Rename columns using the official dataset variable descriptions
             df_energy.columns = [
-                "Relative_Compactness",       # X1
-                "Surface_Area",               # X2
-                "Wall_Area",                  # X3
-                "Roof_Area",                  # X4
-                "Overall_Height",             # X5
-                "Orientation",                # X6
-                "Glazing_Area",               # X7
+                "Relative_Compactness",  # X1
+                "Surface_Area",  # X2
+                "Wall_Area",  # X3
+                "Roof_Area",  # X4
+                "Overall_Height",  # X5
+                "Orientation",  # X6
+                "Glazing_Area",  # X7
                 "Glazing_Area_Distribution",  # X8
-                "Heating_Load",               # Y1
-                "Cooling_Load"                # Y2
+                "Heating_Load",  # Y1
+                "Cooling_Load",  # Y2
             ]
 
             df_energy.to_csv(self.energy_path, index=False)

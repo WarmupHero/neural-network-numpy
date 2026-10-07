@@ -9,6 +9,7 @@ between the comment and the target (such as ``.PHONY: name``) are skipped.
 Keeping this logic in Python, rather than inside the Makefile, means it works
 the same whether make runs its recipes with sh or with Windows cmd.exe.
 """
+
 import re
 import sys
 

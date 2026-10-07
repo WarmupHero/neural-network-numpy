@@ -12,7 +12,9 @@ The split is 60 / 20 / 20 (train / validation / test). Feature scaling is
 always fit on the training split only and then applied to validation and
 test, so no information from those splits leaks into training.
 """
+
 import os
+
 import numpy as np
 import pandas as pd
 
@@ -21,14 +23,16 @@ import pandas as pd
 # - RANDOM_SEED: fixed seed for reproducibility
 from nn_from_scratch.config import DATASETS_DIR, RANDOM_SEED
 
-# Import our custom standard scaler
-from nn_from_scratch.scalers import StandardScaler
-
 # Import plotting utilities for EDA
 from nn_from_scratch.plots import Visualizer
 
+# Import our custom standard scaler
+from nn_from_scratch.scalers import StandardScaler
 
-def train_val_test_split(df, val_size=0.2, test_size=0.2, stratify_col=None, random_seed=RANDOM_SEED):
+
+def train_val_test_split(
+    df, val_size=0.2, test_size=0.2, stratify_col=None, random_seed=RANDOM_SEED
+):
     """
     Randomly split a dataframe into train / validation / test sets using NumPy only.
 
@@ -90,12 +94,13 @@ def train_val_test_split(df, val_size=0.2, test_size=0.2, stratify_col=None, ran
     for positions in groups:
         positions = rng.permutation(positions)
 
-        n_val = int(round(len(positions) * val_size))
-        n_test = int(round(len(positions) * test_size))
+        # round() of a Python float already returns an int.
+        n_val = round(len(positions) * val_size)
+        n_test = round(len(positions) * test_size)
 
         val_idx.append(positions[:n_val])
-        test_idx.append(positions[n_val:n_val + n_test])
-        train_idx.append(positions[n_val + n_test:])
+        test_idx.append(positions[n_val : n_val + n_test])
+        train_idx.append(positions[n_val + n_test :])
 
     # Merge the groups and shuffle again, so rows are not ordered by class.
     splits = []
@@ -258,11 +263,7 @@ class PreprocessBanknote:
 
         # 60% train, 20% validation, 20% test, stratified by class
         return train_val_test_split(
-            df,
-            val_size=0.2,
-            test_size=0.2,
-            stratify_col="class",
-            random_seed=random_seed
+            df, val_size=0.2, test_size=0.2, stratify_col="class", random_seed=random_seed
         )
 
     def perform_eda(self, df_train, scale_features=True):
@@ -313,7 +314,7 @@ class PreprocessBanknote:
                 X_train_unscaled,
                 X_train_scaled_arr,
                 filename="classification_scaling_comparison.png",
-                label="Classification"
+                label="Classification",
             )
         else:
             print("--- Banknote: Skipping scaling comparison plot because scaling is disabled ---")
@@ -322,8 +323,14 @@ class PreprocessBanknote:
         # These plots are saved under the preprocessing-graphs folder.
         Visualizer.plot_classification_eda(df_train, target_col="class")
 
-    def get_data(self, show_eda=False, preprocessing_enabled=True, scale_features=True,
-                 random_seed=RANDOM_SEED, run_eda=True):
+    def get_data(
+        self,
+        show_eda=False,
+        preprocessing_enabled=True,
+        scale_features=True,
+        random_seed=RANDOM_SEED,
+        run_eda=True,
+    ):
         """
         Full data-preparation pipeline for the Banknote dataset.
 
@@ -590,12 +597,7 @@ class PreprocessEnergy:
         print("\n--- Energy: Splitting Data ---")
 
         # 60% train, 20% validation, 20% test (no stratification for regression)
-        return train_val_test_split(
-            df,
-            val_size=0.2,
-            test_size=0.2,
-            random_seed=random_seed
-        )
+        return train_val_test_split(df, val_size=0.2, test_size=0.2, random_seed=random_seed)
 
     def perform_eda(self, df_train, scale_features=True):
         """
@@ -649,7 +651,7 @@ class PreprocessEnergy:
                 X_train_unscaled,
                 X_train_scaled_arr,
                 filename="regression_scaling_comparison.png",
-                label="Regression"
+                label="Regression",
             )
         else:
             print("--- Energy: Skipping scaling comparison plot because scaling is disabled ---")
@@ -658,8 +660,14 @@ class PreprocessEnergy:
         # These plots are saved under the preprocessing-graphs folder.
         Visualizer.plot_regression_eda(df_train, target_col="Heating_Load")
 
-    def get_data(self, show_eda=False, preprocessing_enabled=True, scale_features=True,
-                 random_seed=RANDOM_SEED, run_eda=True):
+    def get_data(
+        self,
+        show_eda=False,
+        preprocessing_enabled=True,
+        scale_features=True,
+        random_seed=RANDOM_SEED,
+        run_eda=True,
+    ):
         """
         Full data-preparation pipeline for the Energy dataset.
 

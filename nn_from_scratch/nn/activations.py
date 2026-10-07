@@ -13,6 +13,7 @@ import numpy as np
 # ReLU
 # --------------------
 
+
 class ReLU:
     """
     Rectified Linear Unit activation.
@@ -134,6 +135,7 @@ class ReLU:
 # Sigmoid
 # --------------------
 
+
 class Sigmoid:
     """
     Sigmoid activation.
@@ -251,6 +253,7 @@ class Sigmoid:
 # Tanh
 # --------------------
 
+
 class Tanh:
     """
     Hyperbolic tangent activation.
@@ -352,12 +355,13 @@ class Tanh:
         By the chain rule:
             grad_input = grad_output * (1 - t^2)
         """
-        return grad_output * (1 - self.output ** 2)
+        return grad_output * (1 - self.output**2)
 
 
 # --------------------
 # Linear - Identity
 # --------------------
+
 
 class Linear:
     """
@@ -401,7 +405,6 @@ class Linear:
         # No cached values are needed for linear activation,
         # but we keep the same class structure as the others
         # for consistency.
-        pass
 
     def forward(self, x):
         """

@@ -6,11 +6,13 @@ optional BatchNorm, activation, optional Dropout), runs the forward and
 backward passes through them, and can build itself from an architecture
 described in a config dictionary.
 """
+
 import numpy as np
 
-from nn_from_scratch.nn.layers import BatchNorm, Dense, Dropout
-from nn_from_scratch.nn.activations import get_activation
 from nn_from_scratch.config import RANDOM_SEED
+from nn_from_scratch.nn.activations import get_activation
+from nn_from_scratch.nn.layers import BatchNorm, Dense, Dropout
+
 
 class NeuralNetwork:
     """
@@ -131,8 +133,7 @@ class NeuralNetwork:
         # Create a Dense layer and pass in the shared random generator.
         # This keeps initialization reproducible across runs.
         self.layers.append(
-            Dense(input_dim, output_dim, random_state=self.random,
-                  use_bias=use_bias, init=init)
+            Dense(input_dim, output_dim, random_state=self.random, use_bias=use_bias, init=init)
         )
 
     def add_batch_norm(self, num_features):
@@ -421,7 +422,8 @@ class NeuralNetwork:
         they are excluded.
         """
         trainable_layers = [
-            layer for layer in self.layers
+            layer
+            for layer in self.layers
             if hasattr(layer, "get_params") and hasattr(layer, "get_grads")
         ]
         return trainable_layers
@@ -513,7 +515,7 @@ class NeuralNetwork:
                 current_input_dim,
                 units,
                 use_bias=layer_config.get("use_bias", False),
-                init=layer_config.get("init", "normal").lower()
+                init=layer_config.get("init", "normal").lower(),
             )
 
             # Optional batch normalization between the Dense layer and

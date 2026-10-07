@@ -182,8 +182,7 @@ class BCELoss:
 
         # Apply the BCE formula and average over the batch
         loss = -np.mean(
-            y_true * np.log(y_pred_clipped) +
-            (1 - y_true) * np.log(1 - y_pred_clipped)
+            y_true * np.log(y_pred_clipped) + (1 - y_true) * np.log(1 - y_pred_clipped)
         )
 
         return loss
@@ -238,10 +237,7 @@ class BCELoss:
         n = y_true.shape[0]
 
         # Apply the derivative formula for BCE
-        grad = -(
-            (y_true / y_pred_clipped) -
-            ((1 - y_true) / (1 - y_pred_clipped))
-        ) / n
+        grad = -((y_true / y_pred_clipped) - ((1 - y_true) / (1 - y_pred_clipped))) / n
 
         return grad
 
@@ -285,7 +281,7 @@ def get_loss(name):
     name = name.lower()
 
     # Return the requested loss object
-    if name in ["mse","mean_squared_error","mean_squarederror","meansquared_error"]:
+    if name in ["mse", "mean_squared_error", "mean_squarederror", "meansquared_error"]:
         return MSELoss()
     elif name in ["bce", "binary_crossentropy", "binary_cross_entropy"]:
         return BCELoss()

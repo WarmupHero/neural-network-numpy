@@ -15,6 +15,7 @@ Output (each file name gets the run stamp):
 
 Run it with ``python -m nn_from_scratch.comparisons [results.json]``.
 """
+
 import json
 import math
 import os
@@ -32,8 +33,8 @@ from nn_from_scratch.config import (
     COMPARISONS_TEXT_DIR,
     RANDOM_SEED,
     RUN_STAMP,
-    stamped_filename,
     resolve_results_path,
+    stamped_filename,
 )
 
 # Folder where the comparison plots are saved (reports/figures/comparisons/).
@@ -45,6 +46,7 @@ TEXT_DIR = COMPARISONS_TEXT_DIR
 # Create the output folders if they do not already exist.
 os.makedirs(PLOTS_DIR, exist_ok=True)
 os.makedirs(TEXT_DIR, exist_ok=True)
+
 
 def load_results(path):
     """
@@ -351,7 +353,7 @@ def _plot_loss_curves(ax, run, subplot_title, include_metrics_box=False):
             ha="right",
             va="top",
             fontsize=9,
-            bbox=dict(boxstyle="round", facecolor="white", alpha=0.85),
+            bbox={"boxstyle": "round", "facecolor": "white", "alpha": 0.85},
         )
 
 
@@ -577,7 +579,9 @@ def _build_depth_analysis_text(selected_runs, problem_name, optimizer, learning_
             f"because it reaches and stays near its final training loss earlier."
         )
     else:
-        faster_sentence = "Both architectures reach their final training-loss region at the same epoch."
+        faster_sentence = (
+            "Both architectures reach their final training-loss region at the same epoch."
+        )
 
     # Compare final training losses.
     if metrics_a1["final_train_loss"] < metrics_a2["final_train_loss"]:
@@ -641,7 +645,9 @@ def _build_depth_analysis_text(selected_runs, problem_name, optimizer, learning_
     )
 
 
-def _build_learning_rate_analysis_text(selected_runs, problem_name, architecture, optimizer, batch_size):
+def _build_learning_rate_analysis_text(
+    selected_runs, problem_name, architecture, optimizer, batch_size
+):
     """
     Write the text of the learning-rate sensitivity analysis (0.1 vs 0.001).
 
@@ -705,18 +711,18 @@ def _build_learning_rate_analysis_text(selected_runs, problem_name, architecture
             f"because it reaches and stays near its final training loss earlier."
         )
     else:
-        faster_sentence = "Both learning rates reach their final training-loss region at the same epoch."
+        faster_sentence = (
+            "Both learning rates reach their final training-loss region at the same epoch."
+        )
 
     # Compare final training losses.
     if metrics_high["final_train_loss"] < metrics_low["final_train_loss"]:
         train_sentence = (
-            f"{high_label} ends with the lower final training loss "
-            f"in this matched experiment."
+            f"{high_label} ends with the lower final training loss in this matched experiment."
         )
     elif metrics_low["final_train_loss"] < metrics_high["final_train_loss"]:
         train_sentence = (
-            f"{low_label} ends with the lower final training loss "
-            f"in this matched experiment."
+            f"{low_label} ends with the lower final training loss in this matched experiment."
         )
     else:
         train_sentence = "Both learning rates end with the same final training loss."
@@ -724,13 +730,11 @@ def _build_learning_rate_analysis_text(selected_runs, problem_name, architecture
     # Compare final validation losses.
     if metrics_high["final_val_loss"] < metrics_low["final_val_loss"]:
         val_sentence = (
-            f"{high_label} ends with the lower final validation loss "
-            f"in this matched experiment."
+            f"{high_label} ends with the lower final validation loss in this matched experiment."
         )
     elif metrics_low["final_val_loss"] < metrics_high["final_val_loss"]:
         val_sentence = (
-            f"{low_label} ends with the lower final validation loss "
-            f"in this matched experiment."
+            f"{low_label} ends with the lower final validation loss in this matched experiment."
         )
     else:
         val_sentence = "Both learning rates end with the same final validation loss."
@@ -815,7 +819,8 @@ def filter_optimizer_runs(results, problem_name, architecture, learning_rate, ba
     """
     # Keep only runs that match the fixed parameters for this comparison.
     filtered = [
-        run for run in results
+        run
+        for run in results
         if run["problem_name"] == problem_name
         and run["architecture"] == architecture
         and run["learning_rate"] == learning_rate
@@ -830,7 +835,9 @@ def filter_optimizer_runs(results, problem_name, architecture, learning_rate, ba
     return filtered
 
 
-def plot_optimizer_comparison(results, problem_name, architecture, learning_rate, batch_size, filename):
+def plot_optimizer_comparison(
+    results, problem_name, architecture, learning_rate, batch_size, filename
+):
     """
     Create one figure comparing SGD, Momentum, and AdaBelief
     under one matched parameter setting.
@@ -877,7 +884,7 @@ def plot_optimizer_comparison(results, problem_name, architecture, learning_rate
         problem_name=problem_name,
         architecture=architecture,
         learning_rate=learning_rate,
-        batch_size=batch_size
+        batch_size=batch_size,
     )
 
     # Sanity check: the optimizer comparison expects exactly 3 optimizer runs.
@@ -911,7 +918,7 @@ def plot_optimizer_comparison(results, problem_name, architecture, learning_rate
         f"Optimizer Comparison: {problem_name.capitalize()} Problem | "
         f"Architecture {architecture} | LR={learning_rate} | Batch Size={batch_size}",
         fontsize=14,
-        fontweight="bold"
+        fontweight="bold",
     )
 
     # Adjust spacing so the suptitle and subplots fit cleanly.
@@ -960,7 +967,8 @@ def filter_depth_runs(results, problem_name, optimizer, learning_rate, batch_siz
     """
     # Keep only runs that match the fixed settings for the depth comparison.
     filtered = [
-        run for run in results
+        run
+        for run in results
         if run["problem_name"] == problem_name
         and run["optimizer"] == optimizer
         and run["learning_rate"] == learning_rate
@@ -976,7 +984,9 @@ def filter_depth_runs(results, problem_name, optimizer, learning_rate, batch_siz
     return filtered
 
 
-def plot_depth_comparison(results, problem_name, optimizer, learning_rate, batch_size, filename, analysis_filename):
+def plot_depth_comparison(
+    results, problem_name, optimizer, learning_rate, batch_size, filename, analysis_filename
+):
     """
     Plot A1 vs A2 loss curves and write a short depth-analysis text file.
 
@@ -1027,7 +1037,7 @@ def plot_depth_comparison(results, problem_name, optimizer, learning_rate, batch
         problem_name=problem_name,
         optimizer=optimizer,
         learning_rate=learning_rate,
-        batch_size=batch_size
+        batch_size=batch_size,
     )
 
     # Sanity check: the depth comparison expects exactly 2 architectures.
@@ -1062,7 +1072,7 @@ def plot_depth_comparison(results, problem_name, optimizer, learning_rate, batch
         f"{problem_name.capitalize()} Problem | Optimizer={optimizer.upper()} | "
         f"LR={learning_rate} | Batch Size={batch_size}",
         fontsize=14,
-        fontweight="bold"
+        fontweight="bold",
     )
 
     # Adjust spacing so labels and title fit properly.
@@ -1077,7 +1087,7 @@ def plot_depth_comparison(results, problem_name, optimizer, learning_rate, batch
         problem_name=problem_name,
         optimizer=optimizer,
         learning_rate=learning_rate,
-        batch_size=batch_size
+        batch_size=batch_size,
     )
 
     # Save the written analysis to a text file.
@@ -1122,7 +1132,8 @@ def filter_learning_rate_runs(results, problem_name, architecture, optimizer, ba
     """
     # Keep only runs that match the fixed settings for the learning-rate comparison.
     filtered = [
-        run for run in results
+        run
+        for run in results
         if run["problem_name"] == problem_name
         and run["architecture"] == architecture
         and run["optimizer"] == optimizer
@@ -1138,7 +1149,9 @@ def filter_learning_rate_runs(results, problem_name, architecture, optimizer, ba
     return filtered
 
 
-def plot_learning_rate_comparison(results, problem_name, architecture, optimizer, batch_size, filename, analysis_filename):
+def plot_learning_rate_comparison(
+    results, problem_name, architecture, optimizer, batch_size, filename, analysis_filename
+):
     """
     Create the learning-rate comparison figure and write a short analysis text file.
 
@@ -1189,7 +1202,7 @@ def plot_learning_rate_comparison(results, problem_name, architecture, optimizer
         problem_name=problem_name,
         architecture=architecture,
         optimizer=optimizer,
-        batch_size=batch_size
+        batch_size=batch_size,
     )
 
     # Sanity check: We expect exactly 2 learning-rate runs.
@@ -1225,7 +1238,7 @@ def plot_learning_rate_comparison(results, problem_name, architecture, optimizer
         f"{problem_name.capitalize()} Problem | Architecture {architecture} | "
         f"Optimizer={optimizer.upper()} | Batch Size={batch_size}",
         fontsize=14,
-        fontweight="bold"
+        fontweight="bold",
     )
 
     # Adjust spacing so labels and title fit properly.
@@ -1240,7 +1253,7 @@ def plot_learning_rate_comparison(results, problem_name, architecture, optimizer
         problem_name=problem_name,
         architecture=architecture,
         optimizer=optimizer,
-        batch_size=batch_size
+        batch_size=batch_size,
     )
 
     # Save the written analysis to a text file.
@@ -1255,8 +1268,9 @@ def plot_learning_rate_comparison(results, problem_name, architecture, optimizer
 A2_VARIANT_ORDER = ["A2", "A2-bias", "A2-he", "A2-bias-he", "A2-bn"]
 
 
-def filter_variant_runs(results, problem_name, optimizer, learning_rate, batch_size,
-                        architectures=A2_VARIANT_ORDER):
+def filter_variant_runs(
+    results, problem_name, optimizer, learning_rate, batch_size, architectures=A2_VARIANT_ORDER
+):
     """
     Select one run per architecture for one matched experiment.
 
@@ -1294,7 +1308,8 @@ def filter_variant_runs(results, problem_name, optimizer, learning_rate, batch_s
     A2-bias-he, A2-bn).
     """
     filtered = [
-        run for run in results
+        run
+        for run in results
         if run["problem_name"] == problem_name
         and run["optimizer"] == optimizer
         and run["learning_rate"] == learning_rate
@@ -1307,9 +1322,16 @@ def filter_variant_runs(results, problem_name, optimizer, learning_rate, batch_s
     return filtered
 
 
-def plot_variant_comparison(results, problem_name, optimizer, learning_rate, batch_size, filename,
-                            architectures=A2_VARIANT_ORDER,
-                            title="A2 Variants: Bias, He Initialization, Batch Norm"):
+def plot_variant_comparison(
+    results,
+    problem_name,
+    optimizer,
+    learning_rate,
+    batch_size,
+    filename,
+    architectures=A2_VARIANT_ORDER,
+    title="A2 Variants: Bias, He Initialization, Batch Norm",
+):
     """
     Create one figure comparing several architectures on one matched experiment.
 
@@ -1371,7 +1393,7 @@ def plot_variant_comparison(results, problem_name, optimizer, learning_rate, bat
         optimizer=optimizer,
         learning_rate=learning_rate,
         batch_size=batch_size,
-        architectures=architectures
+        architectures=architectures,
     )
 
     # Sanity check: one run per architecture.
@@ -1382,7 +1404,9 @@ def plot_variant_comparison(results, problem_name, optimizer, learning_rate, bat
         )
 
     # One vertical subplot per variant.
-    fig, axes = plt.subplots(len(selected_runs), 1, figsize=(12, 3.75 * len(selected_runs)), sharex=True)
+    fig, axes = plt.subplots(
+        len(selected_runs), 1, figsize=(12, 3.75 * len(selected_runs)), sharex=True
+    )
 
     # Name of the test metric shown in each subplot title.
     metric_name = "MSE" if problem_name == "regression" else "BCE"
@@ -1393,7 +1417,9 @@ def plot_variant_comparison(results, problem_name, optimizer, learning_rate, bat
         if run.get("diverged") or not math.isfinite(run["test_metric"]):
             subplot_title = f"{run['architecture']} | Diverged (loss overflowed)"
         else:
-            subplot_title = f"{run['architecture']} | Test {metric_name} = {run['test_metric']:.4f}"
+            subplot_title = (
+                f"{run['architecture']} | Test {metric_name} = {run['test_metric']:.4f}"
+            )
         _plot_loss_curves(ax, run, subplot_title, include_metrics_box=True)
 
         # Log scale: an exploding run's first-epoch loss can be hundreds of
@@ -1416,7 +1442,7 @@ def plot_variant_comparison(results, problem_name, optimizer, learning_rate, bat
         f"{problem_name.capitalize()} | Optimizer={optimizer.upper()} | "
         f"LR={learning_rate} | Batch Size={batch_size}",
         fontsize=14,
-        fontweight="bold"
+        fontweight="bold",
     )
 
     # Adjust spacing so labels and title fit properly.
@@ -1501,7 +1527,7 @@ def main(results_path=None):
         architecture="A1",
         learning_rate=0.1,
         batch_size=16,
-        filename="optimizers_classification_A1_lr01_bs16.png"
+        filename="optimizers_classification_A1_lr01_bs16.png",
     )
 
     # Plot 2:
@@ -1513,7 +1539,7 @@ def main(results_path=None):
         architecture="A2",
         learning_rate=0.1,
         batch_size=64,
-        filename="optimizers_classification_A2_lr01_bs64.png"
+        filename="optimizers_classification_A2_lr01_bs64.png",
     )
 
     # Plot 3:
@@ -1525,7 +1551,7 @@ def main(results_path=None):
         architecture="A2",
         learning_rate=0.001,
         batch_size=64,
-        filename="optimizers_regression_A2_lr0001_bs64.png"
+        filename="optimizers_regression_A2_lr0001_bs64.png",
     )
 
     # --------------------------------------------------
@@ -1551,7 +1577,7 @@ def main(results_path=None):
         learning_rate=0.1,
         batch_size=16,
         filename="depth_classification_sgd_lr01_bs16.png",
-        analysis_filename="depth_analysis.txt"
+        analysis_filename="depth_analysis.txt",
     )
 
     # --------------------------------------------------
@@ -1577,7 +1603,8 @@ def main(results_path=None):
         optimizer="sgd",
         batch_size=16,
         filename="learning_rate_classification_A1_sgd_bs16.png",
-        analysis_filename="learning_rate_analysis.txt")
+        analysis_filename="learning_rate_analysis.txt",
+    )
 
     # --------------------------------------------------
     # A2 variants: bias terms, He initialization, batch norm
@@ -1602,7 +1629,8 @@ def main(results_path=None):
             optimizer="sgd",
             learning_rate=0.1,
             batch_size=16,
-            filename="a2_variants_regression_sgd_lr01_bs16.png")
+            filename="a2_variants_regression_sgd_lr01_bs16.png",
+        )
 
         # Same comparison with momentum and batch size 64: the baseline A2
         # still collapses here, but no variant diverges, so the plot shows
@@ -1613,7 +1641,8 @@ def main(results_path=None):
             optimizer="momentum",
             learning_rate=0.1,
             batch_size=64,
-            filename="a2_variants_regression_momentum_lr01_bs64.png")
+            filename="a2_variants_regression_momentum_lr01_bs64.png",
+        )
 
     # --------------------------------------------------
     # Dropout
@@ -1642,7 +1671,9 @@ def main(results_path=None):
             batch_size=16,
             filename="dropout_regression_adabelief_lr01_bs16.png",
             architectures=dropout_architectures,
-            title="Dropout (rate 0.2)")
+            title="Dropout (rate 0.2)",
+        )
+
 
 # Running this file directly builds every comparison plot and analysis from
 # a results JSON (the newest one unless a path is given) and prints the

@@ -8,17 +8,22 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from nn_from_scratch.modeling.train import constant_prediction_baseline, get_seeds
-from nn_from_scratch.analysis import error_removed, fails_baseline, mean_pm_std, select_by_validation
-from nn_from_scratch.config_loader import ConfigLoader
-from nn_from_scratch.nn.network import NeuralNetwork
-from nn_from_scratch.features import train_val_test_split
+from nn_from_scratch.analysis import (
+    error_removed,
+    fails_baseline,
+    mean_pm_std,
+    select_by_validation,
+)
 from nn_from_scratch.config import RANDOM_SEED
-
+from nn_from_scratch.config_loader import ConfigLoader
+from nn_from_scratch.features import train_val_test_split
+from nn_from_scratch.modeling.train import constant_prediction_baseline, get_seeds
+from nn_from_scratch.nn.network import NeuralNetwork
 
 # ------------------------------------------------------------------
 # Seed plumbing
 # ------------------------------------------------------------------
+
 
 def test_split_changes_with_the_seed():
     """
@@ -45,8 +50,15 @@ def test_network_initialization_follows_the_seed():
     42, 42 and 43. The two seed-42 networks must have identical weights;
     the seed-43 network must have different weights.
     """
-    config = {"input_dimension": 3, "layers": [{"type": "dense", "units": 4, "activation": "relu"}]}
-    a, b, c = NeuralNetwork(random_seed=42), NeuralNetwork(random_seed=42), NeuralNetwork(random_seed=43)
+    config = {
+        "input_dimension": 3,
+        "layers": [{"type": "dense", "units": 4, "activation": "relu"}],
+    }
+    a, b, c = (
+        NeuralNetwork(random_seed=42),
+        NeuralNetwork(random_seed=42),
+        NeuralNetwork(random_seed=43),
+    )
     for net in (a, b, c):
         net.build_from_config(config)
     np.testing.assert_array_equal(a.layers[0].weights, b.layers[0].weights)
@@ -69,6 +81,7 @@ def test_get_seeds_defaults_to_the_project_seed():
 # ------------------------------------------------------------------
 # Constant-prediction baseline
 # ------------------------------------------------------------------
+
 
 def splits(y_train, y_test):
     """
@@ -111,7 +124,9 @@ def test_regression_baseline_predicts_the_training_mean():
     must return 5.0, the MSE of always predicting 2.
     """
     # Training mean is 2; test targets 1 and 5 -> MSE = ((1-2)^2 + (5-2)^2) / 2 = 5
-    assert constant_prediction_baseline("regression", splits([1, 2, 3], [1, 5])) == pytest.approx(5.0)
+    assert constant_prediction_baseline("regression", splits([1, 2, 3], [1, 5])) == pytest.approx(
+        5.0
+    )
 
 
 def test_classification_baseline_predicts_the_training_proportion():
@@ -126,12 +141,15 @@ def test_classification_baseline_predicts_the_training_proportion():
     """
     # Training proportion 0.25; BCE of predicting 0.25 for labels [1, 0]
     expected = -(np.log(0.25) + np.log(0.75)) / 2
-    assert constant_prediction_baseline("classification", splits([1, 0, 0, 0], [1, 0])) == pytest.approx(expected)
+    assert constant_prediction_baseline(
+        "classification", splits([1, 0, 0, 0], [1, 0])
+    ) == pytest.approx(expected)
 
 
 # ------------------------------------------------------------------
 # Config validation
 # ------------------------------------------------------------------
+
 
 def make_config(**experiments_extra):
     """
@@ -163,9 +181,15 @@ def make_config(**experiments_extra):
         "preprocessing": {"enabled": True, "scale_features": True},
         "architectures": {"A": [{"type": "dense", "units": 1, "activation": "sigmoid"}]},
         "experiments": {
-            "optimizers": ["sgd"], "learning_rates": [0.1], "batch_sizes": [16],
-            "epochs": 10, "early_stopping": True, "patience": 2,
-            "min_delta": 0.0, "min_epochs_before_early_stop": 0, **experiments_extra,
+            "optimizers": ["sgd"],
+            "learning_rates": [0.1],
+            "batch_sizes": [16],
+            "epochs": 10,
+            "early_stopping": True,
+            "patience": 2,
+            "min_delta": 0.0,
+            "min_epochs_before_early_stop": 0,
+            **experiments_extra,
         },
     }
 
@@ -205,6 +229,7 @@ def test_config_rejects_invalid_seeds(seeds):
 # Multi-seed analysis helpers
 # ------------------------------------------------------------------
 
+
 def run(val, test, baseline=10.0, diverged=False):
     """
     Build a minimal experiment-run dictionary for the analysis helpers.
@@ -231,7 +256,12 @@ def run(val, test, baseline=10.0, diverged=False):
     Processing:
     1. Put the arguments under the keys the analysis helpers read.
     """
-    return {"best_val_loss": val, "test_metric": test, "baseline_test_metric": baseline, "diverged": diverged}
+    return {
+        "best_val_loss": val,
+        "test_metric": test,
+        "baseline_test_metric": baseline,
+        "diverged": diverged,
+    }
 
 
 def test_mean_pm_std_uses_the_sample_standard_deviation():

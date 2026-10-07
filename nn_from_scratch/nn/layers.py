@@ -147,7 +147,7 @@ class Dense:
         self.weights = rng.normal(
             loc=0.0,
             scale=self._init_std(init, input_dim, output_dim),
-            size=(self.input_dim, self.output_dim)
+            size=(self.input_dim, self.output_dim),
         )
 
         # The bias starts at zero. Zero is the standard choice because the
@@ -221,7 +221,8 @@ class Dense:
         if init == "xavier":
             return np.sqrt(2.0 / (input_dim + output_dim))
         raise ValueError(
-            f"Unsupported init: {init}. Supported schemes are: {sorted(SUPPORTED_INITS)}")
+            f"Unsupported init: {init}. Supported schemes are: {sorted(SUPPORTED_INITS)}"
+        )
 
     def forward(self, X):
         """

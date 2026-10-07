@@ -5,10 +5,10 @@ Smoke tests for the optimizers and the training loop on tiny synthetic problems.
 import numpy as np
 import pytest
 
+from nn_from_scratch.modeling.trainer import Trainer
 from nn_from_scratch.nn.losses import get_loss
 from nn_from_scratch.nn.network import NeuralNetwork
 from nn_from_scratch.nn.optimizers import get_optimizer
-from nn_from_scratch.modeling.trainer import Trainer
 
 
 def make_classification_data(n=200, seed=0):
@@ -65,21 +65,26 @@ def build_classifier():
        dropout.
     """
     network = NeuralNetwork(random_seed=42)
-    network.build_from_config({
-        "input_dimension": 2,
-        "layers": [
-            {"type": "dense", "units": 8, "activation": "relu"},
-            {"type": "dense", "units": 1, "activation": "sigmoid"},
-        ],
-    })
+    network.build_from_config(
+        {
+            "input_dimension": 2,
+            "layers": [
+                {"type": "dense", "units": 8, "activation": "relu"},
+                {"type": "dense", "units": 1, "activation": "sigmoid"},
+            ],
+        }
+    )
     return network
 
 
-@pytest.mark.parametrize("optimizer_name,learning_rate", [
-    ("sgd", 0.5),
-    ("momentum", 0.5),
-    ("adabelief", 0.01),
-])
+@pytest.mark.parametrize(
+    "optimizer_name,learning_rate",
+    [
+        ("sgd", 0.5),
+        ("momentum", 0.5),
+        ("adabelief", 0.01),
+    ],
+)
 def test_optimizer_reduces_loss(optimizer_name, learning_rate):
     """
     Each optimizer lowers the training loss on a simple problem.

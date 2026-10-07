@@ -17,6 +17,7 @@ Processing:
    to the newest stamps, so links and images point at committed files,
    and stages the changed docs.
 """
+
 import os
 import re
 import subprocess
@@ -62,8 +63,8 @@ def git(*args):
     2. Return the captured standard output.
     """
     result = subprocess.run(
-        ["git", *args], cwd=ROOT_DIR, check=True,
-        capture_output=True, text=True)
+        ["git", *args], cwd=ROOT_DIR, check=True, capture_output=True, text=True
+    )
     return result.stdout
 
 
@@ -152,6 +153,7 @@ def update_doc_references(newest_by_name):
     4. Stop with an error if the file has unstaged edits in git.
     5. Write the updated text back and record the file's repo path.
     """
+
     def replace(match):
         """Return the newest stamped name for one matched stamped name."""
         # Rebuild the un-stamped name: group 1 is the name, group 3 the extension.
@@ -175,7 +177,8 @@ def update_doc_references(newest_by_name):
         if git("diff", "--name-only", "--", doc).strip():
             sys.exit(
                 f"stage_latest_outputs: {doc} has unstaged changes. "
-                f"Stage or stash them, then commit again.")
+                f"Stage or stash them, then commit again."
+            )
 
         with open(path, "w", encoding="utf-8", newline="") as f:
             f.write(updated)
@@ -234,7 +237,9 @@ def main():
 
     # Docs refer to outputs by file name only, so map bare un-stamped names
     # to bare newest stamped names.
-    newest_by_name = {os.path.basename(key): os.path.basename(path) for key, path in latest.items()}
+    newest_by_name = {
+        os.path.basename(key): os.path.basename(path) for key, path in latest.items()
+    }
     changed_docs = update_doc_references(newest_by_name)
     if changed_docs:
         git("add", "--", *changed_docs)
@@ -242,7 +247,8 @@ def main():
     print(
         f"stage_latest_outputs: {len(keep)} newest outputs staged, "
         f"{len(stale)} older outputs untracked, "
-        f"{len(changed_docs)} doc file(s) updated.")
+        f"{len(changed_docs)} doc file(s) updated."
+    )
 
 
 # Running this file (by hand or from the pre-commit hook) stages the newest

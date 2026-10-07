@@ -8,16 +8,16 @@ import numpy as np
 import pytest
 
 from nn_from_scratch.config_loader import ConfigLoader
+from nn_from_scratch.modeling.trainer import Trainer
 from nn_from_scratch.nn.layers import Dense
 from nn_from_scratch.nn.losses import get_loss
 from nn_from_scratch.nn.network import NeuralNetwork
 from nn_from_scratch.nn.optimizers import get_optimizer
-from nn_from_scratch.modeling.trainer import Trainer
-
 
 # ------------------------------------------------------------------
 # Bias term
 # ------------------------------------------------------------------
+
 
 def test_bias_is_added_to_every_sample():
     """
@@ -74,6 +74,7 @@ def test_bias_free_layer_exposes_only_weights():
 # Initialization
 # ------------------------------------------------------------------
 
+
 def test_default_init_matches_original_scheme():
     """
     The default initialization reproduces the original N(0, 0.1^2) draw exactly.
@@ -105,11 +106,14 @@ def test_enabling_bias_does_not_change_the_weights():
     np.testing.assert_array_equal(biased.bias, np.zeros((1, 3)))
 
 
-@pytest.mark.parametrize("init,expected_std", [
-    ("he", np.sqrt(2.0 / 400)),
-    ("xavier", np.sqrt(2.0 / (400 + 300))),
-    ("normal", 0.1),
-])
+@pytest.mark.parametrize(
+    "init,expected_std",
+    [
+        ("he", np.sqrt(2.0 / 400)),
+        ("xavier", np.sqrt(2.0 / (400 + 300))),
+        ("normal", 0.1),
+    ],
+)
 def test_init_standard_deviation(init, expected_std):
     """
     Each initialization scheme draws weights with the expected spread.
@@ -149,6 +153,7 @@ def test_unknown_init_raises():
 # ------------------------------------------------------------------
 # Optimizers update every parameter
 # ------------------------------------------------------------------
+
 
 @pytest.mark.parametrize("optimizer_name", ["sgd", "momentum", "adabelief"])
 def test_optimizer_updates_weights_and_bias(optimizer_name):
@@ -203,6 +208,7 @@ def test_sgd_bias_update_is_learning_rate_times_gradient():
 # Early-stopping checkpoints include the bias
 # ------------------------------------------------------------------
 
+
 def test_model_state_round_trip_includes_bias():
     """
     Trainer checkpoints save and restore the bias as well as the weights.
@@ -214,13 +220,15 @@ def test_model_state_round_trip_includes_bias():
     `_set_model_state` must restore both to the saved values.
     """
     network = NeuralNetwork(random_seed=0)
-    network.build_from_config({
-        "input_dimension": 3,
-        "layers": [
-            {"type": "dense", "units": 4, "activation": "relu", "use_bias": True},
-            {"type": "dense", "units": 1, "activation": "sigmoid", "use_bias": True},
-        ],
-    })
+    network.build_from_config(
+        {
+            "input_dimension": 3,
+            "layers": [
+                {"type": "dense", "units": 4, "activation": "relu", "use_bias": True},
+                {"type": "dense", "units": 1, "activation": "sigmoid", "use_bias": True},
+            ],
+        }
+    )
     trainer = Trainer(network, get_loss("bce"), get_optimizer("sgd", 0.1), "classification")
 
     saved = trainer._get_model_state()
@@ -237,6 +245,7 @@ def test_model_state_round_trip_includes_bias():
 # ------------------------------------------------------------------
 # Config validation
 # ------------------------------------------------------------------
+
 
 def make_config(**layer_extra):
     """
@@ -270,16 +279,28 @@ def make_config(**layer_extra):
             "A": [{"type": "dense", "units": 1, "activation": "sigmoid", **layer_extra}]
         },
         "experiments": {
-            "optimizers": ["sgd"], "learning_rates": [0.1], "batch_sizes": [16],
-            "epochs": 10, "early_stopping": True, "patience": 2,
-            "min_delta": 0.0, "min_epochs_before_early_stop": 0,
+            "optimizers": ["sgd"],
+            "learning_rates": [0.1],
+            "batch_sizes": [16],
+            "epochs": 10,
+            "early_stopping": True,
+            "patience": 2,
+            "min_delta": 0.0,
+            "min_epochs_before_early_stop": 0,
         },
     }
 
 
-@pytest.mark.parametrize("layer_extra", [
-    {}, {"use_bias": True}, {"use_bias": False}, {"init": "he"}, {"init": "Xavier"},
-])
+@pytest.mark.parametrize(
+    "layer_extra",
+    [
+        {},
+        {"use_bias": True},
+        {"use_bias": False},
+        {"init": "he"},
+        {"init": "Xavier"},
+    ],
+)
 def test_config_accepts_valid_bias_and_init(layer_extra):
     """
     The config validator accepts valid "use_bias" and "init" settings.
@@ -297,9 +318,14 @@ def test_config_accepts_valid_bias_and_init(layer_extra):
     assert ConfigLoader().validate(make_config(**layer_extra))
 
 
-@pytest.mark.parametrize("layer_extra", [
-    {"use_bias": "yes"}, {"use_bias": 1}, {"init": "uniform"},
-])
+@pytest.mark.parametrize(
+    "layer_extra",
+    [
+        {"use_bias": "yes"},
+        {"use_bias": 1},
+        {"init": "uniform"},
+    ],
+)
 def test_config_rejects_invalid_bias_and_init(layer_extra):
     """
     The config validator rejects invalid "use_bias" and "init" settings.

@@ -182,22 +182,50 @@ NETWORK_CASES = [
     ("A2-style_mse", "mse", [("relu", 6), ("relu", 6), ("relu", 6)], "linear", {}),
     ("tanh_mse", "mse", [("tanh", 5), ("tanh", 4)], "linear", {}),
     ("A1-style_bce_bias", "bce", [("sigmoid", 6)], "sigmoid", {"use_bias": True}),
-    ("A2-style_bce_bias_he", "bce", [("relu", 6), ("relu", 6), ("relu", 6)], "sigmoid",
-     {"use_bias": True, "init": "he"}),
-    ("A2-style_mse_bias_he", "mse", [("relu", 6), ("relu", 6), ("relu", 6)], "linear",
-     {"use_bias": True, "init": "he"}),
-    ("tanh_mse_bias_xavier", "mse", [("tanh", 5), ("tanh", 4)], "linear",
-     {"use_bias": True, "init": "xavier"}),
+    (
+        "A2-style_bce_bias_he",
+        "bce",
+        [("relu", 6), ("relu", 6), ("relu", 6)],
+        "sigmoid",
+        {"use_bias": True, "init": "he"},
+    ),
+    (
+        "A2-style_mse_bias_he",
+        "mse",
+        [("relu", 6), ("relu", 6), ("relu", 6)],
+        "linear",
+        {"use_bias": True, "init": "he"},
+    ),
+    (
+        "tanh_mse_bias_xavier",
+        "mse",
+        [("tanh", 5), ("tanh", 4)],
+        "linear",
+        {"use_bias": True, "init": "xavier"},
+    ),
     # Batch norm in training mode: gradients flow through the batch statistics.
-    ("A2-style_bce_batchnorm", "bce", [("relu", 6), ("relu", 6), ("relu", 6)], "sigmoid",
-     {"batch_norm": True}),
-    ("A2-style_mse_batchnorm", "mse", [("relu", 6), ("relu", 6), ("relu", 6)], "linear",
-     {"batch_norm": True}),
+    (
+        "A2-style_bce_batchnorm",
+        "bce",
+        [("relu", 6), ("relu", 6), ("relu", 6)],
+        "sigmoid",
+        {"batch_norm": True},
+    ),
+    (
+        "A2-style_mse_batchnorm",
+        "mse",
+        [("relu", 6), ("relu", 6), ("relu", 6)],
+        "linear",
+        {"batch_norm": True},
+    ),
 ]
 
 
-@pytest.mark.parametrize("loss_name,hidden,output_activation,extra",
-                         [c[1:] for c in NETWORK_CASES], ids=[c[0] for c in NETWORK_CASES])
+@pytest.mark.parametrize(
+    "loss_name,hidden,output_activation,extra",
+    [c[1:] for c in NETWORK_CASES],
+    ids=[c[0] for c in NETWORK_CASES],
+)
 def test_network_weight_gradients_match_numerical(loss_name, hidden, output_activation, extra):
     """
     Backprop gives the correct gradient for every trainable parameter of a full network.
@@ -232,7 +260,9 @@ def test_network_weight_gradients_match_numerical(loss_name, hidden, output_acti
     rng = np.random.RandomState(3)
     input_dim, batch = 4, 10
 
-    layers = [{"type": "dense", "units": units, "activation": act, **extra} for act, units in hidden]
+    layers = [
+        {"type": "dense", "units": units, "activation": act, **extra} for act, units in hidden
+    ]
     layers.append({"type": "dense", "units": 1, "activation": output_activation, **extra})
 
     network = NeuralNetwork(random_seed=42)
@@ -249,7 +279,9 @@ def test_network_weight_gradients_match_numerical(loss_name, hidden, output_acti
     y_pred = network.forward(X)
     network.backward(loss.backward(y, y_pred))
     dense_layers = network.get_trainable_layers()
-    analytic = [{name: g.copy() for name, g in layer.get_grads().items()} for layer in dense_layers]
+    analytic = [
+        {name: g.copy() for name, g in layer.get_grads().items()} for layer in dense_layers
+    ]
 
     def loss_value():
         """Return the loss of a fresh forward pass with the current parameters."""
@@ -259,7 +291,9 @@ def test_network_weight_gradients_match_numerical(loss_name, hidden, output_acti
     # after checking the layer exposes exactly the parameters expected.
     dense_params = {"weights", "bias"} if extra.get("use_bias") else {"weights"}
     for layer, analytic_grads in zip(dense_layers, analytic):
-        expected_params = {"gamma", "beta"} if type(layer).__name__ == "BatchNorm" else dense_params
+        expected_params = (
+            {"gamma", "beta"} if type(layer).__name__ == "BatchNorm" else dense_params
+        )
         assert set(layer.get_params()) == expected_params
         for name, param in layer.get_params().items():
             numeric_grad = numerical_grad(loss_value, param)

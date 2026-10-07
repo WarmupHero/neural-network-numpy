@@ -34,10 +34,12 @@ def make_frame(n=1000, positive_rate=0.3, seed=0):
     2. Set "class" to 1 where a uniform draw is below positive_rate.
     """
     rng = np.random.RandomState(seed)
-    return pd.DataFrame({
-        "x": rng.normal(size=n),
-        "class": (rng.uniform(size=n) < positive_rate).astype(int),
-    })
+    return pd.DataFrame(
+        {
+            "x": rng.normal(size=n),
+            "class": (rng.uniform(size=n) < positive_rate).astype(int),
+        }
+    )
 
 
 def test_split_sizes_and_disjoint_cover():

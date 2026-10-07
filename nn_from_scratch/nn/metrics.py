@@ -10,6 +10,7 @@ import numpy as np
 
 from nn_from_scratch.nn.losses import BCELoss, MSELoss
 
+
 def binary_cross_entropy(y_true, y_pred):
     """
     Compute Binary Cross-Entropy (BCE) as the classification evaluation metric.

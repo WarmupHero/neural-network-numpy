@@ -14,6 +14,7 @@ carry the run stamp: a compact CSV summary and a full JSON file with every
 run's settings, metrics and training histories (read by nn_from_scratch/analysis.py and
 the plotting scripts).
 """
+
 import csv
 import json
 import os
@@ -21,15 +22,15 @@ import time
 
 import numpy as np
 
-from nn_from_scratch.dataset import Fetch
-from nn_from_scratch.nn.metrics import binary_cross_entropy, mean_squared_error
-from nn_from_scratch.features import PreprocessBanknote, PreprocessEnergy
+from nn_from_scratch.config import RANDOM_SEED, REPORT_DIR, RUN_STAMP, stamped_filename
 from nn_from_scratch.config_loader import ConfigLoader
-from nn_from_scratch.nn.network import NeuralNetwork
-from nn_from_scratch.nn.losses import get_loss
-from nn_from_scratch.nn.optimizers import get_optimizer
+from nn_from_scratch.dataset import Fetch
+from nn_from_scratch.features import PreprocessBanknote, PreprocessEnergy
 from nn_from_scratch.modeling.trainer import Trainer
-from nn_from_scratch.config import REPORT_DIR, RANDOM_SEED, RUN_STAMP, stamped_filename
+from nn_from_scratch.nn.losses import get_loss
+from nn_from_scratch.nn.metrics import binary_cross_entropy, mean_squared_error
+from nn_from_scratch.nn.network import NeuralNetwork
+from nn_from_scratch.nn.optimizers import get_optimizer
 
 # Toggle this to True if you want features.py to generate EDA plots.
 # Leaving it False makes the full experiment sweep faster and quieter.
@@ -38,14 +39,11 @@ SHOW_EDA = False
 # Mapping from problem type to the config file that defines its experiments.
 CONFIG_FILES = {
     "classification": "classification_experiments.json",
-    "regression": "regression_experiments.json"
+    "regression": "regression_experiments.json",
 }
 
 # Preprocessing class for each problem type.
-PREPROCESSORS = {
-    "classification": PreprocessBanknote,
-    "regression": PreprocessEnergy
-}
+PREPROCESSORS = {"classification": PreprocessBanknote, "regression": PreprocessEnergy}
 
 # Experiment outputs (the summary CSV and the full JSON results) are saved
 # in REPORT_DIR, i.e. reports/, imported from nn_from_scratch.config.
@@ -160,7 +158,7 @@ def build_model_config(experiment_config, architecture_name):
     """
     return {
         "input_dimension": experiment_config["input_dimension"],
-        "layers": experiment_config["architectures"][architecture_name]
+        "layers": experiment_config["architectures"][architecture_name],
     }
 
 
@@ -173,7 +171,7 @@ def run_single_experiment(
     batch_size,
     dataset_splits,
     seed=RANDOM_SEED,
-    baseline_test_metric=None
+    baseline_test_metric=None,
 ):
     """
     Build, train and test one network for one combination of settings.
@@ -259,7 +257,8 @@ def run_single_experiment(
     if X_train.shape[1] != experiment_config["input_dimension"]:
         raise ValueError(
             f"Config input_dimension={experiment_config['input_dimension']} "
-            f"does not match dataset dimension={X_train.shape[1]}")
+            f"does not match dataset dimension={X_train.shape[1]}"
+        )
 
     # Build the specific model configuration for this architecture
     model_config = build_model_config(experiment_config, architecture_name)
@@ -270,9 +269,7 @@ def run_single_experiment(
 
     # Create the loss function and optimizer from config choices
     loss_fn = get_loss(experiment_config["loss"])
-    optimizer = get_optimizer(
-        name=optimizer_name,
-        learning_rate=learning_rate)
+    optimizer = get_optimizer(name=optimizer_name, learning_rate=learning_rate)
 
     # Create the Trainer object, including early stopping settings
     trainer = Trainer(
@@ -283,8 +280,10 @@ def run_single_experiment(
         early_stopping=experiment_config["experiments"]["early_stopping"],
         patience=experiment_config["experiments"]["patience"],
         min_delta=experiment_config["experiments"]["min_delta"],
-        min_epochs_before_early_stop=experiment_config["experiments"]["min_epochs_before_early_stop"],
-        random_seed=seed
+        min_epochs_before_early_stop=experiment_config["experiments"][
+            "min_epochs_before_early_stop"
+        ],
+        random_seed=seed,
     )
 
     # Train the model and collect history
@@ -295,7 +294,7 @@ def run_single_experiment(
         y_val=y_val,
         epochs=experiment_config["experiments"]["epochs"],
         batch_size=batch_size,
-        verbose=False
+        verbose=False,
     )
 
     # Evaluate on the held-out test set
@@ -316,18 +315,18 @@ def run_single_experiment(
         "optimizer": optimizer_name,
         "batch": batch_size,
         "learning_rate": learning_rate,
-
         "epochs": experiment_config["experiments"]["epochs"],
         "early_stopping": experiment_config["experiments"]["early_stopping"],
         "patience": experiment_config["experiments"]["patience"],
         "min_delta": experiment_config["experiments"]["min_delta"],
-        "min_epochs_before_early_stop": experiment_config["experiments"]["min_epochs_before_early_stop"],
+        "min_epochs_before_early_stop": experiment_config["experiments"][
+            "min_epochs_before_early_stop"
+        ],
         "epochs_ran": history["epochs_ran"],
         "stopped_early": history["stopped_early"],
         "diverged": history["diverged"],
         "best_epoch": history["best_epoch"],
         "best_val_loss": history["best_val_loss"],
-
         "test_loss": float(results["test_loss"]),
         "test_metric": float(results["test_metric"]),
         "train_metric": train_metric,
@@ -335,9 +334,8 @@ def run_single_experiment(
         "train_loss_history": [float(x) for x in history["train_loss"]],
         "val_loss_history": [float(x) for x in history["val_loss"]],
         "val_metric_history": [float(x) for x in history["val_metric"]],
-
         "preprocessing_enabled": experiment_config["preprocessing"]["enabled"],
-        "scale_features": experiment_config["preprocessing"]["scale_features"]
+        "scale_features": experiment_config["preprocessing"]["scale_features"],
     }
 
     return summary
@@ -384,7 +382,7 @@ def save_summary_csv(results, filename="main_summary.csv"):
         "learning_rate",
         "architecture",
         "epochs_ran",
-        "test_metric"
+        "test_metric",
     ]
 
     # Write the CSV file
@@ -573,13 +571,13 @@ def main():
                 preprocessing_enabled=preprocessing["enabled"],
                 scale_features=preprocessing["scale_features"],
                 random_seed=seed,
-                run_eda=(seed == seeds[0])
+                run_eda=(seed == seeds[0]),
             )
             # Error of always predicting a constant on this split, stored with
             # every run so later analysis can tell whether a model learned.
             baseline = constant_prediction_baseline(problem_name, dataset_splits)
 
-            for architecture_name in config["architectures"].keys():
+            for architecture_name in config["architectures"]:
                 for optimizer_name in config["experiments"]["optimizers"]:
                     for learning_rate in config["experiments"]["learning_rates"]:
                         for batch_size in config["experiments"]["batch_sizes"]:
@@ -595,7 +593,8 @@ def main():
                                 batch_size=batch_size,
                                 dataset_splits=dataset_splits,
                                 seed=seed,
-                                baseline_test_metric=baseline)
+                                baseline_test_metric=baseline,
+                            )
 
                             all_results.append(result)
 

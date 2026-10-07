@@ -219,10 +219,7 @@ class MomentumSGD:
                 self.velocity[key] = np.zeros_like(param)
 
             # Update the momentum term (velocity)
-            self.velocity[key] = (
-                self.beta * self.velocity[key]
-                + (1 - self.beta) * grads[name]
-            )
+            self.velocity[key] = self.beta * self.velocity[key] + (1 - self.beta) * grads[name]
 
             # Update the parameter in place using the velocity
             param -= self.learning_rate * self.velocity[key]
@@ -388,27 +385,21 @@ class AdaBelief:
 
             # Update first moment estimate
             # This is the exponential moving average of gradients
-            self.m[key] = (
-                self.beta1 * self.m[key]
-                + (1 - self.beta1) * g
-            )
+            self.m[key] = self.beta1 * self.m[key] + (1 - self.beta1) * g
 
             # Belief error:
             # difference between current gradient and expected gradient
             belief_error = g - self.m[key]
 
             # Update second moment estimate using the squared belief error
-            self.s[key] = (
-                self.beta2 * self.s[key]
-                + (1 - self.beta2) * (belief_error ** 2)
-            )
+            self.s[key] = self.beta2 * self.s[key] + (1 - self.beta2) * (belief_error**2)
 
             # Bias correction for the first moment
             # Needed because the running average starts at zero
-            m_hat = self.m[key] / (1 - self.beta1 ** t)
+            m_hat = self.m[key] / (1 - self.beta1**t)
 
             # Bias correction for the second moment
-            s_hat = self.s[key] / (1 - self.beta2 ** t)
+            s_hat = self.s[key] / (1 - self.beta2**t)
 
             # Final AdaBelief update, in place
             param -= self.learning_rate * m_hat / (np.sqrt(s_hat) + self.epsilon)
@@ -467,12 +458,7 @@ def get_optimizer(name, learning_rate):
         # beta1 = 0.9
         # beta2 = 0.999
         # epsilon = 1e-8
-        return AdaBelief(
-            learning_rate=learning_rate,
-            beta1=0.9,
-            beta2=0.999,
-            epsilon=1e-8
-        )
+        return AdaBelief(learning_rate=learning_rate, beta1=0.9, beta2=0.999, epsilon=1e-8)
 
     else:
         raise ValueError(f"Unsupported optimizer: {name}")

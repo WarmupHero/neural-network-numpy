@@ -6,10 +6,12 @@ Defines `Trainer`, which runs mini-batch gradient descent on a
 optionally stops early on a validation-loss plateau (restoring the best
 checkpoint), and evaluates or scores the trained model.
 """
+
 import numpy as np
 
-from nn_from_scratch.nn.metrics import binary_cross_entropy, mean_squared_error
 from nn_from_scratch.config import RANDOM_SEED
+from nn_from_scratch.nn.metrics import binary_cross_entropy, mean_squared_error
+
 
 class Trainer:
     """
@@ -54,7 +56,7 @@ class Trainer:
         patience=10,
         min_delta=0.0,
         min_epochs_before_early_stop=0,
-        random_seed=RANDOM_SEED
+        random_seed=RANDOM_SEED,
     ):
         """
         Initialize the trainer and store its settings.
@@ -133,11 +135,7 @@ class Trainer:
         self.random = np.random.RandomState(random_seed)
 
         # History dictionary used to store training progress over epochs
-        self.history = {
-            "train_loss": [],
-            "val_loss": [],
-            "val_metric": []
-        }
+        self.history = {"train_loss": [], "val_loss": [], "val_metric": []}
 
     def _shuffle_data(self, X, y):
         """
@@ -272,10 +270,12 @@ class Trainer:
         state = []
         for layer in self.network.get_trainable_layers():
             buffers = layer.get_buffers() if hasattr(layer, "get_buffers") else {}
-            state.append({
-                "params": {name: param.copy() for name, param in layer.get_params().items()},
-                "buffers": {name: buf.copy() for name, buf in buffers.items()},
-            })
+            state.append(
+                {
+                    "params": {name: param.copy() for name, param in layer.get_params().items()},
+                    "buffers": {name: buf.copy() for name, buf in buffers.items()},
+                }
+            )
         return state
 
     def _set_model_state(self, state):
@@ -419,11 +419,7 @@ class Trainer:
         """
         # Reset history at the start of every fit() call
         # so previous runs do not contaminate the new one
-        self.history = {
-            "train_loss": [],
-            "val_loss": [],
-            "val_metric": []
-        }
+        self.history = {"train_loss": [], "val_loss": [], "val_metric": []}
 
         # Variables used for early stopping
         best_train_loss = float("inf")
@@ -448,7 +444,9 @@ class Trainer:
             batch_losses = []
 
             # Mini-batch training
-            for X_batch, y_batch in self._create_batches(X_train_shuffled, y_train_shuffled, batch_size):
+            for X_batch, y_batch in self._create_batches(
+                X_train_shuffled, y_train_shuffled, batch_size
+            ):
                 # Forward pass through the network
                 y_pred = self.network.forward(X_batch)
 
@@ -487,7 +485,9 @@ class Trainer:
             if not (np.isfinite(train_loss) and np.isfinite(val_loss)):
                 diverged = True
                 if verbose:
-                    print(f"\nTraining diverged at epoch {epoch + 1}: the loss is no longer finite.")
+                    print(
+                        f"\nTraining diverged at epoch {epoch + 1}: the loss is no longer finite."
+                    )
                 break
 
             # Optional console output
@@ -657,10 +657,7 @@ class Trainer:
         else:
             print(f"Test MSE: {test_metric:.6f}")
 
-        return {
-            "test_loss": test_loss,
-            "test_metric": test_metric
-        }
+        return {"test_loss": test_loss, "test_metric": test_metric}
 
     def score(self, X, y):
         """

@@ -5,11 +5,12 @@ Defines `ConfigLoader`, which reads a config file from the project's
 `configs/` folder and checks its structure and values before any
 experiment runs.
 """
+
 import json
 import os
 
-from nn_from_scratch.nn.layers import SUPPORTED_INITS
 from nn_from_scratch.config import ROOT_DIR
+from nn_from_scratch.nn.layers import SUPPORTED_INITS
 
 
 class ConfigLoader:
@@ -26,11 +27,11 @@ class ConfigLoader:
     ----------
     configs_dir : str
         Absolute path of the project's `configs/` folder.
-    SUPPORTED_ACTIVATIONS : set of str
+    SUPPORTED_ACTIVATIONS : frozenset of str
         Activation names accepted in a layer's "activation" field.
-    SUPPORTED_CLASSIFICATION_LOSSES : set of str
+    SUPPORTED_CLASSIFICATION_LOSSES : frozenset of str
         Loss names accepted when task_type is "classification".
-    SUPPORTED_REGRESSION_LOSSES : set of str
+    SUPPORTED_REGRESSION_LOSSES : frozenset of str
         Loss names accepted when task_type is "regression".
 
     Notes
@@ -44,15 +45,14 @@ class ConfigLoader:
     """
 
     # Supported activation names used by nn_from_scratch.nn.activations.get_activation(...)
-    SUPPORTED_ACTIVATIONS = {"relu", "sigmoid", "tanh", "linear"}
+    # Frozensets, because these are fixed constants shared by every instance.
+    SUPPORTED_ACTIVATIONS = frozenset({"relu", "sigmoid", "tanh", "linear"})
 
     # Supported loss names used by nn_from_scratch.nn.losses.get_loss(...)
-    SUPPORTED_CLASSIFICATION_LOSSES = {
-        "bce",
-        "binary_crossentropy",
-        "binary_cross_entropy"
-    }
-    SUPPORTED_REGRESSION_LOSSES = {"mse"}
+    SUPPORTED_CLASSIFICATION_LOSSES = frozenset(
+        {"bce", "binary_crossentropy", "binary_cross_entropy"}
+    )
+    SUPPORTED_REGRESSION_LOSSES = frozenset({"mse"})
 
     def __init__(self):
         """
@@ -187,7 +187,7 @@ class ConfigLoader:
             "loss",
             "architectures",
             "experiments",
-            "preprocessing"
+            "preprocessing",
         ]
 
         # Ensure all required top-level keys exist
@@ -210,27 +210,24 @@ class ConfigLoader:
         # ----------------------------
         # Validate preprocessing block
         # ----------------------------
-        
+
         preprocessing = config["preprocessing"]
-        
+
         # preprocessing must be a dictionary
         if not isinstance(preprocessing, dict):
             raise ValueError("'preprocessing' must be a dictionary")
-        
-        required_preprocessing_keys = [
-            "enabled",
-            "scale_features"
-        ]
-        
+
+        required_preprocessing_keys = ["enabled", "scale_features"]
+
         # Ensure all required preprocessing keys exist
         for key in required_preprocessing_keys:
             if key not in preprocessing:
                 raise ValueError(f"Missing required preprocessing key: '{key}'")
-        
+
         # enabled must be a boolean
         if not isinstance(preprocessing["enabled"], bool):
             raise ValueError("'preprocessing.enabled' must be true or false")
-        
+
         # scale_features must be a boolean
         if not isinstance(preprocessing["scale_features"], bool):
             raise ValueError("'preprocessing.scale_features' must be true or false")
@@ -251,9 +248,11 @@ class ConfigLoader:
                 )
 
         # Regression configs should use MSE
-        elif config["task_type"] == "regression":
-            if loss_name not in self.SUPPORTED_REGRESSION_LOSSES:
-                raise ValueError("For regression, loss must be 'mse'")
+        elif (
+            config["task_type"] == "regression"
+            and loss_name not in self.SUPPORTED_REGRESSION_LOSSES
+        ):
+            raise ValueError("For regression, loss must be 'mse'")
 
         # ----------------------------
         # Validate architectures
@@ -271,7 +270,9 @@ class ConfigLoader:
                 if "units" not in layer:
                     raise ValueError(f"Architecture '{arch_name}', layer {i} is missing 'units'")
                 if "activation" not in layer:
-                    raise ValueError(f"Architecture '{arch_name}', layer {i} is missing 'activation'")
+                    raise ValueError(
+                        f"Architecture '{arch_name}', layer {i} is missing 'activation'"
+                    )
 
                 # This project only supports dense layers
                 if layer["type"].lower() != "dense":
@@ -312,7 +313,11 @@ class ConfigLoader:
                 # Optional: dropout rate after the activation (default 0, no dropout)
                 if "dropout" in layer:
                     rate = layer["dropout"]
-                    if isinstance(rate, bool) or not isinstance(rate, (int, float)) or not 0 <= rate < 1:
+                    if (
+                        isinstance(rate, bool)
+                        or not isinstance(rate, (int, float))
+                        or not 0 <= rate < 1
+                    ):
                         raise ValueError(
                             f"Architecture '{arch_name}', layer {i} must have "
                             f"'dropout' as a number in [0, 1)"
@@ -346,7 +351,7 @@ class ConfigLoader:
             "early_stopping",
             "patience",
             "min_delta",
-            "min_epochs_before_early_stop"
+            "min_epochs_before_early_stop",
         ]
 
         # Ensure all required experiment keys exist
@@ -359,11 +364,17 @@ class ConfigLoader:
             raise ValueError("'optimizers' must be a non-empty list")
 
         # learning_rates must be a non-empty list
-        if not isinstance(experiments["learning_rates"], list) or len(experiments["learning_rates"]) == 0:
+        if (
+            not isinstance(experiments["learning_rates"], list)
+            or len(experiments["learning_rates"]) == 0
+        ):
             raise ValueError("'learning_rates' must be a non-empty list")
 
         # batch_sizes must be a non-empty list
-        if not isinstance(experiments["batch_sizes"], list) or len(experiments["batch_sizes"]) == 0:
+        if (
+            not isinstance(experiments["batch_sizes"], list)
+            or len(experiments["batch_sizes"]) == 0
+        ):
             raise ValueError("'batch_sizes' must be a non-empty list")
 
         # epochs must be a positive integer
@@ -399,7 +410,9 @@ class ConfigLoader:
             if (
                 not isinstance(seeds, list)
                 or len(seeds) == 0
-                or not all(isinstance(s, int) and not isinstance(s, bool) and s >= 0 for s in seeds)
+                or not all(
+                    isinstance(s, int) and not isinstance(s, bool) and s >= 0 for s in seeds
+                )
             ):
                 raise ValueError("'seeds' must be a non-empty list of non-negative integers")
             if len(set(seeds)) != len(seeds):
@@ -407,9 +420,7 @@ class ConfigLoader:
 
         # The minimum-epoch guard cannot exceed the configured maximum epochs
         if min_epochs_before_early_stop > experiments["epochs"]:
-            raise ValueError(
-                "'min_epochs_before_early_stop' cannot be greater than 'epochs'"
-            )
+            raise ValueError("'min_epochs_before_early_stop' cannot be greater than 'epochs'")
 
         # If all checks pass, the config is valid
         return True

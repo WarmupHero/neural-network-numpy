@@ -5,15 +5,14 @@ the trainer's handling of both (checkpoints, evaluation mode, divergence).
 
 import numpy as np
 import pytest
+from tests.test_gradients import numerical_grad
 
 from nn_from_scratch.config_loader import ConfigLoader
+from nn_from_scratch.modeling.trainer import Trainer
 from nn_from_scratch.nn.layers import BatchNorm
 from nn_from_scratch.nn.losses import get_loss
 from nn_from_scratch.nn.network import NeuralNetwork
 from nn_from_scratch.nn.optimizers import get_optimizer
-from nn_from_scratch.modeling.trainer import Trainer
-
-from tests.test_gradients import numerical_grad
 
 
 def make_bn(num_features=3, seed=0):
@@ -53,6 +52,7 @@ def make_bn(num_features=3, seed=0):
 # ------------------------------------------------------------------
 # Forward pass
 # ------------------------------------------------------------------
+
 
 def test_training_mode_normalizes_each_feature_over_the_batch():
     """
@@ -146,6 +146,7 @@ def test_eval_mode_prediction_is_independent_of_the_rest_of_the_batch():
 # Backward pass vs finite differences
 # ------------------------------------------------------------------
 
+
 @pytest.mark.parametrize("training", [True, False])
 def test_batchnorm_gradients_match_numerical(training):
     """
@@ -186,12 +187,14 @@ def test_batchnorm_gradients_match_numerical(training):
 
     for name, array in [("X", X), ("gamma", bn.gamma), ("beta", bn.beta)]:
         np.testing.assert_allclose(
-            analytic[name], numerical_grad(loss_value, array), rtol=1e-4, atol=1e-7)
+            analytic[name], numerical_grad(loss_value, array), rtol=1e-4, atol=1e-7
+        )
 
 
 # ------------------------------------------------------------------
 # Network train / eval switch
 # ------------------------------------------------------------------
+
 
 def build_bn_network(output_activation="sigmoid"):
     """
@@ -215,13 +218,15 @@ def build_bn_network(output_activation="sigmoid"):
     2. Build it from a config whose hidden layer has "batch_norm": True.
     """
     network = NeuralNetwork(random_seed=0)
-    network.build_from_config({
-        "input_dimension": 3,
-        "layers": [
-            {"type": "dense", "units": 5, "activation": "relu", "batch_norm": True},
-            {"type": "dense", "units": 1, "activation": output_activation},
-        ],
-    })
+    network.build_from_config(
+        {
+            "input_dimension": 3,
+            "layers": [
+                {"type": "dense", "units": 5, "activation": "relu", "batch_norm": True},
+                {"type": "dense", "units": 1, "activation": output_activation},
+            ],
+        }
+    )
     return network
 
 
@@ -250,13 +255,15 @@ def test_batch_norm_does_not_change_the_dense_weights():
     identical.
     """
     plain = NeuralNetwork(random_seed=0)
-    plain.build_from_config({
-        "input_dimension": 3,
-        "layers": [
-            {"type": "dense", "units": 5, "activation": "relu"},
-            {"type": "dense", "units": 1, "activation": "sigmoid"},
-        ],
-    })
+    plain.build_from_config(
+        {
+            "input_dimension": 3,
+            "layers": [
+                {"type": "dense", "units": 5, "activation": "relu"},
+                {"type": "dense", "units": 1, "activation": "sigmoid"},
+            ],
+        }
+    )
     dense_plain = [l for l in plain.layers if type(l).__name__ == "Dense"]
     dense_bn = [l for l in build_bn_network().layers if type(l).__name__ == "Dense"]
     for a, b in zip(dense_plain, dense_bn):
@@ -282,6 +289,7 @@ def test_network_train_and_eval_set_every_layer():
 # ------------------------------------------------------------------
 # Trainer
 # ------------------------------------------------------------------
+
 
 def make_classification_data(n=200, seed=0):
     """
@@ -330,8 +338,9 @@ def test_trainer_with_batch_norm_learns_and_predicts_single_samples():
     network = build_bn_network()
     trainer = Trainer(network, get_loss("bce"), get_optimizer("adabelief", 0.01), "classification")
 
-    history = trainer.fit(X[:200], y[:200], X[200:250], y[200:250],
-                          epochs=30, batch_size=16, verbose=False)
+    history = trainer.fit(
+        X[:200], y[:200], X[200:250], y[200:250], epochs=30, batch_size=16, verbose=False
+    )
     results = trainer.evaluate(X[250:], y[250:])
 
     assert history["diverged"] is False
@@ -385,15 +394,21 @@ def test_trainer_stops_and_flags_a_diverging_run():
     X = rng.normal(size=(100, 3))
     y = 1000.0 * rng.normal(size=(100, 1))
     network = NeuralNetwork(random_seed=0)
-    network.build_from_config({
-        "input_dimension": 3,
-        "layers": [{"type": "dense", "units": 8, "activation": "relu"},
-                   {"type": "dense", "units": 1, "activation": "linear"}],
-    })
+    network.build_from_config(
+        {
+            "input_dimension": 3,
+            "layers": [
+                {"type": "dense", "units": 8, "activation": "relu"},
+                {"type": "dense", "units": 1, "activation": "linear"},
+            ],
+        }
+    )
     trainer = Trainer(network, get_loss("mse"), get_optimizer("sgd", 10.0), "regression")
 
     with np.errstate(all="ignore"):
-        history = trainer.fit(X[:80], y[:80], X[80:], y[80:], epochs=50, batch_size=16, verbose=False)
+        history = trainer.fit(
+            X[:80], y[:80], X[80:], y[80:], epochs=50, batch_size=16, verbose=False
+        )
 
     assert history["diverged"] is True
     assert history["epochs_ran"] < 50
@@ -403,6 +418,7 @@ def test_trainer_stops_and_flags_a_diverging_run():
 # ------------------------------------------------------------------
 # Config validation
 # ------------------------------------------------------------------
+
 
 def make_config(**layer_extra):
     """
@@ -433,13 +449,20 @@ def make_config(**layer_extra):
         "loss": "bce",
         "preprocessing": {"enabled": True, "scale_features": True},
         "architectures": {
-            "A": [{"type": "dense", "units": 2, "activation": "relu", **layer_extra},
-                  {"type": "dense", "units": 1, "activation": "sigmoid"}]
+            "A": [
+                {"type": "dense", "units": 2, "activation": "relu", **layer_extra},
+                {"type": "dense", "units": 1, "activation": "sigmoid"},
+            ]
         },
         "experiments": {
-            "optimizers": ["sgd"], "learning_rates": [0.1], "batch_sizes": [16],
-            "epochs": 10, "early_stopping": True, "patience": 2,
-            "min_delta": 0.0, "min_epochs_before_early_stop": 0,
+            "optimizers": ["sgd"],
+            "learning_rates": [0.1],
+            "batch_sizes": [16],
+            "epochs": 10,
+            "early_stopping": True,
+            "patience": 2,
+            "min_delta": 0.0,
+            "min_epochs_before_early_stop": 0,
         },
     }
 

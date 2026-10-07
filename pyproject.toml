@@ -41,6 +41,13 @@ include = ["pyproject.toml", "nn_from_scratch/**/*.py", "tests/**/*.py", "tools/
 # Ruff's default rules (pyflakes and pycodestyle errors) plus import sorting,
 # as in the Cookiecutter Data Science template.
 extend-select = ["I"]
+ignore = [
+    # The config loader reports every invalid setting, including wrong
+    # types, as ValueError ("this config is invalid"); the tests rely on it.
+    "TRY004",
+    # The run stamp is meant to be the local wall-clock time of the run.
+    "DTZ005",
+]
 
 [tool.ruff.lint.isort]
 known-first-party = ["nn_from_scratch"]

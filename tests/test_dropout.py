@@ -7,16 +7,16 @@ import numpy as np
 import pytest
 
 from nn_from_scratch.config_loader import ConfigLoader
+from nn_from_scratch.modeling.trainer import Trainer
 from nn_from_scratch.nn.layers import Dropout
 from nn_from_scratch.nn.losses import get_loss
 from nn_from_scratch.nn.network import NeuralNetwork
 from nn_from_scratch.nn.optimizers import get_optimizer
-from nn_from_scratch.modeling.trainer import Trainer
-
 
 # ------------------------------------------------------------------
 # The layer
 # ------------------------------------------------------------------
+
 
 def test_training_mode_drops_about_rate_and_scales_survivors():
     """
@@ -121,6 +121,7 @@ def test_invalid_rate_raises(rate):
 # In the network
 # ------------------------------------------------------------------
 
+
 def build(dropout=None, seed=0):
     """
     Build a small 3 -> 6 -> 1 classifier, optionally with dropout on the hidden layer.
@@ -150,10 +151,12 @@ def build(dropout=None, seed=0):
     if dropout is not None:
         hidden["dropout"] = dropout
     network = NeuralNetwork(random_seed=seed)
-    network.build_from_config({
-        "input_dimension": 3,
-        "layers": [hidden, {"type": "dense", "units": 1, "activation": "sigmoid"}],
-    })
+    network.build_from_config(
+        {
+            "input_dimension": 3,
+            "layers": [hidden, {"type": "dense", "units": 1, "activation": "sigmoid"}],
+        }
+    )
     return network
 
 
@@ -217,6 +220,7 @@ def test_dropout_is_not_trainable():
 # ------------------------------------------------------------------
 # Trainer
 # ------------------------------------------------------------------
+
 
 def make_data(n=300, seed=0):
     """
@@ -284,12 +288,15 @@ def test_score_matches_the_test_metric_from_evaluate():
     trainer = Trainer(build(0.2), get_loss("bce"), get_optimizer("sgd", 0.1), "classification")
     trainer.fit(X[:200], y[:200], X[200:250], y[200:250], epochs=5, batch_size=16, verbose=False)
 
-    assert trainer.score(X[250:], y[250:]) == pytest.approx(trainer.evaluate(X[250:], y[250:])["test_metric"])
+    assert trainer.score(X[250:], y[250:]) == pytest.approx(
+        trainer.evaluate(X[250:], y[250:])["test_metric"]
+    )
 
 
 # ------------------------------------------------------------------
 # Config validation
 # ------------------------------------------------------------------
+
 
 def make_config(hidden_extra=None, output_extra=None):
     """
@@ -322,13 +329,20 @@ def make_config(hidden_extra=None, output_extra=None):
         "loss": "bce",
         "preprocessing": {"enabled": True, "scale_features": True},
         "architectures": {
-            "A": [{"type": "dense", "units": 2, "activation": "relu", **(hidden_extra or {})},
-                  {"type": "dense", "units": 1, "activation": "sigmoid", **(output_extra or {})}]
+            "A": [
+                {"type": "dense", "units": 2, "activation": "relu", **(hidden_extra or {})},
+                {"type": "dense", "units": 1, "activation": "sigmoid", **(output_extra or {})},
+            ]
         },
         "experiments": {
-            "optimizers": ["sgd"], "learning_rates": [0.1], "batch_sizes": [16],
-            "epochs": 10, "early_stopping": True, "patience": 2,
-            "min_delta": 0.0, "min_epochs_before_early_stop": 0,
+            "optimizers": ["sgd"],
+            "learning_rates": [0.1],
+            "batch_sizes": [16],
+            "epochs": 10,
+            "early_stopping": True,
+            "patience": 2,
+            "min_delta": 0.0,
+            "min_epochs_before_early_stop": 0,
         },
     }
 
