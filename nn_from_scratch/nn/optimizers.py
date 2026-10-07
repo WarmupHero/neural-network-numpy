@@ -10,6 +10,8 @@ get_optimizer() builds an optimizer from a config string.
 
 import numpy as np
 
+from nn_from_scratch.nn.layers import BatchNorm, Dense
+
 
 class SGD:
     """
@@ -39,7 +41,7 @@ class SGD:
     - g_t = gradient at the current step
     """
 
-    def __init__(self, learning_rate=0.01):
+    def __init__(self, learning_rate: float = 0.01) -> None:
         """
         Initialize the SGD optimizer.
 
@@ -61,7 +63,7 @@ class SGD:
         """
         self.learning_rate = learning_rate
 
-    def update(self, layer):
+    def update(self, layer: Dense | BatchNorm) -> None:
         """
         Update every trainable parameter of a layer using SGD.
 
@@ -140,7 +142,7 @@ class MomentumSGD:
     the first few steps are smaller than with plain SGD.
     """
 
-    def __init__(self, learning_rate=0.01, beta=0.9):
+    def __init__(self, learning_rate: float = 0.01, beta: float = 0.9) -> None:
         """
         Initialize the Momentum SGD optimizer.
 
@@ -173,7 +175,7 @@ class MomentumSGD:
         # and bias keep their own momentum state independently.
         self.velocity = {}
 
-    def update(self, layer):
+    def update(self, layer: Dense | BatchNorm) -> None:
         """
         Update every trainable parameter of a layer using Momentum SGD.
 
@@ -271,7 +273,13 @@ class AdaBelief:
     - if the gradient is unstable, updates become more cautious
     """
 
-    def __init__(self, learning_rate=0.001, beta1=0.9, beta2=0.999, epsilon=1e-8):
+    def __init__(
+        self,
+        learning_rate: float = 0.001,
+        beta1: float = 0.9,
+        beta2: float = 0.999,
+        epsilon: float = 1e-8,
+    ) -> None:
         """
         Initialize the AdaBelief optimizer.
 
@@ -325,7 +333,7 @@ class AdaBelief:
         # Needed for bias correction because m and s start at zero.
         self.t = {}
 
-    def update(self, layer):
+    def update(self, layer: Dense | BatchNorm) -> None:
         """
         Update every trainable parameter of a layer using AdaBelief.
 
@@ -405,7 +413,7 @@ class AdaBelief:
             param -= self.learning_rate * m_hat / (np.sqrt(s_hat) + self.epsilon)
 
 
-def get_optimizer(name, learning_rate):
+def get_optimizer(name: str, learning_rate: float) -> SGD | MomentumSGD | AdaBelief:
     """
     Factory function that returns an optimizer object by name.
 

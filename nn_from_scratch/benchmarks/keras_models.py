@@ -23,6 +23,9 @@ import itertools
 import math
 import os
 import time
+from typing import Any
+
+import numpy as np
 
 # Hide TensorFlow's C++ log messages (start-up notices and harmless graph
 # warnings), which would otherwise flood the console.
@@ -47,7 +50,7 @@ tf.config.experimental.enable_op_determinism()
 tf.get_logger().setLevel("ERROR")
 
 
-def expand_grid(grid):
+def expand_grid(grid: dict[str, list[Any]]) -> list[dict[str, Any]]:
     """
     List every combination of the values in a grid.
 
@@ -74,7 +77,9 @@ def expand_grid(grid):
     return [dict(zip(keys, values)) for values in itertools.product(*(grid[k] for k in keys))]
 
 
-def build_network(layer_configs, input_dimension, seed):
+def build_network(
+    layer_configs: list[dict[str, Any]], input_dimension: int, seed: int
+) -> keras.Model:
     """
     Build a Keras model with the same layer structure as a NumPy architecture.
 
@@ -121,7 +126,7 @@ def build_network(layer_configs, input_dimension, seed):
     return keras.Model(inputs, x)
 
 
-def build_optimizer(name, learning_rate):
+def build_optimizer(name: str, learning_rate: float) -> keras.optimizers.Optimizer:
     """
     Create a Keras optimizer.
 
@@ -161,7 +166,9 @@ def build_optimizer(name, learning_rate):
     raise ValueError(f"Unsupported Keras optimizer: {name}")
 
 
-def evaluate(model, problem_name, X, y):
+def evaluate(
+    model: keras.Model, problem_name: str, X: np.ndarray, y: np.ndarray
+) -> tuple[float, float]:
     """
     Score a trained Keras model with the project's NumPy metrics.
 
@@ -199,7 +206,15 @@ def evaluate(model, problem_name, X, y):
     return mean_squared_error(y, predictions), r2_score(y, predictions)
 
 
-def run_model(problem_name, model_name, grid, splits, seed, baseline, training=None):
+def run_model(
+    problem_name: str,
+    model_name: str,
+    grid: dict[str, list[Any]],
+    splits: tuple[np.ndarray, ...],
+    seed: int,
+    baseline: float,
+    training: dict[str, Any] | None = None,
+) -> list[dict[str, Any]]:
     """
     Train and score every optimizer / learning-rate / batch-size combination
     of one architecture on one seed's split.

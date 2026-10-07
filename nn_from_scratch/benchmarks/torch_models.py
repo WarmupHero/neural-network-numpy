@@ -20,10 +20,12 @@ NumPy trainer.
 Every model is scored with the project's own NumPy metric functions.
 """
 
+from collections.abc import Iterable
 import copy
 import itertools
 import math
 import time
+from typing import Any
 
 import numpy as np
 import torch
@@ -51,7 +53,7 @@ ACTIVATIONS = {
 }
 
 
-def expand_grid(grid):
+def expand_grid(grid: dict[str, list[Any]]) -> list[dict[str, Any]]:
     """
     List every combination of the values in a grid.
 
@@ -78,7 +80,9 @@ def expand_grid(grid):
     return [dict(zip(keys, values)) for values in itertools.product(*(grid[k] for k in keys))]
 
 
-def build_network(layer_configs, input_dimension, seed):
+def build_network(
+    layer_configs: list[dict[str, Any]], input_dimension: int, seed: int
+) -> nn.Sequential:
     """
     Build a PyTorch model with the same layer structure as a NumPy architecture.
 
@@ -132,7 +136,9 @@ def build_network(layer_configs, input_dimension, seed):
     return nn.Sequential(*modules)
 
 
-def build_optimizer(name, parameters, learning_rate):
+def build_optimizer(
+    name: str, parameters: Iterable[nn.Parameter], learning_rate: float
+) -> torch.optim.Optimizer:
     """
     Create a torch.optim optimizer.
 
@@ -175,7 +181,7 @@ def build_optimizer(name, parameters, learning_rate):
     raise ValueError(f"Unsupported PyTorch optimizer: {name}")
 
 
-def predict(model, X):
+def predict(model: nn.Module, X: np.ndarray) -> np.ndarray:
     """
     Predict with a PyTorch model in evaluation mode.
 
@@ -205,7 +211,9 @@ def predict(model, X):
     return output.numpy().astype(np.float64)
 
 
-def evaluate(model, problem_name, X, y):
+def evaluate(
+    model: nn.Module, problem_name: str, X: np.ndarray, y: np.ndarray
+) -> tuple[float, float]:
     """
     Score a trained PyTorch model with the project's NumPy metrics.
 
@@ -240,7 +248,15 @@ def evaluate(model, problem_name, X, y):
     return mean_squared_error(y, predictions), r2_score(y, predictions)
 
 
-def train(model, optimizer, loss_fn, splits, batch_size, seed, training):
+def train(
+    model: nn.Module,
+    optimizer: torch.optim.Optimizer,
+    loss_fn: nn.Module,
+    splits: tuple[np.ndarray, ...],
+    batch_size: int,
+    seed: int,
+    training: dict[str, Any],
+) -> dict[str, Any]:
     """
     Train a PyTorch model with mini-batches and early stopping.
 
@@ -342,7 +358,15 @@ def train(model, optimizer, loss_fn, splits, batch_size, seed, training):
     }
 
 
-def run_model(problem_name, model_name, grid, splits, seed, baseline, training=None):
+def run_model(
+    problem_name: str,
+    model_name: str,
+    grid: dict[str, list[Any]],
+    splits: tuple[np.ndarray, ...],
+    seed: int,
+    baseline: float,
+    training: dict[str, Any] | None = None,
+) -> list[dict[str, Any]]:
     """
     Train and score every optimizer / learning-rate / batch-size combination
     of one architecture on one seed's split.

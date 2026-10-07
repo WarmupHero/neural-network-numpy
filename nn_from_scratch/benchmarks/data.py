@@ -13,6 +13,9 @@ guarantees that every library is trained and tested on identical data.
 
 import contextlib
 import io
+from typing import Any
+
+import numpy as np
 
 from nn_from_scratch.config_loader import ConfigLoader
 from nn_from_scratch.modeling.train import (
@@ -23,7 +26,7 @@ from nn_from_scratch.modeling.train import (
 )
 
 
-def load_problem_config(problem_name):
+def load_problem_config(problem_name: str) -> dict[str, Any]:
     """
     Load and validate the main experiment config for one problem.
 
@@ -46,7 +49,7 @@ def load_problem_config(problem_name):
     return ConfigLoader().load_and_validate(CONFIG_FILES[problem_name])
 
 
-def problem_seeds(problem_name):
+def problem_seeds(problem_name: str) -> list[int]:
     """
     Return the seeds the main pipeline runs for one problem.
 
@@ -70,7 +73,7 @@ def problem_seeds(problem_name):
     return get_seeds(load_problem_config(problem_name))
 
 
-def load_splits(problem_name, seed):
+def load_splits(problem_name: str, seed: int) -> tuple[tuple[np.ndarray, ...], float]:
     """
     Build the train / validation / test split for one problem and seed.
 

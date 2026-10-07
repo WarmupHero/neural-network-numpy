@@ -37,7 +37,7 @@ class ReLU:
     - Zero and negative inputs become 0
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Create a ReLU activation with an empty input cache.
 
@@ -62,7 +62,7 @@ class ReLU:
         # positive and which were not.
         self.input = None
 
-    def forward(self, x):
+    def forward(self, x: np.ndarray) -> np.ndarray:
         """
         Apply ReLU elementwise.
 
@@ -90,7 +90,7 @@ class ReLU:
         # and keeps the larger value
         return np.maximum(0, x)
 
-    def backward(self, grad_output):
+    def backward(self, grad_output: np.ndarray) -> np.ndarray:
         """
         Backward pass through ReLU.
 
@@ -159,7 +159,7 @@ class Sigmoid:
     - Commonly used in binary classification output layers
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Create a sigmoid activation with an empty output cache.
 
@@ -184,7 +184,7 @@ class Sigmoid:
         # sigmoid(x) * (1 - sigmoid(x))
         self.output = None
 
-    def forward(self, x):
+    def forward(self, x: np.ndarray) -> np.ndarray:
         """
         Apply sigmoid elementwise.
 
@@ -218,7 +218,7 @@ class Sigmoid:
 
         return self.output
 
-    def backward(self, grad_output):
+    def backward(self, grad_output: np.ndarray) -> np.ndarray:
         """
         Backward pass through sigmoid.
 
@@ -277,7 +277,7 @@ class Tanh:
     - Often used in hidden layers
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Create a tanh activation with an empty output cache.
 
@@ -301,7 +301,7 @@ class Tanh:
         # This makes the derivative easy to compute later.
         self.output = None
 
-    def forward(self, x):
+    def forward(self, x: np.ndarray) -> np.ndarray:
         """
         Apply tanh elementwise.
 
@@ -327,7 +327,7 @@ class Tanh:
         self.output = np.tanh(x)
         return self.output
 
-    def backward(self, grad_output):
+    def backward(self, grad_output: np.ndarray) -> np.ndarray:
         """
         Backward pass through tanh.
 
@@ -381,7 +381,7 @@ class Linear:
     - Commonly used in regression output layers
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Create a linear (identity) activation.
 
@@ -406,7 +406,7 @@ class Linear:
         # but we keep the same class structure as the others
         # for consistency.
 
-    def forward(self, x):
+    def forward(self, x: np.ndarray) -> np.ndarray:
         """
         Return the input unchanged.
 
@@ -428,7 +428,7 @@ class Linear:
         """
         return x
 
-    def backward(self, grad_output):
+    def backward(self, grad_output: np.ndarray) -> np.ndarray:
         """
         Backward pass through linear activation.
 
@@ -455,7 +455,7 @@ class Linear:
         return grad_output
 
 
-def get_activation(name):
+def get_activation(name: str) -> ReLU | Sigmoid | Tanh | Linear:
     """
     Return an activation object based on its name.
 

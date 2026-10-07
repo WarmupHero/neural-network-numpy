@@ -12,8 +12,10 @@ computed exactly like the from-scratch network's.
 """
 
 import time
+from typing import Any
 import warnings
 
+import numpy as np
 from sklearn.ensemble import (
     HistGradientBoostingClassifier,
     HistGradientBoostingRegressor,
@@ -52,7 +54,7 @@ MODEL_CLASSES = {
 }
 
 
-def expand_grid(grid):
+def expand_grid(grid: dict[str, list[Any]] | list[dict[str, list[Any]]]) -> list[dict[str, Any]]:
     """
     List every hyperparameter combination in a grid.
 
@@ -88,7 +90,7 @@ def expand_grid(grid):
     return combinations
 
 
-def build_model(problem_name, model_name, params, seed):
+def build_model(problem_name: str, model_name: str, params: dict[str, Any], seed: int) -> Any:
     """
     Create an unfitted scikit-learn estimator.
 
@@ -135,7 +137,7 @@ def build_model(problem_name, model_name, params, seed):
     return model
 
 
-def evaluate(model, problem_name, X, y):
+def evaluate(model: Any, problem_name: str, X: np.ndarray, y: np.ndarray) -> tuple[float, float]:
     """
     Score a fitted model on one dataset with the project's metrics.
 
@@ -173,7 +175,14 @@ def evaluate(model, problem_name, X, y):
     return mean_squared_error(y, predictions), r2_score(y, predictions)
 
 
-def run_model(problem_name, model_name, grid, splits, seed, baseline):
+def run_model(
+    problem_name: str,
+    model_name: str,
+    grid: dict[str, list[Any]] | list[dict[str, list[Any]]],
+    splits: tuple[np.ndarray, ...],
+    seed: int,
+    baseline: float,
+) -> list[dict[str, Any]]:
     """
     Train and score every configuration of one model on one seed's split.
 

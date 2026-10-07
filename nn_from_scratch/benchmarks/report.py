@@ -26,6 +26,7 @@ import os
 from statistics import mean, stdev
 import sys
 import time
+from typing import Any
 
 import matplotlib.pyplot as plt
 
@@ -71,7 +72,7 @@ PROBLEM_METRICS = {
 }
 
 
-def load_json(path):
+def load_json(path: str) -> list[dict[str, Any]]:
     """
     Read a JSON results file.
 
@@ -94,7 +95,7 @@ def load_json(path):
         return json.load(f)
 
 
-def newest_library_results(library):
+def newest_library_results(library: str) -> str | None:
     """
     Find the newest results file for one library.
 
@@ -122,7 +123,7 @@ def newest_library_results(library):
         return None
 
 
-def is_diverged(run):
+def is_diverged(run: dict[str, Any]) -> bool:
     """
     Return True if a NumPy network run diverged.
 
@@ -146,7 +147,7 @@ def is_diverged(run):
     return bool(run.get("diverged")) or not math.isfinite(run["best_val_loss"])
 
 
-def select_per_seed(runs, val_key):
+def select_per_seed(runs: list[dict[str, Any]], val_key: str) -> list[dict[str, Any]]:
     """
     For each seed, select the run with the lowest validation metric.
 
@@ -186,7 +187,7 @@ def select_per_seed(runs, val_key):
     return selected
 
 
-def mean_pm_std(values, digits):
+def mean_pm_std(values: list[float], digits: int) -> str:
     """
     Format a list of numbers as "mean ± std".
 
@@ -215,7 +216,7 @@ def mean_pm_std(values, digits):
     return f"{mean(values):.{digits}f} ± {spread:.{digits}f}"
 
 
-def describe_config(run):
+def describe_config(run: dict[str, Any]) -> str:
     """
     Short text describing a selected configuration.
 
@@ -255,7 +256,7 @@ def describe_config(run):
     return ", ".join(f"{k}={v}" for k, v in run["params"].items() if k not in fixed) or "default"
 
 
-def summarize(label, selected, secondary_key):
+def summarize(label: str, selected: list[dict[str, Any]], secondary_key: str) -> dict[str, Any]:
     """
     Summarize one model's selected runs across seeds.
 
@@ -296,7 +297,11 @@ def summarize(label, selected, secondary_key):
     }
 
 
-def build_rows(problem_name, numpy_runs, library_runs):
+def build_rows(
+    problem_name: str,
+    numpy_runs: list[dict[str, Any]],
+    library_runs: dict[str, list[dict[str, Any]]],
+) -> tuple[list[dict[str, Any]], dict[str, list[dict[str, Any]]]]:
     """
     Build the comparison rows for one problem.
 
@@ -363,7 +368,7 @@ def build_rows(problem_name, numpy_runs, library_runs):
     return rows, selections
 
 
-def format_table(problem_name, rows):
+def format_table(problem_name: str, rows: list[dict[str, Any]]) -> str:
     """
     Format one problem's comparison rows as a text table.
 
@@ -410,7 +415,7 @@ def format_table(problem_name, rows):
     return "\n".join(lines)
 
 
-def format_head_to_head(problem_name, selections):
+def format_head_to_head(problem_name: str, selections: dict[str, list[dict[str, Any]]]) -> str:
     """
     Compare the NumPy network with each library's best model, seed by seed.
 
@@ -454,7 +459,12 @@ def format_head_to_head(problem_name, selections):
     return "\n".join(lines)
 
 
-def format_architecture_table(problem_name, numpy_runs, framework, framework_runs):
+def format_architecture_table(
+    problem_name: str,
+    numpy_runs: list[dict[str, Any]],
+    framework: str,
+    framework_runs: list[dict[str, Any]],
+) -> str:
     """
     Compare the NumPy network and a framework architecture by architecture.
 
@@ -520,7 +530,9 @@ def format_architecture_table(problem_name, numpy_runs, framework, framework_run
     return "\n".join(lines)
 
 
-def plot_learning_curves(framework, curves):
+def plot_learning_curves(
+    framework: str, curves: dict[str, tuple[dict[str, Any], dict[str, Any]]]
+) -> str:
     """
     Plot validation-loss curves of the NumPy network's and a framework's
     selected models, one panel per problem.
@@ -579,7 +591,7 @@ def plot_learning_curves(framework, curves):
     return path
 
 
-def plot_problem(problem_name, rows):
+def plot_problem(problem_name: str, rows: list[dict[str, Any]]) -> str:
     """
     Draw a horizontal bar chart of the test metric for one problem.
 
@@ -630,7 +642,7 @@ def plot_problem(problem_name, rows):
     return path
 
 
-def main(numpy_results_path=None):
+def main(numpy_results_path: str | None = None) -> None:
     """
     Build the comparison report and figures.
 

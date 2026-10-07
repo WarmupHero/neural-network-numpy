@@ -15,12 +15,14 @@ several seeds were run, mean ± standard deviation across seeds.
 Output: reports/analysis_<stamp>.txt.
 """
 
+from collections.abc import Iterable
 import json
 import math
 import os
 from statistics import mean, stdev
 import sys
 import time
+from typing import Any
 
 from nn_from_scratch.config import (
     RANDOM_SEED,
@@ -58,7 +60,7 @@ COLLAPSE_CHECK_LEARNING_RATE = 0.1
 DROPOUT_PAIRS = [("A1", "A1-dropout"), ("A2-bn", "A2-bn-dropout")]
 
 
-def load_results(path):
+def load_results(path: str) -> list[dict[str, Any]]:
     """
     Load the full experiment results JSON from disk.
 
@@ -85,7 +87,9 @@ def load_results(path):
         return json.load(f)
 
 
-def convergence_epoch(train_loss_history, relative_tolerance=0.01, absolute_floor=1e-4):
+def convergence_epoch(
+    train_loss_history: list[float], relative_tolerance: float = 0.01, absolute_floor: float = 1e-4
+) -> int:
     """
     Find the epoch at which one run's training loss has converged.
 
@@ -156,7 +160,7 @@ def convergence_epoch(train_loss_history, relative_tolerance=0.01, absolute_floo
     return epochs_ran
 
 
-def add_derived_metrics(results):
+def add_derived_metrics(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
     Add the derived values needed for analysis to every run.
 
@@ -207,7 +211,7 @@ def add_derived_metrics(results):
     return results
 
 
-def add_normalized_best_val_loss(results):
+def add_normalized_best_val_loss(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
     Min-max normalize best validation loss within each problem separately.
 
@@ -259,7 +263,9 @@ def add_normalized_best_val_loss(results):
     return results
 
 
-def filter_by_problem(results, problem_name=None):
+def filter_by_problem(
+    results: list[dict[str, Any]], problem_name: str | None = None
+) -> list[dict[str, Any]]:
     """
     Filter runs by problem name.
 
@@ -288,7 +294,7 @@ def filter_by_problem(results, problem_name=None):
     return [r for r in results if r["problem_name"] == problem_name]
 
 
-def group_by_key(results, key):
+def group_by_key(results: list[dict[str, Any]], key: str) -> dict[Any, list[dict[str, Any]]]:
     """
     Group a list of run dictionaries by a chosen key.
 
@@ -302,7 +308,7 @@ def group_by_key(results, key):
 
     Returns
     -------
-    dict of str to list of dict
+    dict of str or int to list of dict
         Dictionary mapping each value of `key` (usually a str; an int for
         "seed") to the list of runs with that value, in their original order.
 
@@ -319,7 +325,7 @@ def group_by_key(results, key):
     return groups
 
 
-def summarize_task_group(group_runs):
+def summarize_task_group(group_runs: list[dict[str, Any]]) -> dict[str, Any]:
     """
     Build a task-level summary for one group of runs.
 
@@ -358,7 +364,7 @@ def summarize_task_group(group_runs):
     }
 
 
-def summarize_combined_group(group_runs):
+def summarize_combined_group(group_runs: list[dict[str, Any]]) -> dict[str, Any]:
     """
     Build a combined (both problems) summary for one group of runs.
 
@@ -399,7 +405,7 @@ def summarize_combined_group(group_runs):
     }
 
 
-def ordered_keys(summary_dict, preferred_order):
+def ordered_keys(summary_dict: dict[str, Any], preferred_order: list[str]) -> list[str]:
     """
     Return keys from a summary dictionary in a preferred display order.
 
@@ -427,7 +433,9 @@ def ordered_keys(summary_dict, preferred_order):
     return [k for k in preferred_order if k in summary_dict]
 
 
-def format_task_table(title, summary_dict, preferred_order):
+def format_task_table(
+    title: str, summary_dict: dict[str, dict[str, Any]], preferred_order: list[str]
+) -> str:
     """
     Format a plain-text table for one task-specific summary section.
 
@@ -476,7 +484,7 @@ def format_task_table(title, summary_dict, preferred_order):
     return "\n".join(lines)
 
 
-def is_diverged(run):
+def is_diverged(run: dict[str, Any]) -> bool:
     """
     Check whether a run's training diverged.
 
@@ -507,7 +515,7 @@ def is_diverged(run):
     return bool(run.get("diverged")) or not math.isfinite(run["best_val_loss"])
 
 
-def format_dropout_table(title, problem_runs):
+def format_dropout_table(title: str, problem_runs: list[dict[str, Any]]) -> str:
     """
     Format a table comparing each architecture with its dropout version.
 
@@ -607,7 +615,7 @@ def format_dropout_table(title, problem_runs):
     return "\n".join(lines)
 
 
-def format_collapse_check_table(title, regression_runs):
+def format_collapse_check_table(title: str, regression_runs: list[dict[str, Any]]) -> str:
     """
     Format the test MSE of the collapse-prone regression runs for each
     A2 variant.
@@ -675,7 +683,9 @@ def format_collapse_check_table(title, regression_runs):
     return "\n".join(lines)
 
 
-def format_combined_table(title, summary_dict, preferred_order):
+def format_combined_table(
+    title: str, summary_dict: dict[str, dict[str, Any]], preferred_order: list[str]
+) -> str:
     """
     Format a plain-text table for one combined-overall summary section.
 
@@ -725,7 +735,7 @@ def format_combined_table(title, summary_dict, preferred_order):
     return "\n".join(lines)
 
 
-def best_group(summary_dict, field_name):
+def best_group(summary_dict: dict[str, dict[str, Any]], field_name: str) -> str:
     """
     Return the group name with the smallest value for a chosen summary field.
 
@@ -755,7 +765,7 @@ def best_group(summary_dict, field_name):
     return min(summary_dict.items(), key=lambda x: x[1][field_name])[0]
 
 
-def architecture_name_to_depth(architecture_name):
+def architecture_name_to_depth(architecture_name: str) -> str:
     """
     Convert architecture code names into more readable depth labels.
 
@@ -784,7 +794,7 @@ def architecture_name_to_depth(architecture_name):
     return architecture_name
 
 
-def build_depth_effect_sentence(combined_architecture_summary):
+def build_depth_effect_sentence(combined_architecture_summary: dict[str, dict[str, Any]]) -> str:
     """
     Build a short verbal answer for how network depth affects optimization overall.
 
@@ -842,7 +852,7 @@ def build_depth_effect_sentence(combined_architecture_summary):
 # which were down to one lucky (or unlucky) draw.
 
 
-def mean_pm_std(values, digits=4):
+def mean_pm_std(values: Iterable[float], digits: int = 4) -> str:
     """
     Format values as "mean ± std" (sample standard deviation).
 
@@ -873,7 +883,7 @@ def mean_pm_std(values, digits=4):
     return f"{mean(values):.{digits}f} ± {spread:.{digits}f}"
 
 
-def runs_by_seed(runs):
+def runs_by_seed(runs: list[dict[str, Any]]) -> dict[int, list[dict[str, Any]]]:
     """
     Group runs by their seed.
 
@@ -899,7 +909,7 @@ def runs_by_seed(runs):
     return group_by_key([{**r, "seed": r.get("seed", RANDOM_SEED)} for r in runs], "seed")
 
 
-def select_by_validation(runs):
+def select_by_validation(runs: list[dict[str, Any]]) -> dict[str, Any] | None:
     """
     Pick the run with the lowest best validation loss, ignoring diverged runs.
 
@@ -928,7 +938,7 @@ def select_by_validation(runs):
     return min(candidates, key=lambda r: r["best_val_loss"]) if candidates else None
 
 
-def error_removed(run):
+def error_removed(run: dict[str, Any]) -> float:
     """
     Compute the fraction of the constant-prediction baseline's error removed.
 
@@ -957,7 +967,7 @@ def error_removed(run):
     return 1.0 - run["test_metric"] / run["baseline_test_metric"]
 
 
-def fails_baseline(run):
+def fails_baseline(run: dict[str, Any]) -> bool:
     """
     Check whether a run is no better than always predicting a constant.
 
@@ -982,7 +992,9 @@ def fails_baseline(run):
     return run["test_metric"] >= run["baseline_test_metric"]
 
 
-def format_selected_model_table(title, problem_runs, architectures, digits):
+def format_selected_model_table(
+    title: str, problem_runs: list[dict[str, Any]], architectures: list[str], digits: int
+) -> str:
     """
     Format a table of the model selected for each seed.
 
@@ -1046,7 +1058,9 @@ def format_selected_model_table(title, problem_runs, architectures, digits):
     return "\n".join(lines)
 
 
-def format_architecture_seed_table(title, problem_runs, digits):
+def format_architecture_seed_table(
+    title: str, problem_runs: list[dict[str, Any]], digits: int
+) -> str:
     """
     Format a table summarizing each architecture across seeds.
 
@@ -1116,7 +1130,9 @@ def format_architecture_seed_table(title, problem_runs, digits):
     return "\n".join(lines)
 
 
-def format_optimizer_lr_seed_table(title, problem_runs, digits):
+def format_optimizer_lr_seed_table(
+    title: str, problem_runs: list[dict[str, Any]], digits: int
+) -> str:
     """
     Format an optimizer x learning-rate table of test metrics across seeds.
 
@@ -1170,7 +1186,7 @@ def format_optimizer_lr_seed_table(title, problem_runs, digits):
     return "\n".join(lines)
 
 
-def format_collapse_seed_table(title, regression_runs):
+def format_collapse_seed_table(title: str, regression_runs: list[dict[str, Any]]) -> str:
     """
     Format a table counting collapsed, diverged and learning runs per A2 variant.
 
@@ -1223,7 +1239,7 @@ def format_collapse_seed_table(title, regression_runs):
     return "\n".join(lines)
 
 
-def build_multi_seed_section(results):
+def build_multi_seed_section(results: list[dict[str, Any]]) -> str:
     """
     Build the "Multi-Seed Results" section of the report.
 
@@ -1328,7 +1344,7 @@ def build_multi_seed_section(results):
     return "\n".join(lines)
 
 
-def main(results_path=None):
+def main(results_path: str | None = None) -> None:
     """
     Build the aggregate analysis report and write it to disk.
 

@@ -8,6 +8,7 @@ experiment runs.
 
 import json
 import os
+from typing import Any
 
 from nn_from_scratch.config import ROOT_DIR
 from nn_from_scratch.nn.layers import SUPPORTED_INITS
@@ -54,7 +55,7 @@ class ConfigLoader:
     )
     SUPPORTED_REGRESSION_LOSSES = frozenset({"mse"})
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Create a ConfigLoader and point it to the configs directory.
 
@@ -75,7 +76,7 @@ class ConfigLoader:
         """
         self.configs_dir = os.path.join(ROOT_DIR, "configs")
 
-    def load(self, filename):
+    def load(self, filename: str) -> dict[str, Any]:
         """
         Load a JSON configuration file.
 
@@ -119,7 +120,7 @@ class ConfigLoader:
 
         return config
 
-    def validate(self, config):
+    def validate(self, config: dict[str, Any]) -> bool:
         """
         Validate a high-level experiment config.
 
@@ -425,7 +426,7 @@ class ConfigLoader:
         # If all checks pass, the config is valid
         return True
 
-    def load_and_validate(self, filename):
+    def load_and_validate(self, filename: str) -> dict[str, Any]:
         """
         Load and validate a config file.
 

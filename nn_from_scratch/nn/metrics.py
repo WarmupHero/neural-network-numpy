@@ -7,11 +7,12 @@ functions accept 1-D or column-vector inputs and return a plain float.
 """
 
 import numpy as np
+from numpy.typing import ArrayLike
 
 from nn_from_scratch.nn.losses import BCELoss, MSELoss
 
 
-def binary_cross_entropy(y_true, y_pred):
+def binary_cross_entropy(y_true: ArrayLike, y_pred: ArrayLike) -> float:
     """
     Compute Binary Cross-Entropy (BCE) as the classification evaluation metric.
 
@@ -57,7 +58,7 @@ def binary_cross_entropy(y_true, y_pred):
     return float(BCELoss().forward(y_true, y_pred))
 
 
-def mean_squared_error(y_true, y_pred):
+def mean_squared_error(y_true: ArrayLike, y_pred: ArrayLike) -> float:
     """
     Compute Mean Squared Error (MSE) as the regression evaluation metric.
 
@@ -100,7 +101,7 @@ def mean_squared_error(y_true, y_pred):
     return float(MSELoss().forward(y_true, y_pred))
 
 
-def accuracy(y_true, y_prob, threshold=0.5):
+def accuracy(y_true: ArrayLike, y_prob: ArrayLike, threshold: float = 0.5) -> float:
     """
     Compute classification accuracy from predicted probabilities.
 
@@ -141,7 +142,7 @@ def accuracy(y_true, y_prob, threshold=0.5):
     return float(np.mean(predictions == y_true))
 
 
-def r2_score(y_true, y_pred):
+def r2_score(y_true: ArrayLike, y_pred: ArrayLike) -> float:
     """
     Compute the coefficient of determination (R²) for regression.
 

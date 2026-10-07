@@ -6,6 +6,8 @@ standard deviation on the training data and applies the same
 transformation to any other split.
 """
 
+from typing import Self
+
 import numpy as np
 
 
@@ -37,7 +39,7 @@ class StandardScaler:
     - optimization is usually more stable
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Create an empty scaler.
 
@@ -60,7 +62,7 @@ class StandardScaler:
         self.mean_ = None
         self.std_ = None
 
-    def fit(self, X):
+    def fit(self, X: np.ndarray) -> Self:
         """
         Learn the feature-wise mean and standard deviation from the data.
 
@@ -109,7 +111,7 @@ class StandardScaler:
 
         return self
 
-    def transform(self, X):
+    def transform(self, X: np.ndarray) -> np.ndarray:
         """
         Apply standardization using the stored mean and standard deviation.
 
@@ -148,7 +150,7 @@ class StandardScaler:
         # Apply the standard scaling formula feature-by-feature
         return (X - self.mean_) / self.std_
 
-    def fit_transform(self, X):
+    def fit_transform(self, X: np.ndarray) -> np.ndarray:
         """
         Fit the scaler on X, then immediately transform X.
 

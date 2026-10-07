@@ -21,9 +21,14 @@ import math
 import os
 import sys
 import time
+from typing import Any
+
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 
 # Standard Matplotlib plotting interface.
 import matplotlib.pyplot as plt
+import numpy as np
 
 # COMPARISONS_FIGURES_DIR / COMPARISONS_TEXT_DIR are the output folders.
 # RUN_STAMP / stamped_filename give every output file a unique name, and
@@ -48,7 +53,7 @@ os.makedirs(PLOTS_DIR, exist_ok=True)
 os.makedirs(TEXT_DIR, exist_ok=True)
 
 
-def load_results(path):
+def load_results(path: str) -> list[dict[str, Any]]:
     """
     Load the full experiment results JSON.
 
@@ -77,7 +82,7 @@ def load_results(path):
         return json.load(f)
 
 
-def _build_epoch_ticks(runs):
+def _build_epoch_ticks(runs: list[dict[str, Any]]) -> tuple[list[int], int]:
     """
     Build x-axis tick marks for one comparison figure.
 
@@ -139,7 +144,9 @@ def _build_epoch_ticks(runs):
     return ticks, max_epoch
 
 
-def _compute_convergence_metrics(run, relative_tolerance=0.01, absolute_floor=1e-4):
+def _compute_convergence_metrics(
+    run: dict[str, Any], relative_tolerance: float = 0.01, absolute_floor: float = 1e-4
+) -> dict[str, Any]:
     """
     Compute simple convergence metrics for one run.
 
@@ -233,7 +240,7 @@ def _compute_convergence_metrics(run, relative_tolerance=0.01, absolute_floor=1e
     }
 
 
-def _format_metrics_text(run):
+def _format_metrics_text(run: dict[str, Any]) -> str:
     """
     Format a small block of convergence-related metrics for display inside a plot.
 
@@ -268,7 +275,9 @@ def _format_metrics_text(run):
     )
 
 
-def _plot_loss_curves(ax, run, subplot_title, include_metrics_box=False):
+def _plot_loss_curves(
+    ax: Axes, run: dict[str, Any], subplot_title: str, include_metrics_box: bool = False
+) -> None:
     """
     Plot one run's train-loss and validation-loss curves on a given subplot.
 
@@ -357,7 +366,7 @@ def _plot_loss_curves(ax, run, subplot_title, include_metrics_box=False):
         )
 
 
-def _apply_epoch_ticks(axes, runs):
+def _apply_epoch_ticks(axes: np.ndarray, runs: list[dict[str, Any]]) -> None:
     """
     Apply consistent x-axis limits and ticks across all subplots in one figure.
 
@@ -397,7 +406,7 @@ def _apply_epoch_ticks(axes, runs):
         ax.tick_params(axis="x", rotation=45)
 
 
-def _save_and_show(fig, filename):
+def _save_and_show(fig: Figure, filename: str) -> None:
     """
     Save a figure to disk, print the location, then show it interactively.
 
@@ -442,7 +451,7 @@ def _save_and_show(fig, filename):
     plt.close(fig)
 
 
-def _write_text_file(filename, content):
+def _write_text_file(filename: str, content: str) -> None:
     """
     Save a short text analysis file to the comparisons text folder.
 
@@ -480,7 +489,7 @@ def _write_text_file(filename, content):
     print(f"Saved analysis text to: {output_path}")
 
 
-def _depth_label(architecture_name):
+def _depth_label(architecture_name: str) -> str:
     """
     Convert architecture code names into human-readable depth labels.
 
@@ -513,7 +522,13 @@ def _depth_label(architecture_name):
     return architecture_name
 
 
-def _build_depth_analysis_text(selected_runs, problem_name, optimizer, learning_rate, batch_size):
+def _build_depth_analysis_text(
+    selected_runs: list[dict[str, Any]],
+    problem_name: str,
+    optimizer: str,
+    learning_rate: float,
+    batch_size: int,
+) -> str:
     """
     Write the text of the network-depth analysis (A1 vs A2).
 
@@ -646,8 +661,12 @@ def _build_depth_analysis_text(selected_runs, problem_name, optimizer, learning_
 
 
 def _build_learning_rate_analysis_text(
-    selected_runs, problem_name, architecture, optimizer, batch_size
-):
+    selected_runs: list[dict[str, Any]],
+    problem_name: str,
+    architecture: str,
+    optimizer: str,
+    batch_size: int,
+) -> str:
     """
     Write the text of the learning-rate sensitivity analysis (0.1 vs 0.001).
 
@@ -778,7 +797,13 @@ def _build_learning_rate_analysis_text(
 # --------------------------------------------------
 # 1. Optimizer comparison
 # --------------------------------------------------
-def filter_optimizer_runs(results, problem_name, architecture, learning_rate, batch_size):
+def filter_optimizer_runs(
+    results: list[dict[str, Any]],
+    problem_name: str,
+    architecture: str,
+    learning_rate: float,
+    batch_size: int,
+) -> list[dict[str, Any]]:
     """
     Select the three optimizer runs for one matched experiment.
 
@@ -836,8 +861,13 @@ def filter_optimizer_runs(results, problem_name, architecture, learning_rate, ba
 
 
 def plot_optimizer_comparison(
-    results, problem_name, architecture, learning_rate, batch_size, filename
-):
+    results: list[dict[str, Any]],
+    problem_name: str,
+    architecture: str,
+    learning_rate: float,
+    batch_size: int,
+    filename: str,
+) -> None:
     """
     Create one figure comparing SGD, Momentum, and AdaBelief
     under one matched parameter setting.
@@ -931,7 +961,13 @@ def plot_optimizer_comparison(
 # --------------------------------------------------
 # 2. Depth comparison (A1 vs A2)
 # --------------------------------------------------
-def filter_depth_runs(results, problem_name, optimizer, learning_rate, batch_size):
+def filter_depth_runs(
+    results: list[dict[str, Any]],
+    problem_name: str,
+    optimizer: str,
+    learning_rate: float,
+    batch_size: int,
+) -> list[dict[str, Any]]:
     """
     Select the two runs needed for the depth experiment.
 
@@ -985,8 +1021,14 @@ def filter_depth_runs(results, problem_name, optimizer, learning_rate, batch_siz
 
 
 def plot_depth_comparison(
-    results, problem_name, optimizer, learning_rate, batch_size, filename, analysis_filename
-):
+    results: list[dict[str, Any]],
+    problem_name: str,
+    optimizer: str,
+    learning_rate: float,
+    batch_size: int,
+    filename: str,
+    analysis_filename: str,
+) -> None:
     """
     Plot A1 vs A2 loss curves and write a short depth-analysis text file.
 
@@ -1097,7 +1139,13 @@ def plot_depth_comparison(
 # --------------------------------------------------
 # 3. Learning-rate comparison (0.1 vs 0.001)
 # --------------------------------------------------
-def filter_learning_rate_runs(results, problem_name, architecture, optimizer, batch_size):
+def filter_learning_rate_runs(
+    results: list[dict[str, Any]],
+    problem_name: str,
+    architecture: str,
+    optimizer: str,
+    batch_size: int,
+) -> list[dict[str, Any]]:
     """
     Select the two runs needed for the learning-rate sensitivity experiment.
 
@@ -1150,8 +1198,14 @@ def filter_learning_rate_runs(results, problem_name, architecture, optimizer, ba
 
 
 def plot_learning_rate_comparison(
-    results, problem_name, architecture, optimizer, batch_size, filename, analysis_filename
-):
+    results: list[dict[str, Any]],
+    problem_name: str,
+    architecture: str,
+    optimizer: str,
+    batch_size: int,
+    filename: str,
+    analysis_filename: str,
+) -> None:
     """
     Create the learning-rate comparison figure and write a short analysis text file.
 
@@ -1269,8 +1323,13 @@ A2_VARIANT_ORDER = ["A2", "A2-bias", "A2-he", "A2-bias-he", "A2-bn"]
 
 
 def filter_variant_runs(
-    results, problem_name, optimizer, learning_rate, batch_size, architectures=A2_VARIANT_ORDER
-):
+    results: list[dict[str, Any]],
+    problem_name: str,
+    optimizer: str,
+    learning_rate: float,
+    batch_size: int,
+    architectures: list[str] = A2_VARIANT_ORDER,
+) -> list[dict[str, Any]]:
     """
     Select one run per architecture for one matched experiment.
 
@@ -1323,15 +1382,15 @@ def filter_variant_runs(
 
 
 def plot_variant_comparison(
-    results,
-    problem_name,
-    optimizer,
-    learning_rate,
-    batch_size,
-    filename,
-    architectures=A2_VARIANT_ORDER,
-    title="A2 Variants: Bias, He Initialization, Batch Norm",
-):
+    results: list[dict[str, Any]],
+    problem_name: str,
+    optimizer: str,
+    learning_rate: float,
+    batch_size: int,
+    filename: str,
+    architectures: list[str] = A2_VARIANT_ORDER,
+    title: str = "A2 Variants: Bias, He Initialization, Batch Norm",
+) -> None:
     """
     Create one figure comparing several architectures on one matched experiment.
 
@@ -1452,7 +1511,7 @@ def plot_variant_comparison(
     _save_and_show(fig, filename)
 
 
-def main(results_path=None):
+def main(results_path: str | None = None) -> None:
     """
     Generate all required plots and short text analyses.
 

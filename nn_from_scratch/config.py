@@ -51,7 +51,7 @@ RUN_STAMP = datetime.now().strftime(STAMP_FORMAT)
 STAMP_SUFFIX_PATTERN = re.compile(r"_\d{8}-\d{6}$")
 
 
-def stamped_filename(filename, stamp=RUN_STAMP):
+def stamped_filename(filename: str, stamp: str = RUN_STAMP) -> str:
     """
     Insert a run stamp into a file name, just before the extension.
 
@@ -83,7 +83,7 @@ def stamped_filename(filename, stamp=RUN_STAMP):
     return f"{root}_{stamp}{ext}"
 
 
-def latest_stamped_file(directory, basename, ext):
+def latest_stamped_file(directory: str, basename: str, ext: str) -> str:
     """
     Find the most recent stamped file named "<basename>_<stamp><ext>".
 
@@ -136,7 +136,7 @@ def latest_stamped_file(directory, basename, ext):
     return max(candidates, key=os.path.basename)
 
 
-def latest_stamped_outputs(directory):
+def latest_stamped_outputs(directory: str) -> dict[str, str]:
     """
     Find the newest stamped version of every output under a directory.
 
@@ -189,7 +189,7 @@ def latest_stamped_outputs(directory):
     return latest
 
 
-def resolve_results_path(explicit_path=None):
+def resolve_results_path(explicit_path: str | None = None) -> str:
     """
     Decide which full-results JSON a downstream script should read.
 

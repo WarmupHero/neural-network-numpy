@@ -19,6 +19,7 @@ import csv
 import json
 import os
 import time
+from typing import Any
 
 import numpy as np
 
@@ -56,7 +57,7 @@ PREPROCESSORS = {"classification": PreprocessBanknote, "regression": PreprocessE
 os.makedirs(REPORT_DIR, exist_ok=True)
 
 
-def get_seeds(experiment_config):
+def get_seeds(experiment_config: dict[str, Any]) -> list[int]:
     """
     Return the list of seeds to run for one problem.
 
@@ -86,7 +87,9 @@ def get_seeds(experiment_config):
     return experiment_config["experiments"].get("seeds", [RANDOM_SEED])
 
 
-def constant_prediction_baseline(problem_name, dataset_splits):
+def constant_prediction_baseline(
+    problem_name: str, dataset_splits: tuple[np.ndarray, ...]
+) -> float:
     """
     Compute the test metric of a model that ignores the features entirely.
 
@@ -130,7 +133,9 @@ def constant_prediction_baseline(problem_name, dataset_splits):
     return float(mean_squared_error(y_test, constant))
 
 
-def build_model_config(experiment_config, architecture_name):
+def build_model_config(
+    experiment_config: dict[str, Any], architecture_name: str
+) -> dict[str, Any]:
     """
     Build the small model-config dictionary needed by NeuralNetwork.build_from_config().
 
@@ -168,16 +173,16 @@ def build_model_config(experiment_config, architecture_name):
 
 
 def run_single_experiment(
-    problem_name,
-    experiment_config,
-    architecture_name,
-    optimizer_name,
-    learning_rate,
-    batch_size,
-    dataset_splits,
-    seed=RANDOM_SEED,
-    baseline_test_metric=None,
-):
+    problem_name: str,
+    experiment_config: dict[str, Any],
+    architecture_name: str,
+    optimizer_name: str,
+    learning_rate: float,
+    batch_size: int,
+    dataset_splits: tuple[np.ndarray, ...],
+    seed: int = RANDOM_SEED,
+    baseline_test_metric: float | None = None,
+) -> dict[str, Any]:
     """
     Build, train and test one network for one combination of settings.
 
@@ -364,7 +369,7 @@ def run_single_experiment(
     return summary
 
 
-def save_summary_csv(results, filename="main_summary.csv"):
+def save_summary_csv(results: list[dict[str, Any]], filename: str = "main_summary.csv") -> None:
     """
     Save a compact experiment summary as a CSV file in reports/.
 
@@ -421,7 +426,9 @@ def save_summary_csv(results, filename="main_summary.csv"):
     print(f"\nSaved summary CSV to: {output_path}")
 
 
-def save_full_results_json(results, filename="main_results_full.json"):
+def save_full_results_json(
+    results: list[dict[str, Any]], filename: str = "main_results_full.json"
+) -> None:
     """
     Save the full experiment results as a JSON file in reports/.
 
@@ -458,7 +465,7 @@ def save_full_results_json(results, filename="main_results_full.json"):
     print(f"Saved full results JSON to: {output_path}")
 
 
-def print_summary_table(results):
+def print_summary_table(results: list[dict[str, Any]]) -> None:
     """
     Print a compact summary table to the console.
 
@@ -512,7 +519,7 @@ def print_summary_table(results):
         )
 
 
-def main():
+def main() -> None:
     """
     Run the full experiment sweep for every problem and save the results.
 

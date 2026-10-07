@@ -11,10 +11,12 @@ Run it with ``python -m nn_from_scratch.benchmarks.run [library ...]`` or
 ``make benchmarks``. Without arguments every library in the config is run.
 """
 
+from collections.abc import Callable
 import json
 import os
 import sys
 import time
+from typing import Any
 
 from nn_from_scratch.benchmarks.data import load_splits, problem_seeds
 from nn_from_scratch.config import REPORT_DIR, ROOT_DIR, RUN_STAMP, stamped_filename
@@ -26,7 +28,7 @@ BENCHMARK_CONFIG_PATH = os.path.join(ROOT_DIR, "configs", "benchmark_experiments
 PROBLEMS = ["classification", "regression"]
 
 
-def load_benchmark_config(path=BENCHMARK_CONFIG_PATH):
+def load_benchmark_config(path: str = BENCHMARK_CONFIG_PATH) -> dict[str, Any]:
     """
     Load the benchmark configuration.
 
@@ -59,7 +61,7 @@ def load_benchmark_config(path=BENCHMARK_CONFIG_PATH):
     return config
 
 
-def get_runner(library):
+def get_runner(library: str) -> Callable[..., list[dict[str, Any]]]:
     """
     Return the function that trains one model family for a library.
 
@@ -100,7 +102,7 @@ def get_runner(library):
     raise ValueError(f"Unsupported library: {library}")
 
 
-def run_library(library, library_config):
+def run_library(library: str, library_config: dict[str, Any]) -> list[dict[str, Any]]:
     """
     Train every model of one library on every problem and seed.
 
@@ -158,7 +160,7 @@ def run_library(library, library_config):
     return records
 
 
-def save_results(library, records):
+def save_results(library: str, records: list[dict[str, Any]]) -> str:
     """
     Save one library's records as a stamped JSON file in reports/.
 
@@ -189,7 +191,7 @@ def save_results(library, records):
     return path
 
 
-def main(libraries=None):
+def main(libraries: list[str] | None = None) -> None:
     """
     Run the requested libraries and save each one's results.
 

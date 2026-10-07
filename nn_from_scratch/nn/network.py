@@ -7,6 +7,8 @@ backward passes through them, and can build itself from an architecture
 described in a config dictionary.
 """
 
+from typing import Any
+
 import numpy as np
 
 from nn_from_scratch.config import RANDOM_SEED
@@ -45,7 +47,7 @@ class NeuralNetwork:
       not identical. Dropout uses a second, separate generator.
     """
 
-    def __init__(self, random_seed=RANDOM_SEED):
+    def __init__(self, random_seed: int = RANDOM_SEED) -> None:
         """
         Create an empty neural network with its random number generators.
 
@@ -92,7 +94,9 @@ class NeuralNetwork:
         # exactly as they were, so comparisons stay like for like.
         self.dropout_random = np.random.RandomState(random_seed + 1)
 
-    def add_dense(self, input_dim, output_dim, use_bias=False, init="normal"):
+    def add_dense(
+        self, input_dim: int, output_dim: int, use_bias: bool = False, init: str = "normal"
+    ) -> None:
         """
         Add a dense (fully connected) layer to the network.
 
@@ -136,7 +140,7 @@ class NeuralNetwork:
             Dense(input_dim, output_dim, random_state=self.random, use_bias=use_bias, init=init)
         )
 
-    def add_batch_norm(self, num_features):
+    def add_batch_norm(self, num_features: int) -> None:
         """
         Add a batch-normalization layer to the network.
 
@@ -168,7 +172,7 @@ class NeuralNetwork:
         """
         self.layers.append(BatchNorm(num_features))
 
-    def add_dropout(self, rate):
+    def add_dropout(self, rate: float) -> None:
         """
         Add a dropout layer to the network.
 
@@ -199,7 +203,7 @@ class NeuralNetwork:
         """
         self.layers.append(Dropout(rate, random_state=self.dropout_random))
 
-    def train(self):
+    def train(self) -> None:
         """
         Put every layer in training mode.
 
@@ -226,7 +230,7 @@ class NeuralNetwork:
         for layer in self.layers:
             layer.training = True
 
-    def eval(self):
+    def eval(self) -> None:
         """
         Put every layer in evaluation mode.
 
@@ -253,7 +257,7 @@ class NeuralNetwork:
         for layer in self.layers:
             layer.training = False
 
-    def add_activation(self, activation_name):
+    def add_activation(self, activation_name: str) -> None:
         """
         Add an activation layer to the network.
 
@@ -286,7 +290,7 @@ class NeuralNetwork:
         """
         self.layers.append(get_activation(activation_name))
 
-    def forward(self, X):
+    def forward(self, X: np.ndarray) -> np.ndarray:
         """
         Run a full forward pass through the network.
 
@@ -338,7 +342,7 @@ class NeuralNetwork:
 
         return output
 
-    def backward(self, grad_loss):
+    def backward(self, grad_loss: np.ndarray) -> np.ndarray:
         """
         Run a full backward pass through the network.
 
@@ -393,7 +397,7 @@ class NeuralNetwork:
 
         return grad
 
-    def get_trainable_layers(self):
+    def get_trainable_layers(self) -> list[Dense | BatchNorm]:
         """
         Return the layers that contain trainable parameters.
 
@@ -428,7 +432,7 @@ class NeuralNetwork:
         ]
         return trainable_layers
 
-    def build_from_config(self, config):
+    def build_from_config(self, config: dict[str, Any]) -> None:
         """
         Build the network automatically from a configuration dictionary.
 
@@ -535,7 +539,7 @@ class NeuralNetwork:
             # of the next layer.
             current_input_dim = units
 
-    def summary(self):
+    def summary(self) -> None:
         """
         Print a simple summary of the network architecture.
 

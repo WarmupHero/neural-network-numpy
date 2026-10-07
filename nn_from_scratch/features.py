@@ -31,8 +31,12 @@ from nn_from_scratch.scalers import StandardScaler
 
 
 def train_val_test_split(
-    df, val_size=0.2, test_size=0.2, stratify_col=None, random_seed=RANDOM_SEED
-):
+    df: pd.DataFrame,
+    val_size: float = 0.2,
+    test_size: float = 0.2,
+    stratify_col: str | None = None,
+    random_seed: int = RANDOM_SEED,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
     Randomly split a dataframe into train / validation / test sets using NumPy only.
 
@@ -144,7 +148,7 @@ class PreprocessBanknote:
     - EDA scaling comparisons are also based on X_train only
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Store the path to the Banknote dataset CSV file.
 
@@ -167,7 +171,7 @@ class PreprocessBanknote:
         """
         self.banknote_path = os.path.join(DATASETS_DIR, "banknote_auth.csv")
 
-    def load_and_clean(self):
+    def load_and_clean(self) -> pd.DataFrame:
         """
         Load the Banknote dataset, run sanity checks, and remove duplicates.
 
@@ -229,7 +233,9 @@ class PreprocessBanknote:
 
         return df
 
-    def split_dataframe(self, df, random_seed=RANDOM_SEED):
+    def split_dataframe(
+        self, df: pd.DataFrame, random_seed: int = RANDOM_SEED
+    ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         """
         Split the Banknote dataframe into train / validation / test.
 
@@ -266,7 +272,7 @@ class PreprocessBanknote:
             df, val_size=0.2, test_size=0.2, stratify_col="class", random_seed=random_seed
         )
 
-    def perform_eda(self, df_train, scale_features=True):
+    def perform_eda(self, df_train: pd.DataFrame, scale_features: bool = True) -> None:
         """
         Generate EDA plots using the training split only.
 
@@ -325,12 +331,12 @@ class PreprocessBanknote:
 
     def get_data(
         self,
-        show_eda=False,
-        preprocessing_enabled=True,
-        scale_features=True,
-        random_seed=RANDOM_SEED,
-        run_eda=True,
-    ):
+        show_eda: bool = False,
+        preprocessing_enabled: bool = True,
+        scale_features: bool = True,
+        random_seed: int = RANDOM_SEED,
+        run_eda: bool = True,
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
         Full data-preparation pipeline for the Banknote dataset.
 
@@ -417,13 +423,13 @@ class PreprocessBanknote:
         # 4. Separate features and targets
         # ---------------------------------------------------------
         X_train = df_train.drop(columns=["class"]).values
-        y_train = df_train["class"].values.reshape(-1, 1)
+        y_train = df_train["class"].to_numpy().reshape(-1, 1)
 
         X_val = df_val.drop(columns=["class"]).values
-        y_val = df_val["class"].values.reshape(-1, 1)
+        y_val = df_val["class"].to_numpy().reshape(-1, 1)
 
         X_test = df_test.drop(columns=["class"]).values
-        y_test = df_test["class"].values.reshape(-1, 1)
+        y_test = df_test["class"].to_numpy().reshape(-1, 1)
 
         # ---------------------------------------------------------
         # 5. Optional feature scaling
@@ -480,7 +486,7 @@ class PreprocessEnergy:
     second target, and using it as an input would leak information).
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Store the path to the Energy dataset CSV file.
 
@@ -502,7 +508,7 @@ class PreprocessEnergy:
         """
         self.energy_path = os.path.join(DATASETS_DIR, "energy_efficiency.csv")
 
-    def load_and_clean(self):
+    def load_and_clean(self) -> pd.DataFrame:
         """
         Load the Energy dataset, run sanity checks, and remove duplicates.
 
@@ -564,7 +570,9 @@ class PreprocessEnergy:
 
         return df
 
-    def split_dataframe(self, df, random_seed=RANDOM_SEED):
+    def split_dataframe(
+        self, df: pd.DataFrame, random_seed: int = RANDOM_SEED
+    ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         """
         Split the Energy dataframe into train / validation / test.
 
@@ -599,7 +607,7 @@ class PreprocessEnergy:
         # 60% train, 20% validation, 20% test (no stratification for regression)
         return train_val_test_split(df, val_size=0.2, test_size=0.2, random_seed=random_seed)
 
-    def perform_eda(self, df_train, scale_features=True):
+    def perform_eda(self, df_train: pd.DataFrame, scale_features: bool = True) -> None:
         """
         Generate EDA plots using the training split only.
 
@@ -662,12 +670,12 @@ class PreprocessEnergy:
 
     def get_data(
         self,
-        show_eda=False,
-        preprocessing_enabled=True,
-        scale_features=True,
-        random_seed=RANDOM_SEED,
-        run_eda=True,
-    ):
+        show_eda: bool = False,
+        preprocessing_enabled: bool = True,
+        scale_features: bool = True,
+        random_seed: int = RANDOM_SEED,
+        run_eda: bool = True,
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
         Full data-preparation pipeline for the Energy dataset.
 
@@ -758,13 +766,13 @@ class PreprocessEnergy:
         # 4. Separate features and targets
         # ---------------------------------------------------------
         X_train = df_train.drop(columns=["Heating_Load", "Cooling_Load"]).values
-        y_train = df_train["Heating_Load"].values.reshape(-1, 1)
+        y_train = df_train["Heating_Load"].to_numpy().reshape(-1, 1)
 
         X_val = df_val.drop(columns=["Heating_Load", "Cooling_Load"]).values
-        y_val = df_val["Heating_Load"].values.reshape(-1, 1)
+        y_val = df_val["Heating_Load"].to_numpy().reshape(-1, 1)
 
         X_test = df_test.drop(columns=["Heating_Load", "Cooling_Load"]).values
-        y_test = df_test["Heating_Load"].values.reshape(-1, 1)
+        y_test = df_test["Heating_Load"].to_numpy().reshape(-1, 1)
 
         # ---------------------------------------------------------
         # 5. Optional feature scaling

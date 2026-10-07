@@ -30,7 +30,7 @@ class MSELoss:
     The class has no state, so one object can be reused for any batch.
     """
 
-    def forward(self, y_true, y_pred):
+    def forward(self, y_true: np.ndarray, y_pred: np.ndarray) -> float:
         """
         Compute the Mean Squared Error loss.
 
@@ -64,7 +64,7 @@ class MSELoss:
         """
         return np.mean((y_true - y_pred) ** 2)
 
-    def backward(self, y_true, y_pred):
+    def backward(self, y_true: np.ndarray, y_pred: np.ndarray) -> np.ndarray:
         """
         Compute the gradient of MSE with respect to predictions.
 
@@ -138,7 +138,7 @@ class BCELoss:
     The class has no state, so one object can be reused for any batch.
     """
 
-    def forward(self, y_true, y_pred):
+    def forward(self, y_true: np.ndarray, y_pred: np.ndarray) -> float:
         """
         Compute the Binary Cross-Entropy loss.
 
@@ -187,7 +187,7 @@ class BCELoss:
 
         return loss
 
-    def backward(self, y_true, y_pred):
+    def backward(self, y_true: np.ndarray, y_pred: np.ndarray) -> np.ndarray:
         """
         Compute the gradient of BCE with respect to predictions.
 
@@ -242,7 +242,7 @@ class BCELoss:
         return grad
 
 
-def get_loss(name):
+def get_loss(name: str) -> MSELoss | BCELoss:
     """
     Factory function that returns a loss object by name.
 

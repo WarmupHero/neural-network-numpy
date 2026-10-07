@@ -7,10 +7,17 @@ optionally stops early on a validation-loss plateau (restoring the best
 checkpoint), and evaluates or scores the trained model.
 """
 
+from collections.abc import Iterator
+from typing import Any
+
 import numpy as np
 
 from nn_from_scratch.config import RANDOM_SEED
+from nn_from_scratch.nn.layers import BatchNorm
+from nn_from_scratch.nn.losses import BCELoss, MSELoss
 from nn_from_scratch.nn.metrics import binary_cross_entropy, mean_squared_error
+from nn_from_scratch.nn.network import NeuralNetwork
+from nn_from_scratch.nn.optimizers import SGD, AdaBelief, MomentumSGD
 
 
 class Trainer:
@@ -36,7 +43,7 @@ class Trainer:
         The model being trained.
     loss_fn : MSELoss or BCELoss
         Loss object used for training and for the reported loss values.
-    optimizer : object
+    optimizer : SGD or MomentumSGD or AdaBelief
         Optimizer with an `update(layer)` method (see nn_from_scratch.nn.optimizers).
     task_type : str
         "classification" or "regression" (lower-cased).
@@ -48,16 +55,16 @@ class Trainer:
 
     def __init__(
         self,
-        network,
-        loss_fn,
-        optimizer,
-        task_type,
-        early_stopping=False,
-        patience=10,
-        min_delta=0.0,
-        min_epochs_before_early_stop=0,
-        random_seed=RANDOM_SEED,
-    ):
+        network: NeuralNetwork,
+        loss_fn: MSELoss | BCELoss,
+        optimizer: SGD | MomentumSGD | AdaBelief,
+        task_type: str,
+        early_stopping: bool = False,
+        patience: int = 10,
+        min_delta: float = 0.0,
+        min_epochs_before_early_stop: int = 0,
+        random_seed: int = RANDOM_SEED,
+    ) -> None:
         """
         Initialize the trainer and store its settings.
 
@@ -69,7 +76,7 @@ class Trainer:
             Loss function object (from nn_from_scratch.nn.losses) with:
             - forward(y_true, y_pred) -> float, the scalar loss
             - backward(y_true, y_pred) -> numpy.ndarray, dL/dy_pred
-        optimizer : object
+        optimizer : SGD or MomentumSGD or AdaBelief
             Optimizer object (from nn_from_scratch.nn.optimizers) with an update(layer)
             method that changes the layer's parameters in place.
         task_type : str
@@ -137,7 +144,7 @@ class Trainer:
         # History dictionary used to store training progress over epochs
         self.history = {"train_loss": [], "val_loss": [], "val_metric": []}
 
-    def _shuffle_data(self, X, y):
+    def _shuffle_data(self, X: np.ndarray, y: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """
         Shuffle the dataset at the start of each epoch.
 
@@ -166,7 +173,9 @@ class Trainer:
         indices = self.random.permutation(len(X))
         return X[indices], y[indices]
 
-    def _create_batches(self, X, y, batch_size):
+    def _create_batches(
+        self, X: np.ndarray, y: np.ndarray, batch_size: int
+    ) -> Iterator[tuple[np.ndarray, np.ndarray]]:
         """
         Split the dataset into mini-batches.
 
@@ -201,7 +210,7 @@ class Trainer:
             end_idx = start_idx + batch_size
             yield X[start_idx:end_idx], y[start_idx:end_idx]
 
-    def _compute_metric(self, y_true, y_pred):
+    def _compute_metric(self, y_true: np.ndarray, y_pred: np.ndarray) -> float:
         """
         Compute the correct evaluation metric for the current task.
 
@@ -231,7 +240,7 @@ class Trainer:
         else:
             return mean_squared_error(y_true, y_pred)
 
-    def _get_model_state(self):
+    def _get_model_state(self) -> list[dict[str, Any]]:
         """
         Save a copy of the model's current state.
 
@@ -269,7 +278,7 @@ class Trainer:
         """
         state = []
         for layer in self.network.get_trainable_layers():
-            buffers = layer.get_buffers() if hasattr(layer, "get_buffers") else {}
+            buffers = layer.get_buffers() if isinstance(layer, BatchNorm) else {}
             state.append(
                 {
                     "params": {name: param.copy() for name, param in layer.get_params().items()},
@@ -278,7 +287,7 @@ class Trainer:
             )
         return state
 
-    def _set_model_state(self, state):
+    def _set_model_state(self, state: list[dict[str, Any]]) -> None:
         """
         Restore a previously saved model state.
 
@@ -308,10 +317,10 @@ class Trainer:
         """
         for layer, saved in zip(self.network.get_trainable_layers(), state):
             layer.set_params(saved["params"])
-            if saved["buffers"]:
+            if isinstance(layer, BatchNorm) and saved["buffers"]:
                 layer.set_buffers(saved["buffers"])
 
-    def _is_meaningful_improvement(self, current_loss, best_loss):
+    def _is_meaningful_improvement(self, current_loss: float, best_loss: float) -> bool:
         """
         Return True when a loss meaningfully improves beyond min_delta.
 
@@ -338,7 +347,16 @@ class Trainer:
         """
         return current_loss < (best_loss - self.min_delta)
 
-    def fit(self, X_train, y_train, X_val, y_val, epochs=100, batch_size=32, verbose=True):
+    def fit(
+        self,
+        X_train: np.ndarray,
+        y_train: np.ndarray,
+        X_val: np.ndarray,
+        y_val: np.ndarray,
+        epochs: int = 100,
+        batch_size: int = 32,
+        verbose: bool = True,
+    ) -> dict[str, Any]:
         """
         Train the network with mini-batch gradient descent.
 
@@ -465,7 +483,7 @@ class Trainer:
                     self.optimizer.update(layer)
 
             # Average batch losses to get one training loss for the epoch
-            train_loss = np.mean(batch_losses)
+            train_loss = float(np.mean(batch_losses))
 
             # Validation pass after the epoch finishes, in evaluation mode so
             # the result reflects the model as it would be used for prediction.
@@ -609,7 +627,7 @@ class Trainer:
 
         return self.history
 
-    def evaluate(self, X_test, y_test):
+    def evaluate(self, X_test: np.ndarray, y_test: np.ndarray) -> dict[str, float]:
         """
         Evaluate the trained model on the test set and print the result.
 
@@ -659,7 +677,7 @@ class Trainer:
 
         return {"test_loss": test_loss, "test_metric": test_metric}
 
-    def score(self, X, y):
+    def score(self, X: np.ndarray, y: np.ndarray) -> float:
         """
         Compute the task metric on any dataset, in evaluation mode, without printing.
 
@@ -691,7 +709,7 @@ class Trainer:
         """
         return float(self._compute_metric(y, self.predict(X)))
 
-    def predict(self, X):
+    def predict(self, X: np.ndarray) -> np.ndarray:
         """
         Run inference using the trained network.
 

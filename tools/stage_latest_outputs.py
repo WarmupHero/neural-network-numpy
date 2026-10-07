@@ -36,7 +36,7 @@ DOC_FILES = ["README.md", os.path.join("docs", "DETAILS.md")]
 STAMPED_NAME_PATTERN = re.compile(r"([A-Za-z0-9_.-]+?)_(\d{8}-\d{6})(\.[A-Za-z0-9]+)")
 
 
-def git(*args):
+def git(*args: str) -> str:
     """
     Run a git command from the repository root and return its output.
 
@@ -68,7 +68,7 @@ def git(*args):
     return result.stdout
 
 
-def to_repo_path(path):
+def to_repo_path(path: str) -> str:
     """
     Convert a file path to a forward-slash path relative to the repo root.
 
@@ -94,7 +94,7 @@ def to_repo_path(path):
     return os.path.relpath(path, ROOT_DIR).replace(os.sep, "/")
 
 
-def is_stamped(repo_path):
+def is_stamped(repo_path: str) -> bool:
     """
     Check whether a repo path names a stamped output file.
 
@@ -119,7 +119,7 @@ def is_stamped(repo_path):
     return bool(STAMP_SUFFIX_PATTERN.search(stem))
 
 
-def update_doc_references(newest_by_name):
+def update_doc_references(newest_by_name: dict[str, str]) -> list[str]:
     """
     Point every stamped output name in the docs at its newest stamp.
 
@@ -154,7 +154,7 @@ def update_doc_references(newest_by_name):
     5. Write the updated text back and record the file's repo path.
     """
 
-    def replace(match):
+    def replace(match: re.Match[str]) -> str:
         """Return the newest stamped name for one matched stamped name."""
         # Rebuild the un-stamped name: group 1 is the name, group 3 the extension.
         name = match.group(1) + match.group(3)
@@ -187,7 +187,7 @@ def update_doc_references(newest_by_name):
     return changed
 
 
-def main():
+def main() -> None:
     """
     Stage the newest stamped outputs and the docs that reference them.
 

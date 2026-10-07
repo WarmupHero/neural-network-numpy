@@ -11,6 +11,7 @@ stamp in its name, optionally also shown on screen.
 import os
 
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import seaborn as sns
 
@@ -40,7 +41,7 @@ class Visualizer:
     SHOW_EDA = False
 
     @staticmethod
-    def _ensure_output_dir():
+    def _ensure_output_dir() -> None:
         """
         Create the preprocessing-graphs output directory if it does not exist.
 
@@ -64,8 +65,11 @@ class Visualizer:
 
     @staticmethod
     def plot_scaling_comparison(
-        X_unscaled, X_scaled_arr, filename="scaling_comparison.png", label="Dataset"
-    ):
+        X_unscaled: pd.DataFrame,
+        X_scaled_arr: np.ndarray,
+        filename: str = "scaling_comparison.png",
+        label: str = "Dataset",
+    ) -> None:
         """
         Create and save side-by-side boxplots showing feature distributions
         before and after scaling.
@@ -140,7 +144,7 @@ class Visualizer:
         plt.close(fig)
 
     @staticmethod
-    def plot_classification_eda(df, target_col="class"):
+    def plot_classification_eda(df: pd.DataFrame, target_col: str = "class") -> None:
         """
         Create and save EDA plots for the classification dataset
         (Banknote Authentication).
@@ -210,7 +214,7 @@ class Visualizer:
         plt.close()
 
     @staticmethod
-    def plot_regression_eda(df, target_col="Heating_Load"):
+    def plot_regression_eda(df: pd.DataFrame, target_col: str = "Heating_Load") -> None:
         """
         Create and save EDA plots for the regression dataset
         (Energy Efficiency).

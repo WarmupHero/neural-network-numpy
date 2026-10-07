@@ -34,7 +34,7 @@ class Fetch:
         (``data/raw/energy_efficiency.csv``), used for regression.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Create the datasets folder and store the two CSV file paths.
 
@@ -63,7 +63,7 @@ class Fetch:
         self.banknote_path = os.path.join(DATASETS_DIR, "banknote_auth.csv")
         self.energy_path = os.path.join(DATASETS_DIR, "energy_efficiency.csv")
 
-    def download_all(self):
+    def download_all(self) -> None:
         """
         Download each dataset from the UCI repository unless its CSV already exists.
 

@@ -68,7 +68,14 @@ class Dense:
     (or become active again) when its weighted input is negative.
     """
 
-    def __init__(self, input_dim, output_dim, random_state=None, use_bias=False, init="normal"):
+    def __init__(
+        self,
+        input_dim: int,
+        output_dim: int,
+        random_state: np.random.RandomState | None = None,
+        use_bias: bool = False,
+        init: str = "normal",
+    ) -> None:
         """
         Create a dense layer and initialize its trainable parameters.
 
@@ -166,7 +173,7 @@ class Dense:
         self.dbias = np.zeros_like(self.bias) if use_bias else None
 
     @staticmethod
-    def _init_std(init, input_dim, output_dim):
+    def _init_std(init: str, input_dim: int, output_dim: int) -> float:
         """
         Return the standard deviation used to draw the initial weights.
 
@@ -224,7 +231,7 @@ class Dense:
             f"Unsupported init: {init}. Supported schemes are: {sorted(SUPPORTED_INITS)}"
         )
 
-    def forward(self, X):
+    def forward(self, X: np.ndarray) -> np.ndarray:
         """
         Apply the linear transformation to a batch of inputs.
 
@@ -269,7 +276,7 @@ class Dense:
 
         return Z
 
-    def backward(self, grad_output):
+    def backward(self, grad_output: np.ndarray) -> np.ndarray:
         """
         Compute the parameter gradients and the gradient for the previous layer.
 
@@ -337,7 +344,7 @@ class Dense:
 
         return grad_input
 
-    def get_params(self):
+    def get_params(self) -> dict[str, np.ndarray]:
         """
         Return the trainable parameters of the layer.
 
@@ -366,7 +373,7 @@ class Dense:
             params["bias"] = self.bias
         return params
 
-    def get_grads(self):
+    def get_grads(self) -> dict[str, np.ndarray]:
         """
         Return the gradients of the trainable parameters.
 
@@ -396,7 +403,7 @@ class Dense:
             grads["bias"] = self.dbias
         return grads
 
-    def set_params(self, params):
+    def set_params(self, params: dict[str, np.ndarray]) -> None:
         """
         Replace the trainable parameters with copies of the given arrays.
 
@@ -499,7 +506,7 @@ class BatchNorm:
     shifting the activation.
     """
 
-    def __init__(self, num_features, momentum=0.1, eps=1e-5):
+    def __init__(self, num_features: int, momentum: float = 0.1, eps: float = 1e-5) -> None:
         """
         Create a batch-normalization layer.
 
@@ -554,7 +561,7 @@ class BatchNorm:
         self.inv_std = None
         self.cached_training = None
 
-    def forward(self, X):
+    def forward(self, X: np.ndarray) -> np.ndarray:
         """
         Normalize, scale and shift a batch.
 
@@ -605,7 +612,7 @@ class BatchNorm:
 
         return self.gamma * self.x_hat + self.beta
 
-    def backward(self, grad_output):
+    def backward(self, grad_output: np.ndarray) -> np.ndarray:
         """
         Backpropagate through batch normalization.
 
@@ -675,7 +682,7 @@ class BatchNorm:
             - self.x_hat * np.sum(dx_hat * self.x_hat, axis=0, keepdims=True)
         )
 
-    def get_params(self):
+    def get_params(self) -> dict[str, np.ndarray]:
         """
         Return the trainable parameters: gamma (scale) and beta (shift).
 
@@ -699,7 +706,7 @@ class BatchNorm:
         """
         return {"gamma": self.gamma, "beta": self.beta}
 
-    def get_grads(self):
+    def get_grads(self) -> dict[str, np.ndarray]:
         """
         Return the gradients of gamma and beta.
 
@@ -724,7 +731,7 @@ class BatchNorm:
         """
         return {"gamma": self.dgamma, "beta": self.dbeta}
 
-    def set_params(self, params):
+    def set_params(self, params: dict[str, np.ndarray]) -> None:
         """
         Replace gamma and beta with copies of the given arrays.
 
@@ -754,7 +761,7 @@ class BatchNorm:
         self.gamma = params["gamma"].copy()
         self.beta = params["beta"].copy()
 
-    def get_buffers(self):
+    def get_buffers(self) -> dict[str, np.ndarray]:
         """
         Return the non-trainable state: the running statistics.
 
@@ -782,7 +789,7 @@ class BatchNorm:
         """
         return {"running_mean": self.running_mean, "running_var": self.running_var}
 
-    def set_buffers(self, buffers):
+    def set_buffers(self, buffers: dict[str, np.ndarray]) -> None:
         """
         Replace the running statistics with copies of the given arrays.
 
@@ -859,7 +866,7 @@ class Dropout:
     The network's train() / eval() methods set the flag on every layer.
     """
 
-    def __init__(self, rate, random_state=None):
+    def __init__(self, rate: float, random_state: np.random.RandomState | None = None) -> None:
         """
         Create a dropout layer.
 
@@ -905,7 +912,7 @@ class Dropout:
         # Mask from the last training-mode forward pass, reused by backward().
         self.mask = None
 
-    def forward(self, X):
+    def forward(self, X: np.ndarray) -> np.ndarray:
         """
         Apply dropout in training mode; pass the input through in evaluation mode.
 
@@ -943,7 +950,7 @@ class Dropout:
         self.mask = keep / (1.0 - self.rate)
         return X * self.mask
 
-    def backward(self, grad_output):
+    def backward(self, grad_output: np.ndarray) -> np.ndarray:
         """
         Backpropagate through dropout.
 

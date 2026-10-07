@@ -17,7 +17,7 @@ import sys
 TARGET_PATTERN = re.compile(r"^([A-Za-z0-9_-]+):")
 
 
-def documented_targets(makefile_text):
+def documented_targets(makefile_text: str) -> list[tuple[str, str]]:
     """
     Find each documented target and its description in a Makefile.
 
@@ -54,7 +54,7 @@ def documented_targets(makefile_text):
     return targets
 
 
-def main(makefile_path):
+def main(makefile_path: str) -> None:
     """
     Print the documented Makefile targets as an aligned list.
 
