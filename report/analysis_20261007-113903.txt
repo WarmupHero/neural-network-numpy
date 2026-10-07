@@ -1,0 +1,234 @@
+ANALYSIS
+================
+
+Method
+------
+For each run, convergence epoch is the first epoch after which all remaining training-loss values stay within a small tolerance of the final training loss.
+
+For overall loss comparison across classification and regression, combined results use normalized best validation loss within each problem separately.
+
+Supporting Data — Classification
+--------------------------------
+Loss : BCE
+
+Optimizer Summary — Classification
+----------------------------------
+Group          Runs    Avg Conv Epoch    Avg Best Val Loss   
+sgd            8       57.12             0.352982            
+momentum       8       53.88             0.353280            
+adabelief      8       66.88             0.021800            
+
+Architecture Summary — Classification
+-------------------------------------
+Group          Runs    Avg Conv Epoch    Avg Best Val Loss   
+A1             12      77.67             0.237736            
+A2             12      40.92             0.247639            
+
+Supporting Data — Regression
+----------------------------
+Loss: MSE
+
+Optimizer Summary — Regression
+------------------------------
+Group          Runs    Avg Conv Epoch    Avg Best Val Loss   
+sgd            8       65.75             162.851861          
+momentum       8       76.50             162.087696          
+adabelief      8       80.00             5.678145            
+
+Architecture Summary — Regression
+---------------------------------
+Group          Runs    Avg Conv Epoch    Avg Best Val Loss   
+A1             12      92.00             6.799580            
+A2             12      56.17             213.612221          
+
+Supporting Data — Combined Overall
+---------------------------------
+Loss values below are normalized within each problem before averaging.
+
+Optimizer Summary — Combined Overall
+------------------------------------
+Group          Runs    Avg Conv Epoch    Avg Norm Best Val Loss  
+sgd            16      61.44             0.383514                
+momentum       16      65.19             0.383122                
+adabelief      16      73.44             0.019658                
+
+Architecture Summary — Combined Overall
+---------------------------------------
+Group          Runs    Avg Conv Epoch    Avg Norm Best Val Loss  
+A1             24      84.83             0.176314                
+A2             24      48.54             0.347882                
+
+Answers
+-------
+1. Fastest optimizer on average over all experiments: sgd
+2. Best optimizer by average loss-function value over all experiments using average normalized best validation loss: adabelief 
+3. How network depth affects optimization: Overall, A2 (3 hidden layers) converges faster on average, while A1 (1 hidden layer) achieves the better average normalized loss. 
+
+A2 Variants — Bias Terms, Weight Initialization and Batch Normalization
+----------------------------------------------------------------------
+Each variant changes A2 (3 hidden ReLU layers): A2-bias adds a bias term to every layer, A2-he uses He initialization instead of N(0, 0.1^2), A2-bias-he does both, and A2-bn adds batch normalization between each hidden Dense layer and its ReLU. These runs are not included in the sections above.
+
+A2 Variant Summary — Classification (BCE)
+-----------------------------------------
+Group          Runs    Avg Conv Epoch    Avg Best Val Loss   
+A2             12      40.92             0.247639            
+A2-bias        12      45.33             0.228468            
+A2-he          12      81.67             0.058167            
+A2-bias-he     12      71.42             0.045756            
+A2-bn          12      67.33             0.034570            
+
+A2 Variant Summary — Regression (MSE)
+-------------------------------------
+Group          Runs    Avg Conv Epoch    Avg Best Val Loss   
+A2             12      56.17             213.612221          
+A2-bias        11      71.27             37.001780           
+A2-he          11      62.18             175.485476          
+A2-bias-he     11      73.55             31.610044           
+A2-bn          10      47.50             3.549473            
+
+Diverged runs (loss overflowed; excluded from the averages above):
+- A2-bias | sgd | LR=0.1 | Batch=16
+- A2-he | momentum | LR=0.1 | Batch=16
+- A2-bias-he | momentum | LR=0.1 | Batch=16
+- A2-bn | sgd | LR=0.1 | Batch=16
+- A2-bn | sgd | LR=0.1 | Batch=64
+
+Collapse Check — Regression Test MSE at Learning Rate 0.1
+---------------------------------------------------------
+Architecture   sgd bs16        sgd bs64        momentum bs16   momentum bs64   
+A2             602.1735        602.1735        602.1735        602.1735        
+A2-bias        diverged        101.4727        101.6350        148.7068        
+A2-he          602.1735        602.1735        diverged        602.2349        
+A2-bias-he     101.7276        101.6881        diverged        101.7462        
+A2-bn          diverged        diverged        6.8281          5.7948          
+
+In the baseline A2, these four runs collapse: the ReLU units in the deeper hidden layers die, the network outputs a constant, and the test MSE equals that of always predicting 0. A collapsed network with bias terms can still learn the output layer's bias, so its constant moves to roughly the mean target and its test MSE matches that of always predicting the mean. Either way the hidden layers are dead: a much lower MSE than the constant-prediction baselines is what indicates a network that actually learned.
+
+Dropout — Regularization and the Generalization Gap
+---------------------------------------------------
+Each architecture is compared with a copy that has dropout (rate 0.2) after every hidden layer, on runs matched by optimizer, learning rate and batch size. Matches where either run diverged are left out. 'Avg Train' is the training-set metric in evaluation mode (no dropout) on the restored best model, so it is directly comparable with 'Avg Test'. 'Avg Gap' is test minus train: a large positive gap means overfitting, which is what dropout is meant to reduce. 'Dropout Better' counts the matched runs where dropout gave the lower test metric.
+
+Dropout Comparison — Classification (BCE)
+-----------------------------------------
+Architecture    Matched  Avg Train    Avg Test     Avg Gap      Dropout Better 
+A1              12       0.240484     0.240079     -0.000405                   
+A1-dropout      12       0.241879     0.241200     -0.000679    2/12           
+A2-bn           12       0.034058     0.035812     0.001754                    
+A2-bn-dropout   12       0.054535     0.056149     0.001613     2/12           
+
+Dropout Comparison — Regression (MSE)
+-------------------------------------
+Architecture    Matched  Avg Train    Avg Test     Avg Gap      Dropout Better 
+A1              12       5.874947     6.202653     0.327707                    
+A1-dropout      12       7.581079     7.931374     0.350296     1/12           
+A2-bn           10       3.129326     3.506865     0.377539                    
+A2-bn-dropout   10       7.870193     8.363493     0.493301     0/10           
+
+Multi-Seed Results
+==================
+Every configuration was run with 5 seeds (42, 43, 44, 45, 46). Each seed changes the train / validation / test split, the weight initialization, the dropout masks and the shuffling. All sections above use seed 42 only; this section reports mean ± sample standard deviation across seeds.
+
+The constant-prediction baseline is the test metric of a model that ignores the features: the training class proportion for classification, the training mean for regression. 'Error removed' is 1 - test / baseline (R² for regression, McFadden's pseudo-R² for classification). Models are always selected by validation loss, never by test score, and diverged runs are excluded from selection and averages.
+
+Selected Model per Seed — Classification (BCE), baseline architectures A1 / A2
+------------------------------------------------------------------------------
+Seed  Selected run                              Test        Baseline    Error removed 
+42    A1 · adabelief · LR 0.1 · bs 16           0.00016     0.68851     99.98%        
+43    A1 · adabelief · LR 0.1 · bs 16           0.00015     0.68851     99.98%        
+44    A1 · adabelief · LR 0.1 · bs 64           0.00190     0.68851     99.72%        
+45    A1 · adabelief · LR 0.1 · bs 16           0.00102     0.68851     99.85%        
+46    A1 · adabelief · LR 0.1 · bs 16           0.00523     0.68851     99.24%        
+Mean                                            0.00169 ± 0.00211       99.75 ± 0.31 %
+
+Selected Model per Seed — Classification (BCE), all architectures
+-----------------------------------------------------------------
+Seed  Selected run                              Test        Baseline    Error removed 
+42    A2-bias · adabelief · LR 0.1 · bs 16      0.00031     0.68851     99.96%        
+43    A2-bias-he · adabelief · LR 0.1 · bs 16   0.00001     0.68851     100.00%       
+44    A2-bias-he · adabelief · LR 0.1 · bs 16   0.00000     0.68851     100.00%       
+45    A2-bias · adabelief · LR 0.1 · bs 64      0.00019     0.68851     99.97%        
+46    A2-bias-he · adabelief · LR 0.1 · bs 64   0.00010     0.68851     99.99%        
+Mean                                            0.00012 ± 0.00013       99.98 ± 0.02 %
+
+Architectures Across Seeds — Classification (BCE)
+-------------------------------------------------
+Architecture   Best run test (mean ± std)    Avg conv epoch        No better than baseline  Diverged  
+A1             0.00169 ± 0.00211             79.5 ± 2.5            4/60                     0/60      
+A2             0.00565 ± 0.00401             40.6 ± 6.5            16/60                    0/60      
+A2-bias        0.00017 ± 0.00015             47.0 ± 3.3            6/60                     0/60      
+A2-he          0.00469 ± 0.00450             71.3 ± 7.7            0/60                     0/60      
+A2-bias-he     0.00008 ± 0.00007             70.2 ± 1.8            0/60                     0/60      
+A2-bn          0.00029 ± 0.00023             65.3 ± 2.1            0/60                     0/60      
+A1-dropout     0.00760 ± 0.00858             80.6 ± 10.7           4/60                     0/60      
+A2-bn-dropout  0.00039 ± 0.00047             63.6 ± 3.1            0/60                     0/60      
+
+Optimizer x Learning Rate Across Seeds — Classification (BCE), A1 / A2, average test metric
+-------------------------------------------------------------------------------------------
+Optimizer   LR 0.1                    LR 0.001                  
+sgd         0.01866 ± 0.00719         0.68075 ± 0.00396         
+momentum    0.01909 ± 0.00732         0.68080 ± 0.00397         
+adabelief   0.01965 ± 0.02023         0.01259 ± 0.00727         
+
+Selected Model per Seed — Regression (MSE), baseline architectures A1 / A2
+--------------------------------------------------------------------------
+Seed  Selected run                              Test        Baseline    Error removed 
+42    A1 · adabelief · LR 0.1 · bs 16           0.3745      101.4335    99.63%        
+43    A1 · adabelief · LR 0.1 · bs 16           0.4930      103.4031    99.52%        
+44    A1 · momentum · LR 0.1 · bs 16            0.8414      101.0386    99.17%        
+45    A1 · adabelief · LR 0.1 · bs 16           0.4926      106.1618    99.54%        
+46    A1 · adabelief · LR 0.1 · bs 16           0.3983      90.8421     99.56%        
+Mean                                            0.5200 ± 0.1876         99.48 ± 0.18 %
+
+Selected Model per Seed — Regression (MSE), all architectures
+-------------------------------------------------------------
+Seed  Selected run                              Test        Baseline    Error removed 
+42    A1 · adabelief · LR 0.1 · bs 16           0.3745      101.4335    99.63%        
+43    A2-bias-he · adabelief · LR 0.1 · bs 16   0.3894      103.4031    99.62%        
+44    A1 · momentum · LR 0.1 · bs 16            0.8414      101.0386    99.17%        
+45    A1 · adabelief · LR 0.1 · bs 16           0.4926      106.1618    99.54%        
+46    A1 · adabelief · LR 0.1 · bs 16           0.3983      90.8421     99.56%        
+Mean                                            0.4993 ± 0.1968         99.50 ± 0.19 %
+
+Architectures Across Seeds — Regression (MSE)
+---------------------------------------------
+Architecture   Best run test (mean ± std)    Avg conv epoch        No better than baseline  Diverged  
+A1             0.5200 ± 0.1876               87.5 ± 3.8            0/60                     0/60      
+A2             1.7931 ± 0.7966               52.5 ± 6.1            12/60                    8/60      
+A2-bias        0.7010 ± 0.1849               66.6 ± 11.0           6/60                     12/60     
+A2-he          1.7521 ± 0.5916               61.4 ± 6.8            14/60                    6/60      
+A2-bias-he     0.6841 ± 0.4320               73.8 ± 5.4            9/60                     10/60     
+A2-bn          1.4385 ± 0.2801               53.8 ± 4.9            0/60                     10/60     
+A1-dropout     3.5496 ± 0.6041               75.1 ± 6.1            0/60                     0/60      
+A2-bn-dropout  6.0162 ± 1.7577               43.1 ± 8.3            1/60                     9/60      
+
+Optimizer x Learning Rate Across Seeds — Regression (MSE), A1 / A2, average test metric
+---------------------------------------------------------------------------------------
+Optimizer   LR 0.1                    LR 0.001                  
+sgd         164.4172 ± 146.0043       9.0609 ± 1.5860           
+momentum    222.2508 ± 129.1809       9.2543 ± 1.4142           
+adabelief   2.0712 ± 0.8030           8.7694 ± 1.1469           
+
+Collapse Check Across Seeds — Regression, SGD / Momentum at LR 0.1, batch 16 / 64
+---------------------------------------------------------------------------------
+Architecture   Learned     No better than mean   Diverged  
+A2             0/20        12/20                 8/20      
+A2-bias        3/20        5/20                  12/20     
+A2-he          0/20        14/20                 6/20      
+A2-bias-he     1/20        9/20                  10/20     
+A2-bn          10/20       0/20                  10/20     
+
+Dropout Across Seeds — Classification (BCE), all matched runs
+-------------------------------------------------------------
+Architecture    Matched  Avg Train    Avg Test     Avg Gap      Dropout Better 
+A1              60       0.237437     0.237657     0.000220                    
+A1-dropout      60       0.239069     0.239363     0.000294     18/60          
+A2-bn           60       0.034497     0.034703     0.000206                    
+A2-bn-dropout   60       0.057373     0.058101     0.000728     12/60          
+
+Dropout Across Seeds — Regression (MSE), all matched runs
+---------------------------------------------------------
+Architecture    Matched  Avg Train    Avg Test     Avg Gap      Dropout Better 
+A1              60       6.461674     7.179434     0.717759                    
+A1-dropout      60       7.890102     8.628035     0.737934     12/60          
+A2-bn           50       2.785380     3.356781     0.571402                    
+A2-bn-dropout   50       7.491734     8.387241     0.895507     0/50           

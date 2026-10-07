@@ -1,22 +1,56 @@
+"""
+Aggregate analysis of the experiment sweep, written as a plain-text report.
+
+Input: a full-results JSON written by main.py (report/main_results_full_<stamp>.json,
+the newest one by default, or a path given on the command line).
+
+Processing: adds derived values to every run (best validation loss, final
+training loss, training-loss convergence epoch), then summarizes the runs by
+optimizer and by architecture, per problem and combined across problems, to
+answer three questions: which optimizer converges fastest, which reaches the
+best loss, and how depth affects optimization. Extra sections cover the A2
+variants (bias, He initialization, batch normalization), dropout, and, when
+several seeds were run, mean ± standard deviation across seeds.
+
+Output: report/analysis_<stamp>.txt.
+"""
 import json
+import math
 import os
-from statistics import mean
+from statistics import mean, stdev
+import sys
 import time
 
-from src.utils import ROOT_DIR
+from src.utils import RANDOM_SEED, REPORT_DIR, RUN_STAMP, stamped_filename, resolve_results_path
 
-# Load JSON that contains all recorded training/validation histories
-# for every experiment run in full.
-RESULTS_PATH = os.path.join(ROOT_DIR, "report", "main_results_full.json")
-
-# Path where this script will write the analysis report.
-OUTPUT_PATH = os.path.join(ROOT_DIR, "report", "analysis.txt")
+# Path where this script will write the analysis report. The run stamp is
+# inserted before the extension so earlier reports are never overwritten.
+OUTPUT_PATH = os.path.join(REPORT_DIR, stamped_filename("analysis.txt"))
 
 # Preferred display order for optimizer summaries in tables.
 OPTIMIZER_ORDER = ["sgd", "momentum", "adabelief"]
 
 # Preferred display order for architecture summaries in tables.
+# These are the baseline architectures: the depth comparison and all
+# optimizer / architecture sections are computed from these runs only, so
+# adding new architectures to the configs does not change those numbers.
 ARCHITECTURE_ORDER = ["A1", "A2"]
+
+# A2 and its variants, which change one thing at a time: a bias term,
+# He initialization, both, or batch normalization on the hidden layers.
+# Reported in their own section.
+A2_VARIANT_ORDER = ["A2", "A2-bias", "A2-he", "A2-bias-he", "A2-bn"]
+
+# The regression runs whose 3-layer ReLU network collapses in the baseline
+# (plain SGD and momentum at learning rate 0.1). The variant section checks
+# whether a bias term or He initialization prevents the collapse.
+COLLAPSE_CHECK_RUNS = [
+    ("sgd", 16), ("sgd", 64), ("momentum", 16), ("momentum", 64)
+]
+COLLAPSE_CHECK_LEARNING_RATE = 0.1
+
+# Architectures compared with and without dropout, as (without, with) pairs.
+DROPOUT_PAIRS = [("A1", "A1-dropout"), ("A2-bn", "A2-bn-dropout")]
 
 
 def load_results(path):
@@ -31,7 +65,15 @@ def load_results(path):
     Returns
     -------
     list of dict
-        One dictionary per experiment run.
+        One dictionary per experiment run, as written by main.py (keys such
+        as "problem_name", "architecture", "optimizer", "learning_rate",
+        "batch", "test_metric", "train_loss_history", "val_loss_history").
+
+    Notes
+    -----
+    Processing:
+    1. Open the file as UTF-8 text.
+    2. Parse it with json.load and return the result.
     """
     # Open the JSON file and parse it into Python objects.
     with open(path, "r", encoding="utf-8") as f:
@@ -40,23 +82,12 @@ def load_results(path):
 
 def convergence_epoch(train_loss_history, relative_tolerance=0.01, absolute_floor=1e-4):
     """
-    Define convergence using TRAINING loss, not validation loss.
-
-    Convergence epoch = first epoch after which all remaining training-loss
-    values stay within a small tolerance of the final training loss.
-
-    Tolerance used:
-        max(absolute_floor, relative_tolerance * abs(final_train_loss))
-
-    ---------------------------
-    Exercise asks which optimizer converges fastest on average.
-    To match that wording, we define convergence from the training-loss curve,
-    not from early stopping or validation loss.
+    Find the epoch at which one run's training loss has converged.
 
     Parameters
     ----------
-    train_loss_history : list[float]
-        Training loss recorded at each epoch for one run.
+    train_loss_history : list of float
+        Training loss recorded at each epoch for one run (must not be empty).
     relative_tolerance : float, default=0.01
         Relative closeness threshold to the final training loss.
         Here, 0.01 means "within 1% of the final training loss."
@@ -67,8 +98,27 @@ def convergence_epoch(train_loss_history, relative_tolerance=0.01, absolute_floo
     Returns
     -------
     int
-        The first epoch after which the remaining training-loss values
-        stay close to the final training loss.
+        The 1-based number of the first epoch after which the remaining
+        training-loss values stay close to the final training loss. Equals
+        the number of epochs run if no earlier such epoch exists.
+
+    Notes
+    -----
+    Processing:
+    1. Take the final training loss (the last value in the history).
+    2. Compute the tolerance
+       max(absolute_floor, relative_tolerance * abs(final_train_loss)).
+    3. Scan the epochs from the first one forward, and return the first
+       epoch from which every remaining loss is within the tolerance of the
+       final loss.
+
+    Definition: convergence epoch = first epoch after which all remaining
+    training-loss values stay within a small tolerance of the final training
+    loss. It uses TRAINING loss, not validation loss.
+
+    Why: the exercise asks which optimizer converges fastest on average. To
+    match that wording, convergence is defined from the training-loss curve,
+    not from early stopping or validation loss.
     """
     # The final training loss is the last value in the recorded history.
     final_train_loss = train_loss_history[-1]
@@ -103,20 +153,32 @@ def convergence_epoch(train_loss_history, relative_tolerance=0.01, absolute_floo
 
 def add_derived_metrics(results):
     """
-    Add the derived values needed for analysis.
-
-    For loss quality, we use best validation loss within each run.
-    For convergence speed, we use training-loss convergence epoch.
+    Add the derived values needed for analysis to every run.
 
     Parameters
     ----------
     results : list of dict
-        Raw experiment results loaded from the JSON file.
+        Raw experiment results loaded from the JSON file. Each run needs
+        "train_loss_history" and "val_loss_history" (list of float).
 
     Returns
     -------
     list of dict
-        The same results list, with extra derived fields added to each run.
+        The same list (modified in place), with three fields added or
+        overwritten on each run: "best_val_loss" (float),
+        "final_train_loss" (float) and "convergence_epoch" (int).
+
+    Notes
+    -----
+    Processing, for each run:
+    1. best_val_loss = minimum of the validation-loss history. This
+       overwrites the value saved by main.py with the same quantity, so
+       older results files without it also work.
+    2. final_train_loss = last value of the training-loss history.
+    3. convergence_epoch = convergence_epoch(train_loss_history).
+
+    For loss quality, we use best validation loss within each run.
+    For convergence speed, we use training-loss convergence epoch.
     """
     for run in results:
         # Best validation loss achieved by this run.
@@ -133,24 +195,33 @@ def add_derived_metrics(results):
 
 def add_normalized_best_val_loss(results):
     """
-    Normalize best validation loss within each problem separately.
-
-    This is necessary for the combined overall comparison because:
-    - classification uses BCE
-    - regression uses MSE
-
-    These losses are not on the same scale, so they should not be averaged
-    directly across tasks.
+    Min-max normalize best validation loss within each problem separately.
 
     Parameters
     ----------
     results : list of dict
-        Experiment results with derived metrics already added.
+        Experiment results with derived metrics already added (each run
+        needs "problem_name" and "best_val_loss").
 
     Returns
     -------
     list of dict
-        The same results list, with normalized best validation loss added.
+        The same list (modified in place), with "normalized_best_val_loss"
+        (float in [0, 1]) added to each run.
+
+    Notes
+    -----
+    Processing:
+    1. Group the runs by "problem_name".
+    2. Inside each group, find the smallest and largest best_val_loss.
+    3. Set normalized = (best_val_loss - min) / (max - min), or 0.0 for
+       every run if all values in the group are equal.
+
+    Why: this is necessary for the combined overall comparison because
+    classification uses BCE and regression uses MSE. These losses are not on
+    the same scale, so they should not be averaged directly across tasks.
+    Because the min and max come from the runs passed in, the normalized
+    values depend on which runs are included.
     """
     # Group runs by problem so normalization happens inside each task only.
     problem_groups = {}
@@ -181,14 +252,22 @@ def filter_by_problem(results, problem_name=None):
     Parameters
     ----------
     results : list of dict
-        Full results list.
-    problem_name : str or None
-        Problem name to keep. If None, return all runs.
+        Full results list; each run has a "problem_name" key.
+    problem_name : str or None, default=None
+        Problem name to keep, "classification" or "regression". If None,
+        return all runs.
 
     Returns
     -------
     list of dict
-        Filtered runs.
+        The runs whose "problem_name" equals `problem_name` (a new list), or
+        the input list itself when `problem_name` is None.
+
+    Notes
+    -----
+    Processing:
+    1. If no problem name is given, return the input unchanged.
+    2. Otherwise keep only the runs of that problem.
     """
     if problem_name is None:
         return results
@@ -205,11 +284,20 @@ def group_by_key(results, key):
         Runs to group.
     key : str
         Dictionary key to group by, such as 'optimizer' or 'architecture'.
+        Every run must have this key.
 
     Returns
     -------
-    dict[str, list[dict]]
-        Dictionary mapping each group name to the list of runs in that group.
+    dict of str to list of dict
+        Dictionary mapping each value of `key` (usually a str; an int for
+        "seed") to the list of runs with that value, in their original order.
+
+    Notes
+    -----
+    Processing:
+    1. Start from an empty dictionary.
+    2. Append each run to the list stored under its value of `key`,
+       creating the list the first time a value is seen.
     """
     groups = {}
     for run in results:
@@ -221,22 +309,30 @@ def summarize_task_group(group_runs):
     """
     Build a task-level summary for one group of runs.
 
-    This is used for:
-    - classification tables
-    - regression tables
-
-    At the task level, we can report average best validation loss directly,
-    because all runs in the table use the same loss scale.
-
     Parameters
     ----------
     group_runs : list of dict
-        Runs belonging to one group (same optimizer or same architecture).
+        Non-empty list of runs belonging to one group (same optimizer or
+        same architecture), all from the same problem. Each needs
+        "convergence_epoch" and "best_val_loss".
 
     Returns
     -------
     dict
-        Summary statistics for that group.
+        Summary statistics for that group:
+        - "num_runs" : int, number of runs in the group.
+        - "avg_convergence_epoch" : float, mean convergence epoch.
+        - "avg_best_val_loss" : float, mean best validation loss.
+
+    Notes
+    -----
+    Processing:
+    1. Count the runs.
+    2. Average their convergence epochs and best validation losses.
+
+    This is used for the classification and regression tables. At the task
+    level, we can report average best validation loss directly, because all
+    runs in the table use the same loss scale.
     """
     return {
         # Number of runs contributing to this group average.
@@ -252,21 +348,34 @@ def summarize_task_group(group_runs):
 
 def summarize_combined_group(group_runs):
     """
-    Build a combined overall summary for one group of runs.
-
-    This is used for the final overall answers across all experiments.
-    Because classification and regression use different loss scales,
-    we use normalized best validation loss here instead of raw loss.
+    Build a combined (both problems) summary for one group of runs.
 
     Parameters
     ----------
     group_runs : list of dict
-        Runs belonging to one group (same optimizer or same architecture).
+        Non-empty list of runs belonging to one group (same optimizer or
+        same architecture), possibly from both problems. Each needs
+        "convergence_epoch" and "normalized_best_val_loss".
 
     Returns
     -------
     dict
-        Summary statistics for that group.
+        Summary statistics for that group:
+        - "num_runs" : int, number of runs in the group.
+        - "avg_convergence_epoch" : float, mean convergence epoch.
+        - "avg_normalized_best_val_loss" : float, mean normalized best
+          validation loss.
+
+    Notes
+    -----
+    Processing:
+    1. Count the runs.
+    2. Average their convergence epochs and normalized best validation
+       losses.
+
+    This is used for the final overall answers across all experiments.
+    Because classification and regression use different loss scales,
+    we use normalized best validation loss here instead of raw loss.
     """
     return {
         # Number of runs contributing to this group average.
@@ -288,13 +397,22 @@ def ordered_keys(summary_dict, preferred_order):
     ----------
     summary_dict : dict
         Summary dictionary whose keys should be ordered.
-    preferred_order : list[str]
+    preferred_order : list of str
         Desired order, such as OPTIMIZER_ORDER or ARCHITECTURE_ORDER.
 
     Returns
     -------
-    list[str]
+    list of str
         Keys that exist in summary_dict, ordered according to preferred_order.
+
+    Notes
+    -----
+    Processing:
+    1. Walk through `preferred_order` and keep each name that is a key of
+       `summary_dict`.
+
+    Keys of `summary_dict` that are not in `preferred_order` are left out,
+    so they do not appear in the table.
     """
     return [k for k in preferred_order if k in summary_dict]
 
@@ -307,15 +425,25 @@ def format_task_table(title, summary_dict, preferred_order):
     ----------
     title : str
         Section title.
-    summary_dict : dict
-        Summary statistics by optimizer or architecture.
-    preferred_order : list[str]
-        Display order for the rows.
+    summary_dict : dict of str to dict
+        Summary statistics by optimizer or architecture, each value as
+        returned by summarize_task_group.
+    preferred_order : list of str
+        Display order for the rows. Groups not listed here are not shown.
 
     Returns
     -------
     str
-        A formatted multi-line string representing the table.
+        A formatted multi-line string representing the table, ending with a
+        blank line.
+
+    Notes
+    -----
+    Processing:
+    1. Write the title and an underline of dashes.
+    2. Write the header row (Group, Runs, Avg Conv Epoch, Avg Best Val Loss).
+    3. Write one fixed-width row per group in `preferred_order`.
+    4. Join the lines with newlines.
     """
     # Start the section with a title and underline.
     lines = [title, "-" * len(title)]
@@ -343,6 +471,199 @@ def format_task_table(title, summary_dict, preferred_order):
     return "\n".join(lines)
 
 
+def is_diverged(run):
+    """
+    Check whether a run's training diverged.
+
+    Parameters
+    ----------
+    run : dict
+        One experiment run. Reads the optional "diverged" flag and
+        "best_val_loss" (float).
+
+    Returns
+    -------
+    bool
+        True if the run is flagged as diverged or its best validation loss
+        is not finite (NaN or infinity).
+
+    Notes
+    -----
+    Processing:
+    1. Return True if the "diverged" flag is present and true.
+    2. Otherwise return True if best_val_loss is NaN or infinite.
+
+    Why both checks: a diverged run can still report a finite (but
+    meaningless) test metric: if the loss was finite but enormous before it
+    overflowed, early stopping restores that checkpoint, so the trainer's
+    flag is needed. Older results files have no flag, so a non-finite best
+    validation loss is used for them.
+    """
+    return bool(run.get("diverged")) or not math.isfinite(run["best_val_loss"])
+
+
+def format_dropout_table(title, problem_runs):
+    """
+    Format a table comparing each architecture with its dropout version.
+
+    Parameters
+    ----------
+    title : str
+        Section title.
+    problem_runs : list of dict
+        All runs of one problem. Each needs "architecture", "optimizer",
+        "learning_rate", "batch", "test_metric", "train_metric" and the
+        fields read by is_diverged; "seed" is optional (RANDOM_SEED if
+        missing).
+
+    Returns
+    -------
+    str
+        A formatted multi-line string: a title, a header row, two rows
+        (without / with dropout) for every pair that has matched runs, and a
+        trailing blank line.
+
+    Notes
+    -----
+    Processing:
+    1. Index the runs by (architecture, optimizer, learning rate, batch
+       size, seed).
+    2. For every (without, with) pair in DROPOUT_PAIRS, match each run of
+       the plain architecture with the dropout run that has the same
+       optimizer, learning rate, batch size and seed. A match is used only
+       if both runs exist and neither diverged.
+    3. Count the matches in which dropout gave the lower test metric.
+    4. For each architecture of the pair, report:
+       - average training metric (evaluation mode, restored best model)
+       - average test metric
+       - average generalization gap, test minus train
+       - (dropout row only) in how many matched runs dropout gave the lower
+         test metric
+    Pairs with no matched runs are skipped.
+    """
+    # Index every run by its settings so the dropout partner of a run can
+    # be found with one dictionary lookup.
+    lookup = {
+        (r["architecture"], r["optimizer"], r["learning_rate"], r["batch"], r.get("seed", RANDOM_SEED)): r
+        for r in problem_runs
+    }
+
+    lines = [title, "-" * len(title)]
+    lines.append(
+        f"{'Architecture':<16}"
+        f"{'Matched':<9}"
+        f"{'Avg Train':<13}"
+        f"{'Avg Test':<13}"
+        f"{'Avg Gap':<13}"
+        f"{'Dropout Better':<15}"
+    )
+
+    for without, with_dropout in DROPOUT_PAIRS:
+        # Collect (without-dropout run, with-dropout run) pairs that share
+        # every other setting and where neither run diverged.
+        pairs = []
+        for (arch, optimizer, lr, batch, seed), run in lookup.items():
+            if arch != without:
+                continue
+            partner = lookup.get((with_dropout, optimizer, lr, batch, seed))
+            if partner is None or is_diverged(run) or is_diverged(partner):
+                continue
+            pairs.append((run, partner))
+
+        if not pairs:
+            continue
+
+        # Number of matched runs in which dropout lowered the test metric.
+        dropout_wins = sum(p[1]["test_metric"] < p[0]["test_metric"] for p in pairs)
+
+        # One row for the plain architecture (index 0 of each pair) and one
+        # for its dropout version (index 1).
+        for index, label in [(0, without), (1, with_dropout)]:
+            runs = [p[index] for p in pairs]
+            train = mean(r["train_metric"] for r in runs)
+            test = mean(r["test_metric"] for r in runs)
+            better = f"{dropout_wins}/{len(pairs)}" if index == 1 else ""
+            lines.append(
+                f"{label:<16}"
+                f"{len(runs):<9}"
+                f"{train:<13.6f}"
+                f"{test:<13.6f}"
+                f"{test - train:<13.6f}"
+                f"{better:<15}"
+            )
+
+    lines.append("")
+    return "\n".join(lines)
+
+
+def format_collapse_check_table(title, regression_runs):
+    """
+    Format the test MSE of the collapse-prone regression runs for each
+    A2 variant.
+
+    Parameters
+    ----------
+    title : str
+        Section title.
+    regression_runs : list of dict
+        All regression runs to look in (normally of a single seed: if
+        several runs share the same architecture, optimizer and batch size,
+        only the last one is kept).
+
+    Returns
+    -------
+    str
+        A formatted multi-line string: one row per A2 variant, one column
+        per (optimizer, batch size) combination in COLLAPSE_CHECK_RUNS at
+        learning rate COLLAPSE_CHECK_LEARNING_RATE (0.1), and a trailing
+        blank line.
+
+    Notes
+    -----
+    Processing:
+    1. Index the runs at learning rate 0.1 by (architecture, optimizer,
+       batch size).
+    2. Write the title, underline and a header with one column per
+       (optimizer, batch size) pair.
+    3. For each architecture in A2_VARIANT_ORDER that has runs, write one
+       row. Each cell is the test MSE to 4 decimals, "diverged" if the run
+       diverged, or "-" if the run is missing.
+    """
+    # Index the runs so each table cell is a direct lookup.
+    lookup = {
+        (r["architecture"], r["optimizer"], r["batch"]): r
+        for r in regression_runs
+        if r["learning_rate"] == COLLAPSE_CHECK_LEARNING_RATE
+    }
+
+    lines = [title, "-" * len(title)]
+
+    # Header: one column per optimizer / batch-size pair.
+    header = f"{'Architecture':<15}"
+    for optimizer, batch in COLLAPSE_CHECK_RUNS:
+        header += f"{f'{optimizer} bs{batch}':<16}"
+    lines.append(header)
+
+    for architecture in A2_VARIANT_ORDER:
+        if not any(key[0] == architecture for key in lookup):
+            continue
+        row = f"{architecture:<15}"
+        for optimizer, batch in COLLAPSE_CHECK_RUNS:
+            run = lookup.get((architecture, optimizer, batch))
+            if run is None:
+                cell = "-"
+            elif is_diverged(run):
+                # The loss overflowed: training diverged instead of collapsing.
+                cell = "diverged"
+            else:
+                cell = f"{run['test_metric']:.4f}"
+            row += f"{cell:<16}"
+        lines.append(row)
+
+    lines.append("")
+    return "\n".join(lines)
+
+
 def format_combined_table(title, summary_dict, preferred_order):
     """
     Format a plain-text table for one combined-overall summary section.
@@ -351,15 +672,26 @@ def format_combined_table(title, summary_dict, preferred_order):
     ----------
     title : str
         Section title.
-    summary_dict : dict
-        Summary statistics by optimizer or architecture.
-    preferred_order : list[str]
-        Display order for the rows.
+    summary_dict : dict of str to dict
+        Summary statistics by optimizer or architecture, each value as
+        returned by summarize_combined_group.
+    preferred_order : list of str
+        Display order for the rows. Groups not listed here are not shown.
 
     Returns
     -------
     str
-        A formatted multi-line string representing the table.
+        A formatted multi-line string representing the table, ending with a
+        blank line.
+
+    Notes
+    -----
+    Processing:
+    1. Write the title and an underline of dashes.
+    2. Write the header row (Group, Runs, Avg Conv Epoch,
+       Avg Norm Best Val Loss).
+    3. Write one fixed-width row per group in `preferred_order`.
+    4. Join the lines with newlines.
     """
     # Start the section with a title and underline.
     lines = [title, "-" * len(title)]
@@ -391,21 +723,28 @@ def best_group(summary_dict, field_name):
     """
     Return the group name with the smallest value for a chosen summary field.
 
-    This is used because:
-    - lower convergence epoch means faster convergence
-    - lower loss means better loss quality
-
     Parameters
     ----------
-    summary_dict : dict
-        Summary statistics by group.
+    summary_dict : dict of str to dict
+        Non-empty summary statistics by group, e.g. the output of
+        summarize_combined_group for each optimizer.
     field_name : str
-        Name of the field to minimize.
+        Name of the field to minimize, e.g. "avg_convergence_epoch".
 
     Returns
     -------
     str
-        Name of the best group under that criterion.
+        Name of the best group under that criterion. On a tie, the first
+        group in the dictionary's order wins.
+
+    Notes
+    -----
+    Processing:
+    1. Compare the groups by summary_dict[group][field_name].
+    2. Return the name of the group with the smallest value.
+
+    Smallest is best because a lower convergence epoch means faster
+    convergence and a lower loss means better loss quality.
     """
     return min(summary_dict.items(), key=lambda x: x[1][field_name])[0]
 
@@ -422,7 +761,15 @@ def architecture_name_to_depth(architecture_name):
     Returns
     -------
     str
-        Human-readable description of the architecture depth.
+        Human-readable description of the architecture depth:
+        "A1 (1 hidden layer)", "A2 (3 hidden layers)", or the name
+        unchanged for any other architecture.
+
+    Notes
+    -----
+    Processing:
+    1. Return a fixed label for "A1" or "A2".
+    2. Return any other name as it is.
     """
     if architecture_name == "A1":
         return "A1 (1 hidden layer)"
@@ -435,19 +782,26 @@ def build_depth_effect_sentence(combined_architecture_summary):
     """
     Build a short verbal answer for how network depth affects optimization overall.
 
-    The answer compares:
-    - which architecture converges faster on average
-    - which architecture achieves better average normalized loss
-
     Parameters
     ----------
-    combined_architecture_summary : dict
-        Combined summary for architectures across all experiments.
+    combined_architecture_summary : dict of str to dict
+        Combined summary for architectures across all experiments, each
+        value as returned by summarize_combined_group.
 
     Returns
     -------
     str
         One sentence (or short pair of clauses) describing the depth effect.
+
+    Notes
+    -----
+    Processing:
+    1. Find the architecture with the lowest average convergence epoch.
+    2. Find the architecture with the lowest average normalized best
+       validation loss.
+    3. Turn both names into readable depth labels.
+    4. If they are the same architecture, say it wins on both; otherwise
+       describe the trade-off.
     """
     # Find the architecture with the lower average convergence epoch.
     faster_arch = best_group(combined_architecture_summary, "avg_convergence_epoch")
@@ -471,11 +825,499 @@ def build_depth_effect_sentence(combined_architecture_summary):
         f"while {better_label} achieves the better average normalized loss. ")
 
 
-def main():
+# ------------------------------------------------------------
+# Multi-seed analysis
+# ------------------------------------------------------------
+# Each seed changes the train / validation / test split, the weight
+# initialization, the dropout masks and the shuffling. Reporting the mean
+# and standard deviation across seeds shows which conclusions hold up and
+# which were down to one lucky (or unlucky) draw.
+
+def mean_pm_std(values, digits=4):
+    """
+    Format values as "mean ± std" (sample standard deviation).
+
+    Parameters
+    ----------
+    values : iterable of float
+        One value per seed (any iterable; it is turned into a list).
+    digits : int, default=4
+        Decimal places used for both the mean and the standard deviation.
+
+    Returns
+    -------
+    str
+        For example "0.3745 ± 0.0512", or "-" if there are no values.
+
+    Notes
+    -----
+    Processing:
+    1. Convert the values to a list; return "-" if it is empty.
+    2. Compute the sample standard deviation, or 0.0 when there is only one
+       value (the sample formula needs at least two).
+    3. Format the mean and standard deviation with `digits` decimals.
+    """
+    values = list(values)
+    if not values:
+        return "-"
+    spread = stdev(values) if len(values) > 1 else 0.0
+    return f"{mean(values):.{digits}f} ± {spread:.{digits}f}"
+
+
+def runs_by_seed(runs):
+    """
+    Group runs by their seed.
+
+    Parameters
+    ----------
+    runs : list of dict
+        Experiment runs. The "seed" key is optional.
+
+    Returns
+    -------
+    dict of int to list of dict
+        Maps each seed to the runs with that seed. The runs are shallow
+        copies of the input dictionaries.
+
+    Notes
+    -----
+    Processing:
+    1. Copy each run, filling in "seed" with RANDOM_SEED when it is missing
+       (older results files were produced with a single seed and no seed
+       field).
+    2. Group the copies by "seed" with group_by_key.
+    """
+    return group_by_key([{**r, "seed": r.get("seed", RANDOM_SEED)} for r in runs], "seed")
+
+
+def select_by_validation(runs):
+    """
+    Pick the run with the lowest best validation loss, ignoring diverged runs.
+
+    Parameters
+    ----------
+    runs : list of dict
+        Candidate runs. Each needs "best_val_loss" and the fields read by
+        is_diverged.
+
+    Returns
+    -------
+    dict or None
+        The selected run, or None if every run diverged (or the list is
+        empty).
+
+    Notes
+    -----
+    Processing:
+    1. Drop the diverged runs.
+    2. Return the remaining run with the smallest best_val_loss.
+
+    This is the project's model-selection rule: the test set is never used
+    to choose a model.
+    """
+    candidates = [r for r in runs if not is_diverged(r)]
+    return min(candidates, key=lambda r: r["best_val_loss"]) if candidates else None
+
+
+def error_removed(run):
+    """
+    Compute the fraction of the constant-prediction baseline's error removed.
+
+    Parameters
+    ----------
+    run : dict
+        One experiment run with "test_metric" and "baseline_test_metric"
+        (both float).
+
+    Returns
+    -------
+    float
+        1 - test_metric / baseline_test_metric. 1.0 means a perfect model,
+        0.0 means no better than the constant baseline, and a negative value
+        means worse than the baseline.
+
+    Notes
+    -----
+    Processing:
+    1. Divide the run's test metric by the baseline's test metric.
+    2. Subtract the ratio from 1.
+
+    For regression (MSE) this is R²; for classification (BCE), McFadden's
+    pseudo-R².
+    """
+    return 1.0 - run["test_metric"] / run["baseline_test_metric"]
+
+
+def fails_baseline(run):
+    """
+    Check whether a run is no better than always predicting a constant.
+
+    Parameters
+    ----------
+    run : dict
+        One experiment run with "test_metric" and "baseline_test_metric"
+        (both float).
+
+    Returns
+    -------
+    bool
+        True if the run's test metric is greater than or equal to the
+        constant-prediction baseline's test metric.
+
+    Notes
+    -----
+    Processing:
+    1. Compare test_metric with baseline_test_metric (lower is better for
+       both BCE and MSE).
+    """
+    return run["test_metric"] >= run["baseline_test_metric"]
+
+
+def format_selected_model_table(title, problem_runs, architectures, digits):
+    """
+    Format a table of the model selected for each seed.
+
+    Parameters
+    ----------
+    title : str
+        Section title.
+    problem_runs : list of dict
+        All runs of one problem, from every seed. Each needs "architecture",
+        "optimizer", "learning_rate", "batch", "best_val_loss",
+        "test_metric" and "baseline_test_metric".
+    architectures : list of str
+        Architectures the selection may choose from, e.g. ["A1", "A2"].
+    digits : int
+        Decimal places used for the test and baseline metrics.
+
+    Returns
+    -------
+    str
+        A formatted multi-line string: a title, a header, one row per seed
+        (selected run, test metric, baseline, error removed), a "Mean" row
+        with mean ± std of the test metric and of the error removed (in
+        percent), and a trailing blank line.
+
+    Notes
+    -----
+    Processing:
+    1. Group the runs by seed, in increasing seed order.
+    2. For each seed, select the run with the lowest best validation loss
+       among the given architectures, ignoring diverged runs. Seeds with no
+       usable run are skipped.
+    3. Write that run's settings, test metric, baseline and error removed.
+    4. Write the mean ± sample standard deviation across the selected runs.
+    """
+    lines = [title, "-" * len(title)]
+    lines.append(
+        f"{'Seed':<6}{'Selected run':<42}{'Test':<12}{'Baseline':<12}{'Error removed':<14}")
+
+    selected = []
+    for seed, runs in sorted(runs_by_seed(problem_runs).items()):
+        best = select_by_validation([r for r in runs if r["architecture"] in architectures])
+        if best is None:
+            continue
+        selected.append(best)
+        label = (f"{best['architecture']} · {best['optimizer']} · "
+                 f"LR {best['learning_rate']} · bs {best['batch']}")
+        lines.append(
+            f"{seed:<6}{label:<42}{best['test_metric']:<12.{digits}f}"
+            f"{best['baseline_test_metric']:<12.{digits}f}{error_removed(best):<14.2%}")
+
+    lines.append(
+        f"{'Mean':<6}{'':<42}"
+        f"{mean_pm_std([r['test_metric'] for r in selected], digits):<24}"
+        f"{mean_pm_std([100 * error_removed(r) for r in selected], 2)} %")
+    lines.append("")
+    return "\n".join(lines)
+
+
+def format_architecture_seed_table(title, problem_runs, digits):
+    """
+    Format a table summarizing each architecture across seeds.
+
+    Parameters
+    ----------
+    title : str
+        Section title.
+    problem_runs : list of dict
+        All runs of one problem, from every seed. Each needs "architecture",
+        "best_val_loss", "convergence_epoch", "test_metric" and
+        "baseline_test_metric".
+    digits : int
+        Decimal places used for the test metric.
+
+    Returns
+    -------
+    str
+        A formatted multi-line string with one row per architecture and a
+        trailing blank line.
+
+    Notes
+    -----
+    Processing, for each architecture (baseline A1 / A2 first, then the A2
+    variants, then the dropout architectures; others are not shown):
+    1. Per seed, select the best run by validation loss and report the mean
+       ± std of their test metrics across seeds.
+    2. Per seed, average the convergence epoch over runs that didn't
+       diverge, and report the mean ± std of those averages.
+    3. Count the non-diverged runs that were no better than the constant
+       baseline, and the diverged runs, each out of all its runs.
+    """
+    # Display order: baseline architectures, then A2 variants, then the
+    # dropout architectures.
+    order =ARCHITECTURE_ORDER + [a for a in A2_VARIANT_ORDER if a not in ARCHITECTURE_ORDER] + \
+        [with_dropout for _, with_dropout in DROPOUT_PAIRS]
+    by_arch = group_by_key(problem_runs, "architecture")
+
+    lines = [title, "-" * len(title)]
+    lines.append(
+        f"{'Architecture':<15}{'Best run test (mean ± std)':<30}"
+        f"{'Avg conv epoch':<22}{'No better than baseline':<25}{'Diverged':<10}")
+
+    for arch in [a for a in order if a in by_arch]:
+        runs = by_arch[arch]
+        best_per_seed = [select_by_validation(rs) for rs in runs_by_seed(runs).values()]
+        best_per_seed = [r for r in best_per_seed if r is not None]
+
+        # Average convergence epoch per seed, over runs that didn't diverge.
+        conv_per_seed = [
+            mean(r["convergence_epoch"] for r in rs if not is_diverged(r))
+            for rs in runs_by_seed(runs).values()
+            if any(not is_diverged(r) for r in rs)
+        ]
+        failed = sum(fails_baseline(r) for r in runs if not is_diverged(r))
+        diverged = sum(is_diverged(r) for r in runs)
+
+        lines.append(
+            f"{arch:<15}{mean_pm_std([r['test_metric'] for r in best_per_seed], digits):<30}"
+            f"{mean_pm_std(conv_per_seed, 1):<22}{f'{failed}/{len(runs)}':<25}{f'{diverged}/{len(runs)}':<10}")
+
+    lines.append("")
+    return "\n".join(lines)
+
+
+def format_optimizer_lr_seed_table(title, problem_runs, digits):
+    """
+    Format an optimizer x learning-rate table of test metrics across seeds.
+
+    Parameters
+    ----------
+    title : str
+        Section title.
+    problem_runs : list of dict
+        All runs of one problem, from every seed. Each needs "architecture",
+        "optimizer", "learning_rate" and "test_metric".
+    digits : int
+        Decimal places used for the test metric.
+
+    Returns
+    -------
+    str
+        A formatted multi-line string: one row per optimizer in
+        OPTIMIZER_ORDER, one column per learning rate (largest first), and a
+        trailing blank line.
+
+    Notes
+    -----
+    Processing:
+    1. Keep only non-diverged runs of the baseline architectures (A1, A2).
+    2. For each optimizer and learning rate, average the test metric of the
+       matching runs within each seed (over architectures and batch sizes).
+    3. Report the mean ± std of those per-seed averages across seeds ("-"
+       if there are no runs for that cell).
+    """
+    runs = [r for r in problem_runs if r["architecture"] in ARCHITECTURE_ORDER and not is_diverged(r)]
+    learning_rates = sorted({r["learning_rate"] for r in runs}, reverse=True)
+
+    lines = [title, "-" * len(title)]
+    lines.append(f"{'Optimizer':<12}" + "".join(f"{f'LR {lr}':<26}" for lr in learning_rates))
+
+    for optimizer in OPTIMIZER_ORDER:
+        row = f"{optimizer:<12}"
+        for lr in learning_rates:
+            cell_runs = [r for r in runs if r["optimizer"] == optimizer and r["learning_rate"] == lr]
+            per_seed = [mean(r["test_metric"] for r in rs) for rs in runs_by_seed(cell_runs).values()]
+            row += f"{mean_pm_std(per_seed, digits):<26}"
+        lines.append(row)
+
+    lines.append("")
+    return "\n".join(lines)
+
+
+def format_collapse_seed_table(title, regression_runs):
+    """
+    Format a table counting collapsed, diverged and learning runs per A2 variant.
+
+    Parameters
+    ----------
+    title : str
+        Section title.
+    regression_runs : list of dict
+        All regression runs, from every seed. Each needs "architecture",
+        "optimizer", "batch", "learning_rate", "test_metric" and
+        "baseline_test_metric".
+
+    Returns
+    -------
+    str
+        A formatted multi-line string with one row per A2 variant (columns
+        Learned, No better than mean, Diverged, each as count/total) and a
+        trailing blank line.
+
+    Notes
+    -----
+    Processing:
+    1. Keep the runs at the settings where the baseline A2 collapses: SGD
+       and momentum at LR 0.1, batch 16 and 64 (COLLAPSE_CHECK_RUNS).
+    2. Group them by architecture.
+    3. For each A2 variant, count across all seeds the runs that diverged,
+       the non-diverged runs that failed to beat the mean-prediction
+       baseline, and the rest, which learned.
+    """
+    runs = [
+        r for r in regression_runs
+        if r["learning_rate"] == COLLAPSE_CHECK_LEARNING_RATE
+        and (r["optimizer"], r["batch"]) in COLLAPSE_CHECK_RUNS
+    ]
+    by_arch = group_by_key(runs, "architecture")
+
+    lines = [title, "-" * len(title)]
+    lines.append(f"{'Architecture':<15}{'Learned':<12}{'No better than mean':<22}{'Diverged':<10}")
+    for arch in [a for a in A2_VARIANT_ORDER if a in by_arch]:
+        arch_runs = by_arch[arch]
+        diverged = sum(is_diverged(r) for r in arch_runs)
+        failed = sum(fails_baseline(r) for r in arch_runs if not is_diverged(r))
+        learned = len(arch_runs) - diverged - failed
+        total = len(arch_runs)
+        lines.append(
+            f"{arch:<15}{f'{learned}/{total}':<12}{f'{failed}/{total}':<22}{f'{diverged}/{total}':<10}")
+    lines.append("")
+    return "\n".join(lines)
+
+
+def build_multi_seed_section(results):
+    """
+    Build the "Multi-Seed Results" section of the report.
+
+    Parameters
+    ----------
+    results : list of dict
+        Runs from every seed and every architecture, with derived metrics
+        already added (see add_derived_metrics).
+
+    Returns
+    -------
+    str
+        The section as one block of text.
+
+    Notes
+    -----
+    Processing:
+    1. Write a heading and two paragraphs explaining the seeds, the
+       constant-prediction baseline and "error removed".
+    2. For each problem whose runs record a baseline, add: the selected
+       model per seed (baseline architectures, then all architectures), the
+       architecture summary across seeds, and the optimizer x learning-rate
+       table.
+    3. Add the regression collapse-check counts across seeds.
+    4. If any dropout run records a training metric, add the dropout
+       comparison for each problem over all matched runs.
+    """
+    seeds = sorted({r.get("seed", RANDOM_SEED) for r in results})
+    lines = ["Multi-Seed Results", "=================="]
+    lines.append(
+        f"Every configuration was run with {len(seeds)} seeds ({', '.join(map(str, seeds))}). "
+        "Each seed changes the train / validation / test split, the weight initialization, "
+        "the dropout masks and the shuffling. All sections above use seed "
+        f"{RANDOM_SEED} only; this section reports mean ± sample standard deviation across seeds.")
+    lines.append("")
+    lines.append(
+        "The constant-prediction baseline is the test metric of a model that ignores the "
+        "features: the training class proportion for classification, the training mean for "
+        "regression. 'Error removed' is 1 - test / baseline (R² for regression, McFadden's "
+        "pseudo-R² for classification). Models are always selected by validation loss, "
+        "never by test score, and diverged runs are excluded from selection and averages.")
+    lines.append("")
+
+    for problem_name, loss_name, digits in [("classification", "BCE", 5), ("regression", "MSE", 4)]:
+        problem_runs = filter_by_problem(results, problem_name)
+        # Older results files have no baseline, which these tables need.
+        if not problem_runs or "baseline_test_metric" not in problem_runs[0]:
+            continue
+        label = problem_name.capitalize()
+
+        lines.append(format_selected_model_table(
+            f"Selected Model per Seed — {label} ({loss_name}), baseline architectures A1 / A2",
+            problem_runs, ARCHITECTURE_ORDER, digits))
+        lines.append(format_selected_model_table(
+            f"Selected Model per Seed — {label} ({loss_name}), all architectures",
+            problem_runs, list({r["architecture"] for r in problem_runs}), digits))
+        lines.append(format_architecture_seed_table(
+            f"Architectures Across Seeds — {label} ({loss_name})", problem_runs, digits))
+        lines.append(format_optimizer_lr_seed_table(
+            f"Optimizer x Learning Rate Across Seeds — {label} ({loss_name}), A1 / A2, average test metric",
+            problem_runs, digits))
+
+    lines.append(format_collapse_seed_table(
+        "Collapse Check Across Seeds — Regression, SGD / Momentum at LR 0.1, batch 16 / 64",
+        filter_by_problem(results, "regression")))
+
+    dropout_names = {with_dropout for _, with_dropout in DROPOUT_PAIRS}
+    if any(r["architecture"] in dropout_names and "train_metric" in r for r in results):
+        for problem_name, loss_name in [("classification", "BCE"), ("regression", "MSE")]:
+            lines.append(format_dropout_table(
+                f"Dropout Across Seeds — {problem_name.capitalize()} ({loss_name}), all matched runs",
+                filter_by_problem(results, problem_name)))
+
+    return "\n".join(lines)
+
+
+def main(results_path=None):
+    """
+    Build the aggregate analysis report and write it to disk.
+
+    Parameters
+    ----------
+    results_path : str or None, default=None
+        Path to a main_results_full_<stamp>.json file. When None, the
+        newest stamped results file in report/ is used.
+
+    Returns
+    -------
+    None
+        Writes the report to OUTPUT_PATH (report/analysis_<stamp>.txt) and
+        prints the results file used and the report path.
+
+    Raises
+    ------
+    FileNotFoundError
+        If no results path is given and report/ has no stamped results file.
+
+    Notes
+    -----
+    Processing:
+    1. Load the results and add the derived metrics to every run.
+    2. Keep the runs of the first seed (RANDOM_SEED) for every section
+       except "Multi-Seed Results", and the baseline architectures (A1, A2)
+       for the main sections.
+    3. Normalize best validation loss within each problem.
+    4. Summarize the runs by optimizer and by architecture, per problem and
+       combined.
+    5. Answer the three questions: fastest optimizer, best optimizer by
+       loss, and the effect of depth.
+    6. Assemble the report text: method, per-problem tables, combined
+       tables, answers, and (when such runs exist) the A2-variant, dropout
+       and multi-seed sections.
+    7. Write the report to disk.
+    """
     # ------------------------------------------------------------
     # 1. Load experiment results from local repo.
     # ------------------------------------------------------------
-    results = load_results(RESULTS_PATH)
+    results_path = resolve_results_path(results_path)
+    print(f"Run stamp: {RUN_STAMP}")
+    print(f"Using results file: {results_path}")
+    all_results = load_results(results_path)
 
     # ------------------------------------------------------------
     # 2. Add derived metrics needed for analysis.
@@ -484,7 +1326,19 @@ def main():
     # - best_val_loss
     # - final_train_loss
     # - convergence_epoch
-    results = add_derived_metrics(results)
+    all_results = add_derived_metrics(all_results)
+
+    # Every section except "Multi-Seed Results" uses the first seed only
+    # (RANDOM_SEED, 42), so their numbers stay comparable with single-seed
+    # results files. Older files have no "seed" field: they are one seed.
+    multi_seed_results = all_results
+    all_results = [r for r in all_results if r.get("seed", RANDOM_SEED) == RANDOM_SEED]
+
+    # The main sections use the baseline architectures only (A1, A2).
+    # Normalization is min-max over the runs it is given, so it must also
+    # use only these runs, or the extra architectures would shift the
+    # baseline's normalized numbers.
+    results = [r for r in all_results if r["architecture"] in ARCHITECTURE_ORDER]
 
     # ------------------------------------------------------------
     # 3. Add normalized loss values for combined overall comparisons.
@@ -632,6 +1486,87 @@ def main():
     lines.append(f"3. How network depth affects optimization: {depth_effect_sentence}")
     lines.append("")
 
+    # Add the A2 variant section when the results contain any variants.
+    variant_runs = [r for r in all_results if r["architecture"] in A2_VARIANT_ORDER[1:]]
+    if variant_runs:
+        a2_family = [r for r in all_results if r["architecture"] in A2_VARIANT_ORDER]
+
+        lines.append("A2 Variants — Bias Terms, Weight Initialization and Batch Normalization")
+        lines.append("----------------------------------------------------------------------")
+        lines.append(
+            "Each variant changes A2 (3 hidden ReLU layers): "
+            "A2-bias adds a bias term to every layer, A2-he uses He initialization "
+            "instead of N(0, 0.1^2), A2-bias-he does both, and A2-bn adds batch "
+            "normalization between each hidden Dense layer and its ReLU. "
+            "These runs are not included in the sections above.")
+        lines.append("")
+
+        for problem_name, loss_name in [("classification", "BCE"), ("regression", "MSE")]:
+            problem_runs = filter_by_problem(a2_family, problem_name)
+
+            # Diverged runs would make every average NaN or meaningless,
+            # so they are listed separately instead.
+            finite_runs = [r for r in problem_runs if not is_diverged(r)]
+            diverged_runs = [r for r in problem_runs if is_diverged(r)]
+
+            family_summary = {
+                name: summarize_task_group(runs)
+                for name, runs in group_by_key(finite_runs, "architecture").items()
+            }
+            lines.append(
+                format_task_table(
+                    f"A2 Variant Summary — {problem_name.capitalize()} ({loss_name})",
+                    family_summary,
+                    A2_VARIANT_ORDER,))
+
+            if diverged_runs:
+                lines.append("Diverged runs (loss overflowed; excluded from the averages above):")
+                for r in diverged_runs:
+                    lines.append(
+                        f"- {r['architecture']} | {r['optimizer']} | "
+                        f"LR={r['learning_rate']} | Batch={r['batch']}")
+                lines.append("")
+
+        lines.append(
+            format_collapse_check_table(
+                "Collapse Check — Regression Test MSE at Learning Rate 0.1",
+                filter_by_problem(all_results, "regression")))
+        lines.append(
+            "In the baseline A2, these four runs collapse: the ReLU units in the deeper hidden "
+            "layers die, the network outputs a constant, and the test MSE equals that of always "
+            "predicting 0. A collapsed network with bias terms can still learn the output "
+            "layer's bias, so its constant moves to roughly the mean target and its test MSE "
+            "matches that of always predicting the mean. Either way the hidden layers are dead: "
+            "a much lower MSE than the constant-prediction baselines is what indicates a "
+            "network that actually learned.")
+        lines.append("")
+
+    # Add the dropout section when the results contain dropout runs that
+    # also record the evaluation-mode training metric.
+    dropout_names = {with_dropout for _, with_dropout in DROPOUT_PAIRS}
+    dropout_runs = [r for r in all_results if r["architecture"] in dropout_names]
+    if dropout_runs and all("train_metric" in r for r in dropout_runs):
+        lines.append("Dropout — Regularization and the Generalization Gap")
+        lines.append("---------------------------------------------------")
+        lines.append(
+            "Each architecture is compared with a copy that has dropout (rate 0.2) after every "
+            "hidden layer, on runs matched by optimizer, learning rate and batch size. Matches "
+            "where either run diverged are left out. 'Avg Train' is the training-set metric in "
+            "evaluation mode (no dropout) on the restored best model, so it is directly "
+            "comparable with 'Avg Test'. 'Avg Gap' is test minus train: a large positive gap "
+            "means overfitting, which is what dropout is meant to reduce. 'Dropout Better' "
+            "counts the matched runs where dropout gave the lower test metric.")
+        lines.append("")
+        for problem_name, loss_name in [("classification", "BCE"), ("regression", "MSE")]:
+            lines.append(
+                format_dropout_table(
+                    f"Dropout Comparison — {problem_name.capitalize()} ({loss_name})",
+                    filter_by_problem(all_results, problem_name)))
+
+    # Add the multi-seed section when the results contain more than one seed.
+    if len({r.get("seed", RANDOM_SEED) for r in multi_seed_results}) > 1:
+        lines.append(build_multi_seed_section(multi_seed_results))
+
     # Join all report lines into one final text block.
     report_text = "\n".join(lines)
 
@@ -641,9 +1576,14 @@ def main():
     with open(OUTPUT_PATH, "w", encoding="utf-8") as f:
         f.write(report_text)
 
+    print(f"Saved analysis report to: {OUTPUT_PATH}")
+
+# Running this module writes the analysis report for the newest (or the
+# given) results file and prints the total wall-clock time.
 if __name__ == "__main__":
     start_time = time.perf_counter()
-    main()
+    # Optional first argument: an explicit results JSON to analyse.
+    main(sys.argv[1] if len(sys.argv) > 1 else None)
     end_time = time.perf_counter()
 
     elapsed = end_time - start_time

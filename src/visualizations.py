@@ -1,18 +1,38 @@
+"""
+Exploratory data analysis (EDA) plots for the preprocessing step.
+
+Input: pandas DataFrames (and one scaled NumPy array) passed in by
+src.preprocessing, always taken from the training split.
+
+Output: PNG files in ``report/preprocessing_graphs/``, each with the run
+stamp in its name, optionally also shown on screen.
+"""
 import os
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 
-from src.utils import PREPROCESSING_GRAPHS_DIR
+from src.utils import PREPROCESSING_GRAPHS_DIR, stamped_filename
 
 
 class Visualizer:
     """
     Utility class for preprocessing and EDA visualizations.
 
-    All methods are static because this class does not store state.
-    It only receives data, creates plots, saves them to disk, and
+    All methods are static because this class does not store per-instance
+    state. It only receives data, creates plots, saves them to disk, and
     optionally displays them depending on SHOW_EDA.
+
+    Every saved file name gets the run stamp inserted before its
+    extension (see src.utils.stamped_filename), so plots from earlier
+    runs are never overwritten.
+
+    Attributes
+    ----------
+    SHOW_EDA : bool, default=False
+        Class-level switch. When True, every plot is also displayed with
+        ``plt.show()`` after it is saved. The preprocessing classes set it
+        from their ``show_eda`` argument.
     """
 
     SHOW_EDA = False
@@ -21,6 +41,22 @@ class Visualizer:
     def _ensure_output_dir():
         """
         Create the preprocessing-graphs output directory if it does not exist.
+
+        Parameters
+        ----------
+        None
+            Uses the module-level constant ``PREPROCESSING_GRAPHS_DIR``.
+
+        Returns
+        -------
+        None
+            Creates ``report/preprocessing_graphs/`` on disk if missing.
+
+        Notes
+        -----
+        Processing:
+        1. Call ``os.makedirs`` with ``exist_ok=True``, so an existing
+           folder is not an error.
         """
         os.makedirs(PREPROCESSING_GRAPHS_DIR, exist_ok=True)
 
@@ -32,15 +68,36 @@ class Visualizer:
 
         Parameters
         ----------
-        X_unscaled : pandas.DataFrame
-            Original feature values before scaling.
-        X_scaled_arr : numpy.ndarray
-            Scaled feature values as a NumPy array.
-        filename : str
-            Name of the output file to save.
-        label : str
+        X_unscaled : pandas.DataFrame of shape (n_samples, n_features)
+            Original feature values before scaling. Its column names are
+            used as the boxplot labels.
+        X_scaled_arr : numpy.ndarray of shape (n_samples, n_features), dtype float64
+            The same features after standard scaling.
+        filename : str, default="scaling_comparison.png"
+            Name of the output file to save (the run stamp is added).
+        label : str, default="Dataset"
             Label used in the plot titles, for example:
             "Classification" or "Regression".
+
+        Returns
+        -------
+        None
+            Saves the figure to
+            ``report/preprocessing_graphs/<filename stem>_<stamp>.png``,
+            shows it if ``Visualizer.SHOW_EDA`` is True, then closes it.
+
+        Notes
+        -----
+        Processing:
+        1. Make sure the output folder exists.
+        2. Wrap ``X_scaled_arr`` in a DataFrame with the same column names
+           as ``X_unscaled``.
+        3. Draw one boxplot per feature before scaling (left) and after
+           scaling (right), with x labels rotated 45 degrees.
+        4. Save, optionally show, and close the figure.
+
+        After standard scaling every box should be centred near 0 with a
+        similar spread, which is what the right-hand panel lets you check.
         """
         # Make sure the output folder exists before saving.
         Visualizer._ensure_output_dir()
@@ -70,7 +127,7 @@ class Visualizer:
 
         # Adjust layout and save figure.
         plt.tight_layout()
-        save_path = os.path.join(PREPROCESSING_GRAPHS_DIR, filename)
+        save_path = os.path.join(PREPROCESSING_GRAPHS_DIR, stamped_filename(filename))
         plt.savefig(save_path, bbox_inches="tight")
 
         if show:
@@ -84,10 +141,31 @@ class Visualizer:
         Create and save EDA plots for the classification dataset
         (Banknote Authentication).
 
-        Saved plots
-        -----------
-        - classification_pairplot.png
-        - classification_class_distribution.png
+        Parameters
+        ----------
+        df : pandas.DataFrame of shape (n_samples, n_features + 1)
+            Training split with the feature columns and the target column.
+        target_col : str, default="class"
+            Name of the class-label column, used for colouring the pairplot
+            and for the class counts.
+
+        Returns
+        -------
+        None
+            Saves two files to ``report/preprocessing_graphs/``:
+            ``classification_pairplot_<stamp>.png`` and
+            ``classification_class_distribution_<stamp>.png``. Each is shown
+            if ``Visualizer.SHOW_EDA`` is True and then closed.
+
+        Notes
+        -----
+        Processing:
+        1. Make sure the output folder exists.
+        2. Draw a seaborn pairplot: a scatter plot for every pair of
+           features (and a distribution on the diagonal), coloured by class.
+           It shows how well the classes separate.
+        3. Draw a count plot of the target column, which shows the class
+           balance.
         """
         # Ensure output folder exists.
         Visualizer._ensure_output_dir()
@@ -97,7 +175,7 @@ class Visualizer:
         pairplot = sns.pairplot(data=df, hue=target_col)
         pairplot.fig.suptitle("Classification: Feature Relationships by Class", y=1.02)
         pairplot.fig.savefig(
-            os.path.join(PREPROCESSING_GRAPHS_DIR, "classification_pairplot.png"),
+            os.path.join(PREPROCESSING_GRAPHS_DIR, stamped_filename("classification_pairplot.png")),
             bbox_inches="tight"
         )
 
@@ -114,7 +192,7 @@ class Visualizer:
         plt.ylabel("Count")
         plt.tight_layout()
         plt.savefig(
-            os.path.join(PREPROCESSING_GRAPHS_DIR, "classification_class_distribution.png"),
+            os.path.join(PREPROCESSING_GRAPHS_DIR, stamped_filename("classification_class_distribution.png")),
             bbox_inches="tight"
         )
 
@@ -129,10 +207,31 @@ class Visualizer:
         Create and save EDA plots for the regression dataset
         (Energy Efficiency).
 
-        Saved plots
-        -----------
-        - regression_target_distribution.png
-        - regression_correlation_heatmap.png
+        Parameters
+        ----------
+        df : pandas.DataFrame of shape (n_samples, n_columns)
+            Training split with the feature columns and the target
+            column(s).
+        target_col : str, default="Heating_Load"
+            Name of the regression target whose distribution is plotted.
+
+        Returns
+        -------
+        None
+            Saves two files to ``report/preprocessing_graphs/``:
+            ``regression_target_distribution_<stamp>.png`` and
+            ``regression_correlation_heatmap_<stamp>.png``. Each is shown if
+            ``Visualizer.SHOW_EDA`` is True and then closed.
+
+        Notes
+        -----
+        Processing:
+        1. Make sure the output folder exists.
+        2. Draw a histogram of the target column with a kernel density
+           estimate (KDE) curve on top.
+        3. Compute the Pearson correlation matrix of all numeric columns
+           (including both targets if present) and draw it as an annotated
+           heatmap with two decimals.
         """
         # Ensure output folder exists.
         Visualizer._ensure_output_dir()
@@ -146,7 +245,7 @@ class Visualizer:
         plt.ylabel("Frequency")
         plt.tight_layout()
         plt.savefig(
-            os.path.join(PREPROCESSING_GRAPHS_DIR, "regression_target_distribution.png"),
+            os.path.join(PREPROCESSING_GRAPHS_DIR, stamped_filename("regression_target_distribution.png")),
             bbox_inches="tight"
         )
 
@@ -161,7 +260,7 @@ class Visualizer:
         plt.title("Regression: Feature Correlation Heatmap")
         plt.tight_layout()
         plt.savefig(
-            os.path.join(PREPROCESSING_GRAPHS_DIR, "regression_correlation_heatmap.png"),
+            os.path.join(PREPROCESSING_GRAPHS_DIR, stamped_filename("regression_correlation_heatmap.png")),
             bbox_inches="tight"
         )
 

@@ -1,0 +1,13 @@
+#!/bin/sh
+# Commit only the newest stamped outputs in report/.
+# Enable once per clone with:  git config core.hooksPath .githooks
+
+if [ -x .venv/Scripts/python.exe ]; then
+    PYTHON=.venv/Scripts/python.exe
+elif [ -x .venv/bin/python ]; then
+    PYTHON=.venv/bin/python
+else
+    PYTHON=python
+fi
+
+exec "$PYTHON" tools/stage_latest_outputs.py

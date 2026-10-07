@@ -1,3 +1,12 @@
+"""
+Loss functions used for training: MSE for regression, BCE for classification.
+
+Each loss class has forward(y_true, y_pred), which returns the scalar loss
+averaged over the batch, and backward(y_true, y_pred), which returns
+dL/dy_pred, the gradient that starts backpropagation. get_loss() builds a
+loss object from a config string.
+"""
+
 import numpy as np
 
 
@@ -5,6 +14,8 @@ class MSELoss:
     """
     Mean Squared Error loss for regression.
 
+    Notes
+    -----
     Formula:
         MSE = (1 / n) * sum((y_true - y_pred)^2)
 
@@ -12,8 +23,11 @@ class MSELoss:
     Larger errors are penalized more strongly because the difference is squared.
 
     This class provides:
+
     - forward pass: compute scalar loss
     - backward pass: compute dL/dy_pred
+
+    The class has no state, so one object can be reused for any batch.
     """
 
     def forward(self, y_true, y_pred):
@@ -22,18 +36,24 @@ class MSELoss:
 
         Parameters
         ----------
-        y_true : numpy.ndarray
-            True target values, shape (batch_size, 1) or similar.
-        y_pred : numpy.ndarray
+        y_true : numpy.ndarray of shape (batch_size, 1), dtype float64
+            True target values.
+        y_pred : numpy.ndarray of shape (batch_size, 1), dtype float64
             Predicted values, same shape as y_true.
 
         Returns
         -------
-        float
-            Mean squared error over the batch.
+        numpy.float64
+            Mean squared error over all elements of the batch.
 
-        Explanation
-        -----------
+        Notes
+        -----
+        Processing:
+
+        1. Compute the element-wise error y_true - y_pred.
+        2. Square it.
+        3. Average over all elements with np.mean.
+
         For each sample:
             error = y_true - y_pred
 
@@ -48,26 +68,34 @@ class MSELoss:
         """
         Compute the gradient of MSE with respect to predictions.
 
+        Parameters
+        ----------
+        y_true : numpy.ndarray of shape (batch_size, 1), dtype float64
+            True target values.
+        y_pred : numpy.ndarray of shape (batch_size, 1), dtype float64
+            Predicted values, same shape as y_true.
+
+        Returns
+        -------
+        numpy.ndarray of shape (batch_size, 1), dtype float64
+            Gradient dL/dy_pred.
+
+        Notes
+        -----
+        Processing:
+
+        1. Take n = y_true.shape[0], the number of samples (rows).
+        2. Return (2 / n) * (y_pred - y_true).
+
         For:
             L = (1/n) * sum((y_true - y_pred)^2)
 
         The derivative is:
             dL/dy_pred = (2/n) * (y_pred - y_true)
 
-        Parameters
-        ----------
-        y_true : numpy.ndarray
-            True target values.
-        y_pred : numpy.ndarray
-            Predicted values.
+        n is the number of rows, so this matches forward() exactly when
+        there is one output column, as in this project.
 
-        Returns
-        -------
-        numpy.ndarray
-            Gradient with respect to y_pred.
-
-        Explanation
-        -----------
         This tells us how the loss changes if the prediction changes.
 
         If y_pred is too large:
@@ -89,19 +117,25 @@ class BCELoss:
     """
     Binary Cross-Entropy loss for binary classification.
 
+    Notes
+    -----
     Formula:
         BCE = -(1 / n) * sum(
             y_true * log(y_pred) + (1 - y_true) * log(1 - y_pred)
         )
 
     Assumes:
+
     - y_true contains binary labels in {0, 1}
     - y_pred contains probabilities in (0, 1),
       typically the output of a sigmoid activation
 
     This class provides:
+
     - forward pass: compute scalar loss
     - backward pass: compute dL/dy_pred
+
+    The class has no state, so one object can be reused for any batch.
     """
 
     def forward(self, y_true, y_pred):
@@ -110,18 +144,25 @@ class BCELoss:
 
         Parameters
         ----------
-        y_true : numpy.ndarray
-            True binary labels, shape (batch_size, 1) or similar.
-        y_pred : numpy.ndarray
+        y_true : numpy.ndarray of shape (batch_size, 1), dtype float64
+            True binary labels, 0 or 1.
+        y_pred : numpy.ndarray of shape (batch_size, 1), dtype float64
             Predicted probabilities, same shape as y_true.
 
         Returns
         -------
-        float
-            Binary cross-entropy loss over the batch.
+        numpy.float64
+            Binary cross-entropy averaged over all elements of the batch.
 
-        Explanation
-        -----------
+        Notes
+        -----
+        Processing:
+
+        1. Clip y_pred to [1e-12, 1 - 1e-12] so log() never sees 0.
+        2. Compute y_true * log(p) + (1 - y_true) * log(1 - p) for each
+           element.
+        3. Average with np.mean and negate.
+
         BCE compares:
         - the true class label
         - the predicted probability for that class
@@ -151,6 +192,27 @@ class BCELoss:
         """
         Compute the gradient of BCE with respect to predictions.
 
+        Parameters
+        ----------
+        y_true : numpy.ndarray of shape (batch_size, 1), dtype float64
+            True binary labels, 0 or 1.
+        y_pred : numpy.ndarray of shape (batch_size, 1), dtype float64
+            Predicted probabilities, same shape as y_true.
+
+        Returns
+        -------
+        numpy.ndarray of shape (batch_size, 1), dtype float64
+            Gradient dL/dy_pred.
+
+        Notes
+        -----
+        Processing:
+
+        1. Clip y_pred to [1e-12, 1 - 1e-12] so the divisions below never
+           divide by zero.
+        2. Take n = y_true.shape[0], the number of samples (rows).
+        3. Return -(y_true / p - (1 - y_true) / (1 - p)) / n.
+
         For:
             L = -(1/n) * sum(
                 y_true * log(y_pred) + (1 - y_true) * log(1 - y_pred)
@@ -159,26 +221,11 @@ class BCELoss:
         The derivative is:
             dL/dy_pred = -(1/n) * [y_true / y_pred - (1 - y_true) / (1 - y_pred)]
 
-        Parameters
-        ----------
-        y_true : numpy.ndarray
-            True binary labels.
-        y_pred : numpy.ndarray
-            Predicted probabilities.
-
-        Returns
-        -------
-        numpy.ndarray
-            Gradient with respect to y_pred.
-
-        Explanation
-        -----------
         This gradient tells us how changing the predicted probability
         affects the BCE loss.
 
-        Important:
-        BCE expects probabilities, so y_pred should normally come
-        from a sigmoid output layer.
+        BCE expects probabilities, so y_pred should normally come from a
+        sigmoid output layer.
         """
         # Small constant for numerical stability.
         # Prevents division by zero when y_pred is exactly 0 or 1.
@@ -206,30 +253,30 @@ def get_loss(name):
     Parameters
     ----------
     name : str
-        Name of the loss function.
+        Name of the loss function, case-insensitive. Supported names:
+
+        - MSELoss: "mse", "mean_squared_error", "mean_squarederror",
+          "meansquared_error"
+        - BCELoss: "bce", "binary_crossentropy", "binary_cross_entropy"
 
     Returns
     -------
-    object
-        Instance of the requested loss class.
-
-    Supported names
-    ---------------
-    - "mse"
-    - "mean_squared_error"
-    - "mean_squarederror"
-    - "meansquared_error"
-    - "bce"
-    - "binary_crossentropy"
-    - "binary_cross_entropy"
+    MSELoss or BCELoss
+        A new instance of the requested loss class.
 
     Raises
     ------
     ValueError
         If the loss name is not supported.
 
-    Explanation
-    -----------
+    Notes
+    -----
+    Processing:
+
+    1. Convert name to lowercase.
+    2. Return MSELoss() or BCELoss() if the name is in the matching list.
+    3. Raise ValueError otherwise.
+
     This helper lets the rest of the project choose a loss function
     using a string from a config file instead of manually creating
     the object every time.

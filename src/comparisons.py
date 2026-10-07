@@ -1,17 +1,33 @@
+"""
+Comparison plots and short written analyses built from the experiment results.
+
+Input: a full results JSON written by main.py
+(``report/main_results_full_<stamp>.json``): a list with one dictionary per
+training run, holding its settings (problem, architecture, optimizer,
+learning rate, batch size, seed) and its loss histories and test metric.
+
+Output, in ``report/comparisons/`` (each file name gets the run stamp):
+- loss-curve figures that compare runs differing in exactly one setting
+  (optimizer, network depth, learning rate, A2 variant, dropout);
+- two text files (depth and learning-rate analyses) that say which run
+  converged faster and which reached the lower final losses.
+
+Run it with ``python -m src.comparisons [results.json]``.
+"""
 import json
+import math
 import os
+import sys
 import time
 
 # Standard Matplotlib plotting interface.
 import matplotlib.pyplot as plt
 
 # ROOT_DIR points to the root folder of the project/repository.
-# We use it to build paths to the results file and the output folder.
-from src.utils import ROOT_DIR
-
-# Path to the full results JSON produced by the main experiment runner.
-# This file contains all train/validation loss histories needed for plotting.
-RESULTS_PATH = os.path.join(ROOT_DIR, "report", "main_results_full.json")
+# We use it to build paths to the output folder.
+# RUN_STAMP / stamped_filename give every output file a unique name, and
+# resolve_results_path finds the results JSON produced by the main runner.
+from src.utils import RANDOM_SEED, ROOT_DIR, RUN_STAMP, stamped_filename, resolve_results_path
 
 # Folder where all comparison plots and text analyses will be saved.
 PLOTS_DIR = os.path.join(ROOT_DIR, "report", "comparisons")
@@ -31,7 +47,16 @@ def load_results(path):
     Returns
     -------
     list of dict
-        One dictionary per experiment run.
+        One dictionary per experiment run, with keys such as
+        "problem_name", "architecture", "optimizer", "learning_rate",
+        "batch", "seed", "train_loss_history", "val_loss_history" and
+        "test_metric".
+
+    Notes
+    -----
+    Processing:
+    1. Open the file in text mode.
+    2. Parse it with ``json.load`` and return the resulting list.
     """
     # Open the JSON file in read mode.
     with open(path, "r") as f:
@@ -43,11 +68,33 @@ def _build_epoch_ticks(runs):
     """
     Build x-axis tick marks for one comparison figure.
 
-    ----------------------
-    Different runs may end at different epochs because of early stopping.
-    We want:
-    - readable tick spacing
-    - explicit inclusion of each run's final epoch
+    Parameters
+    ----------
+    runs : list of dict
+        The experiment records shown in the figure. Only each record's
+        "train_loss_history" (list of float) is used, for its length.
+
+    Returns
+    -------
+    ticks : list of int
+        Sorted, de-duplicated epoch numbers at which to place ticks.
+    max_epoch : int
+        The largest number of epochs any run in ``runs`` trained for.
+
+    Notes
+    -----
+    Processing:
+    1. Take each run's final epoch as the length of its training-loss
+       history, and the largest of these as ``max_epoch``.
+    2. Choose a tick step from ``max_epoch``: 1 up to 20 epochs, 5 up to
+       50 epochs, otherwise 10.
+    3. Make regular ticks 1, 1 + step, ... up to ``max_epoch``, and add
+       ``max_epoch`` itself if it was not hit.
+    4. Add every run's final epoch and sort the unique values.
+
+    Why: different runs may end at different epochs because of early
+    stopping. We want readable tick spacing and an explicit tick at each
+    run's final epoch.
     """
     # Compute the final epoch of each run from the length of its train-loss history.
     end_epochs = [len(run["train_loss_history"]) for run in runs]
@@ -83,20 +130,44 @@ def _compute_convergence_metrics(run, relative_tolerance=0.01, absolute_floor=1e
     """
     Compute simple convergence metrics for one run.
 
-    ---------------------
-    Convergence rule used
-    ---------------------
+    Parameters
+    ----------
+    run : dict
+        One experiment record. Uses "train_loss_history" and
+        "val_loss_history" (each a list of float, one value per epoch).
+    relative_tolerance : float, default=0.01
+        Tolerance as a fraction of the final training loss (0.01 = 1%).
+    absolute_floor : float, default=1e-4
+        Smallest tolerance allowed, whatever the final loss is.
+
+    Returns
+    -------
+    dict
+        With keys:
+        - "epochs_ran" (int): number of epochs actually trained;
+        - "final_train_loss" (float): last training-loss value;
+        - "final_val_loss" (float): last validation-loss value;
+        - "tolerance" (float): the tolerance used for the test below;
+        - "convergence_epoch" (int): 1-based epoch from which the
+          training loss stays within the tolerance of its final value.
+
+    Notes
+    -----
+    Processing (the convergence rule):
     1. Take the final training loss:
        final_train_loss = last value in train_loss_history
-
     2. Define a tolerance around that final value:
        tolerance = max(absolute_floor, relative_tolerance * abs(final_train_loss))
-       absolute_floor is the minimum allowed tolerance, used so the convergence
-       rule does not become unrealistically strict when the final training loss
-       is very small.
+       absolute_floor is the minimum allowed tolerance, used so the
+       convergence rule does not become unrealistically strict when the
+       final training loss is very small.
+    3. Scan the epochs from the start and return the first epoch after
+       which ALL remaining training-loss values stay within that tolerance
+       of the final training loss. If no epoch qualifies (for example
+       when the final loss is NaN), the last epoch is used.
 
-    3. Find the first epoch after which ALL remaining training-loss values
-       stay within that tolerance of the final training loss.
+    The rule uses training loss only; validation loss is reported but not
+    used to decide convergence.
     """
 
     # Extract the training-loss history for this run.
@@ -152,6 +223,25 @@ def _compute_convergence_metrics(run, relative_tolerance=0.01, absolute_floor=1e
 def _format_metrics_text(run):
     """
     Format a small block of convergence-related metrics for display inside a plot.
+
+    Parameters
+    ----------
+    run : dict
+        One experiment record with "train_loss_history" and
+        "val_loss_history" (lists of float).
+
+    Returns
+    -------
+    str
+        Four lines: final train loss and final validation loss (6
+        decimals), epochs ran, and convergence epoch.
+
+    Notes
+    -----
+    Processing:
+    1. Compute the metrics with ``_compute_convergence_metrics`` (default
+       tolerances).
+    2. Format them into a multi-line string with aligned labels.
     """
     # Compute convergence metrics for this run.
     metrics = _compute_convergence_metrics(run)
@@ -174,13 +264,31 @@ def _plot_loss_curves(ax, run, subplot_title, include_metrics_box=False):
     ax : matplotlib.axes.Axes
         Subplot axis to draw on.
     run : dict
-        One experiment record from the JSON results.
+        One experiment record from the JSON results. Uses
+        "train_loss_history" and "val_loss_history" (lists of float).
     subplot_title : str
-        Title shown above the subplot.
+        Title shown above the subplot (" | End Epoch = N" is appended).
     include_metrics_box : bool, default=False
         Whether to show a small textbox with convergence metrics.
-        We enable this for the depth and learning-rate comparisons, where the
-        written analysis discusses convergence.
+        All comparison figures in this module enable it.
+
+    Returns
+    -------
+    None
+        Draws on ``ax`` in place.
+
+    Notes
+    -----
+    Processing:
+    1. Use epochs 1..N as the x values, where N is the length of the
+       training-loss history.
+    2. Plot training loss as a solid line and validation loss as a dashed
+       line.
+    3. Draw a dotted vertical line at the final epoch, so early stopping is
+       visible.
+    4. Set the title and y label, add a light grid and the legend.
+    5. If requested, put the convergence-metrics box in the upper-right
+       corner (axes coordinates 0.98, 0.98).
     """
 
     # Build the epoch numbers for the x-axis: 1, 2, 3, ..., final epoch.
@@ -218,7 +326,7 @@ def _plot_loss_curves(ax, run, subplot_title, include_metrics_box=False):
     ax.legend()
 
     # If requested, place a small metrics summary box inside this subplot.
-    # This is especially useful for the depth and learning-rate comparisons.
+    # Every comparison figure in this module turns it on.
     if include_metrics_box:
         # Build the metrics text.
         metrics_text = _format_metrics_text(run)
@@ -239,6 +347,27 @@ def _plot_loss_curves(ax, run, subplot_title, include_metrics_box=False):
 def _apply_epoch_ticks(axes, runs):
     """
     Apply consistent x-axis limits and ticks across all subplots in one figure.
+
+    Parameters
+    ----------
+    axes : numpy.ndarray of matplotlib.axes.Axes, shape (n_subplots,)
+        The subplots of the figure (as returned by ``plt.subplots(n, 1)``).
+    runs : list of dict
+        The experiment records plotted in the figure, used to choose the
+        ticks.
+
+    Returns
+    -------
+    None
+        Modifies the x limits, ticks and tick-label rotation of every
+        subplot in place.
+
+    Notes
+    -----
+    Processing:
+    1. Build the ticks and the largest epoch with ``_build_epoch_ticks``.
+    2. On every subplot, set the x range to [1, max_epoch], place the
+       ticks, and rotate the tick labels by 45 degrees.
     """
     # Build the tick marks and determine the largest epoch shown in this figure.
     ticks, max_epoch = _build_epoch_ticks(runs)
@@ -258,9 +387,34 @@ def _apply_epoch_ticks(axes, runs):
 def _save_and_show(fig, filename):
     """
     Save a figure to disk, print the location, then show it interactively.
+
+    Parameters
+    ----------
+    fig : matplotlib.figure.Figure
+        The finished figure.
+    filename : str
+        Bare file name such as "depth_classification_sgd_lr01_bs16.png";
+        the run stamp is inserted before the extension.
+
+    Returns
+    -------
+    None
+        Writes the PNG to ``report/comparisons/`` at 300 dpi, prints its
+        path, shows the figure in a blocking window, then closes it.
+
+    Notes
+    -----
+    Processing:
+    1. Build the output path with ``stamped_filename``.
+    2. Save the figure with ``dpi=300`` and ``bbox_inches="tight"``.
+    3. Print the path.
+    4. Call ``plt.show(block=True)``, which waits until the window is
+       closed (with a non-interactive backend it returns immediately).
+    5. Close the figure to free memory.
     """
-    # Build the full output path for the figure file.
-    output_path = os.path.join(PLOTS_DIR, filename)
+    # Build the full output path for the figure file, with the run stamp
+    # inserted before the extension so earlier runs are never overwritten.
+    output_path = os.path.join(PLOTS_DIR, stamped_filename(filename))
 
     # Save the figure with high resolution and tight layout.
     fig.savefig(output_path, dpi=300, bbox_inches="tight")
@@ -278,9 +432,31 @@ def _save_and_show(fig, filename):
 def _write_text_file(filename, content):
     """
     Save a short text analysis file to the plots folder.
+
+    Parameters
+    ----------
+    filename : str
+        Bare file name such as "depth_analysis.txt"; the run stamp is
+        inserted before the extension.
+    content : str
+        The text to write.
+
+    Returns
+    -------
+    None
+        Writes the file to ``report/comparisons/`` (UTF-8) and prints its
+        path.
+
+    Notes
+    -----
+    Processing:
+    1. Build the output path with ``stamped_filename``.
+    2. Write ``content`` to it with UTF-8 encoding.
+    3. Print the path.
     """
-    # Build the full output path for the text file.
-    output_path = os.path.join(PLOTS_DIR, filename)
+    # Build the full output path for the text file, with the run stamp
+    # inserted before the extension so earlier runs are never overwritten.
+    output_path = os.path.join(PLOTS_DIR, stamped_filename(filename))
 
     # Open the file for writing using UTF-8 encoding.
     with open(output_path, "w", encoding="utf-8") as f:
@@ -294,6 +470,23 @@ def _write_text_file(filename, content):
 def _depth_label(architecture_name):
     """
     Convert architecture code names into human-readable depth labels.
+
+    Parameters
+    ----------
+    architecture_name : str
+        Architecture code from the results, e.g. "A1" or "A2".
+
+    Returns
+    -------
+    str
+        "A1 (1 hidden layer)" for "A1", "A2 (3 hidden layers)" for "A2",
+        and the input unchanged for any other name.
+
+    Notes
+    -----
+    Processing:
+    1. Compare the name with "A1" and "A2" and return the matching label.
+    2. Fall back to the original name.
     """
     # Map architecture A1 to a more descriptive label.
     if architecture_name == "A1":
@@ -309,9 +502,39 @@ def _depth_label(architecture_name):
 
 def _build_depth_analysis_text(selected_runs, problem_name, optimizer, learning_rate, batch_size):
     """
-    We expect exactly two runs:
-    - A1
-    - A2
+    Write the text of the network-depth analysis (A1 vs A2).
+
+    Parameters
+    ----------
+    selected_runs : list of dict
+        Exactly two experiment records, A1 first and A2 second (as returned
+        by ``filter_depth_runs``).
+    problem_name : str
+        "classification" or "regression".
+    optimizer : str
+        Optimizer name shared by both runs, e.g. "sgd".
+    learning_rate : float
+        Learning rate shared by both runs.
+    batch_size : int
+        Batch size shared by both runs.
+
+    Returns
+    -------
+    str
+        A multi-line report: the fixed settings, a one-line definition of
+        convergence epoch, the measured values for each architecture, and
+        three interpretation sentences.
+
+    Notes
+    -----
+    Processing:
+    1. Unpack the two runs and compute each one's convergence metrics.
+    2. Turn the architecture codes into readable labels
+       (``_depth_label``).
+    3. Compare the two runs on convergence epoch, final training loss and
+       final validation loss, and write one sentence for each comparison
+       (naming the better architecture, or saying they are equal).
+    4. Assemble the full text block.
 
     The text explains:
     - which architecture converged faster
@@ -409,9 +632,38 @@ def _build_depth_analysis_text(selected_runs, problem_name, optimizer, learning_
 
 def _build_learning_rate_analysis_text(selected_runs, problem_name, architecture, optimizer, batch_size):
     """
-    We expect exactly two runs:
-    - learning rate 0.1
-    - learning rate 0.001
+    Write the text of the learning-rate sensitivity analysis (0.1 vs 0.001).
+
+    Parameters
+    ----------
+    selected_runs : list of dict
+        Exactly two experiment records, learning rate 0.1 first and 0.001
+        second (as returned by ``filter_learning_rate_runs``).
+    problem_name : str
+        "classification" or "regression".
+    architecture : str
+        Architecture shared by both runs, e.g. "A1".
+    optimizer : str
+        Optimizer name shared by both runs, e.g. "sgd".
+    batch_size : int
+        Batch size shared by both runs.
+
+    Returns
+    -------
+    str
+        A multi-line report: the fixed settings, the convergence rule, the
+        measured values for each learning rate, and three interpretation
+        sentences.
+
+    Notes
+    -----
+    Processing:
+    1. Unpack the two runs and compute each one's convergence metrics.
+    2. Build labels such as "LR = 0.1" from each run's learning rate.
+    3. Compare the two runs on convergence epoch, final training loss and
+       final validation loss, and write one sentence for each comparison
+       (naming the better learning rate, or saying they are equal).
+    4. Assemble the full text block.
     """
     # Unpack the two matched learning-rate runs.
     run_lr_high, run_lr_low = selected_runs
@@ -515,16 +767,40 @@ def filter_optimizer_runs(results, problem_name, architecture, learning_rate, ba
     """
     Select the three optimizer runs for one matched experiment.
 
-    What stays fixed
-    ----------------
-    - problem_name
-    - architecture
-    - learning_rate
-    - batch_size
+    Parameters
+    ----------
+    results : list of dict
+        All experiment records (already reduced to one seed by ``main``).
+    problem_name : str
+        "classification" or "regression".
+    architecture : str
+        Architecture code, e.g. "A1" or "A2".
+    learning_rate : float
+        Learning rate to match exactly, e.g. 0.1.
+    batch_size : int
+        Batch size to match (the record's "batch" key).
 
-    What changes
-    ------------
-    - optimizer only
+    Returns
+    -------
+    list of dict
+        The matching records, sorted SGD, Momentum, AdaBelief. Normally
+        three; the caller checks the count.
+
+    Raises
+    ------
+    KeyError
+        If a matching record has an optimizer other than "sgd",
+        "momentum" or "adabelief" (it has no sort position).
+
+    Notes
+    -----
+    Processing:
+    1. Keep the records whose problem, architecture, learning rate and
+       batch size all match.
+    2. Sort them into the fixed optimizer order for plotting.
+
+    What stays fixed: problem_name, architecture, learning_rate,
+    batch_size. What changes: the optimizer only.
     """
     # Keep only runs that match the fixed parameters for this comparison.
     filtered = [
@@ -547,6 +823,42 @@ def plot_optimizer_comparison(results, problem_name, architecture, learning_rate
     """
     Create one figure comparing SGD, Momentum, and AdaBelief
     under one matched parameter setting.
+
+    Parameters
+    ----------
+    results : list of dict
+        All experiment records.
+    problem_name : str
+        "classification" or "regression".
+    architecture : str
+        Architecture code, e.g. "A1" or "A2".
+    learning_rate : float
+        Learning rate shared by the three runs.
+    batch_size : int
+        Batch size shared by the three runs.
+    filename : str
+        Bare PNG file name; the run stamp is added when saving.
+
+    Returns
+    -------
+    None
+        Saves the figure to ``report/comparisons/`` and shows it.
+
+    Raises
+    ------
+    ValueError
+        If the filter does not find exactly three runs.
+
+    Notes
+    -----
+    Processing:
+    1. Select the matching runs with ``filter_optimizer_runs`` and check
+       there are three.
+    2. Create three stacked subplots sharing the x-axis, one per
+       optimizer, each with train/validation loss curves and the
+       convergence-metrics box.
+    3. Apply shared epoch ticks, label the x-axis, add an overall title.
+    4. Save and show the figure.
     """
     # Select the three runs for this optimizer comparison.
     selected_runs = filter_optimizer_runs(
@@ -605,16 +917,35 @@ def filter_depth_runs(results, problem_name, optimizer, learning_rate, batch_siz
     """
     Select the two runs needed for the depth experiment.
 
-    What stays fixed
-    ----------------
-    - problem_name
-    - optimizer
-    - learning_rate
-    - batch_size
+    Parameters
+    ----------
+    results : list of dict
+        All experiment records (already reduced to one seed by ``main``).
+    problem_name : str
+        "classification" or "regression".
+    optimizer : str
+        Optimizer name, e.g. "sgd".
+    learning_rate : float
+        Learning rate to match exactly.
+    batch_size : int
+        Batch size to match (the record's "batch" key).
 
-    What changes
-    ------------
-    - architecture only (A1 vs A2)
+    Returns
+    -------
+    list of dict
+        The matching A1 and A2 records, A1 first. Normally two; the caller
+        checks the count.
+
+    Notes
+    -----
+    Processing:
+    1. Keep the records whose problem, optimizer, learning rate and batch
+       size match and whose architecture is "A1" or "A2" (variants such
+       as "A2-bias" are excluded).
+    2. Sort A1 before A2.
+
+    What stays fixed: problem_name, optimizer, learning_rate, batch_size.
+    What changes: the architecture only (A1 vs A2).
     """
     # Keep only runs that match the fixed settings for the depth comparison.
     filtered = [
@@ -636,17 +967,48 @@ def filter_depth_runs(results, problem_name, optimizer, learning_rate, batch_siz
 
 def plot_depth_comparison(results, problem_name, optimizer, learning_rate, batch_size, filename, analysis_filename):
     """
-    Output
-    ------
-    1. A figure comparing A1 and A2 with:
-       - training loss
-       - validation loss
-       - convergence metrics box
+    Plot A1 vs A2 loss curves and write a short depth-analysis text file.
 
-    2. A small text file summarizing:
-       - which architecture converged faster
-       - which achieved lower final training loss
-       - which achieved lower final validation loss
+    Parameters
+    ----------
+    results : list of dict
+        All experiment records.
+    problem_name : str
+        "classification" or "regression".
+    optimizer : str
+        Optimizer shared by both runs, e.g. "sgd".
+    learning_rate : float
+        Learning rate shared by both runs.
+    batch_size : int
+        Batch size shared by both runs.
+    filename : str
+        Bare PNG file name for the figure; the run stamp is added.
+    analysis_filename : str
+        Bare .txt file name for the analysis; the run stamp is added.
+
+    Returns
+    -------
+    None
+        Saves and shows the figure, and writes the text file, both in
+        ``report/comparisons/``.
+
+    Raises
+    ------
+    ValueError
+        If the filter does not find exactly two runs.
+
+    Notes
+    -----
+    Processing:
+    1. Select the A1 and A2 runs with ``filter_depth_runs`` and check
+       there are two.
+    2. Create two stacked subplots, one per architecture, each with
+       training loss, validation loss and the convergence-metrics box.
+    3. Apply shared epoch ticks, label the x-axis, add an overall title,
+       then save and show the figure.
+    4. Build the analysis text with ``_build_depth_analysis_text`` and
+       save it. The text says which architecture converged faster and
+       which achieved the lower final training and validation losses.
     """
     # Select the two runs for the depth comparison.
     selected_runs = filter_depth_runs(
@@ -718,16 +1080,34 @@ def filter_learning_rate_runs(results, problem_name, architecture, optimizer, ba
     """
     Select the two runs needed for the learning-rate sensitivity experiment.
 
-    What stays fixed
-    ----------------
-    - problem_name
-    - architecture
-    - optimizer
-    - batch_size
+    Parameters
+    ----------
+    results : list of dict
+        All experiment records (already reduced to one seed by ``main``).
+    problem_name : str
+        "classification" or "regression".
+    architecture : str
+        Architecture code, e.g. "A1".
+    optimizer : str
+        Optimizer name, e.g. "sgd".
+    batch_size : int
+        Batch size to match (the record's "batch" key).
 
-    What changes
-    ------------
-    - learning_rate only (0.1 vs 0.001)
+    Returns
+    -------
+    list of dict
+        The matching records with learning rate 0.1 and 0.001, 0.1 first.
+        Normally two; the caller checks the count.
+
+    Notes
+    -----
+    Processing:
+    1. Keep the records whose problem, architecture, optimizer and batch
+       size match and whose learning rate is 0.1 or 0.001.
+    2. Sort 0.1 before 0.001.
+
+    What stays fixed: problem_name, architecture, optimizer, batch_size.
+    What changes: the learning rate only (0.1 vs 0.001).
     """
     # Keep only runs that match the fixed settings for the learning-rate comparison.
     filtered = [
@@ -751,17 +1131,46 @@ def plot_learning_rate_comparison(results, problem_name, architecture, optimizer
     """
     Create the learning-rate comparison figure and write a short analysis text file.
 
-    Output
-    ------
-    1. A figure comparing learning rates 0.1 and 0.001 with:
-       - training loss
-       - validation loss
-       - convergence metrics box
+    Parameters
+    ----------
+    results : list of dict
+        All experiment records.
+    problem_name : str
+        "classification" or "regression".
+    architecture : str
+        Architecture shared by both runs, e.g. "A1".
+    optimizer : str
+        Optimizer shared by both runs, e.g. "sgd".
+    batch_size : int
+        Batch size shared by both runs.
+    filename : str
+        Bare PNG file name for the figure; the run stamp is added.
+    analysis_filename : str
+        Bare .txt file name for the analysis; the run stamp is added.
 
-    2. A small text file summarizing:
-       - which learning rate converged faster
-       - which achieved lower final training loss
-       - which achieved lower final validation loss
+    Returns
+    -------
+    None
+        Saves and shows the figure, and writes the text file, both in
+        ``report/comparisons/``.
+
+    Raises
+    ------
+    ValueError
+        If the filter does not find exactly two runs.
+
+    Notes
+    -----
+    Processing:
+    1. Select the LR 0.1 and LR 0.001 runs with
+       ``filter_learning_rate_runs`` and check there are two.
+    2. Create two stacked subplots, one per learning rate, each with
+       training loss, validation loss and the convergence-metrics box.
+    3. Apply shared epoch ticks, label the x-axis, add an overall title,
+       then save and show the figure.
+    4. Build the analysis text with ``_build_learning_rate_analysis_text``
+       and save it. The text says which learning rate converged faster and
+       which achieved the lower final training and validation losses.
     """
     # Select the two runs for the learning-rate comparison.
     selected_runs = filter_learning_rate_runs(
@@ -827,30 +1236,243 @@ def plot_learning_rate_comparison(results, problem_name, architecture, optimizer
     _write_text_file(analysis_filename, analysis_text)
 
 
-def main():
+# --------------------------------------------------
+# 4. Architecture variant comparison (A2 variants, dropout)
+# --------------------------------------------------
+# A2 and its variants, each changing one thing: a bias term, He
+# initialization, both, or batch normalization on the hidden layers.
+A2_VARIANT_ORDER = ["A2", "A2-bias", "A2-he", "A2-bias-he", "A2-bn"]
+
+
+def filter_variant_runs(results, problem_name, optimizer, learning_rate, batch_size,
+                        architectures=A2_VARIANT_ORDER):
+    """
+    Select one run per architecture for one matched experiment.
+
+    Parameters
+    ----------
+    results : list of dict
+        All experiment records (already reduced to one seed by ``main``).
+    problem_name : str
+        "classification" or "regression".
+    optimizer : str
+        Optimizer name, e.g. "sgd".
+    learning_rate : float
+        Learning rate to match exactly.
+    batch_size : int
+        Batch size to match (the record's "batch" key).
+    architectures : list of str, default=A2_VARIANT_ORDER
+        Architectures to keep, in the order they should be plotted.
+
+    Returns
+    -------
+    list of dict
+        The matching records, ordered as in ``architectures``. Normally one
+        per architecture; the caller checks the count.
+
+    Notes
+    -----
+    Processing:
+    1. Keep the records whose problem, optimizer, learning rate and batch
+       size match and whose architecture is in ``architectures``.
+    2. Sort them by the position of their architecture in
+       ``architectures``.
+
+    What stays fixed: problem_name, optimizer, learning_rate, batch_size.
+    What changes: the architecture only (by default A2, A2-bias, A2-he,
+    A2-bias-he, A2-bn).
+    """
+    filtered = [
+        run for run in results
+        if run["problem_name"] == problem_name
+        and run["optimizer"] == optimizer
+        and run["learning_rate"] == learning_rate
+        and run["batch"] == batch_size
+        and run["architecture"] in architectures
+    ]
+
+    # Keep the architectures in the given top-to-bottom order.
+    filtered.sort(key=lambda x: architectures.index(x["architecture"]))
+    return filtered
+
+
+def plot_variant_comparison(results, problem_name, optimizer, learning_rate, batch_size, filename,
+                            architectures=A2_VARIANT_ORDER,
+                            title="A2 Variants: Bias, He Initialization, Batch Norm"):
+    """
+    Create one figure comparing several architectures on one matched experiment.
+
+    By default it compares A2 with its bias / initialization / batch-norm
+    variants; the dropout comparison passes its own architectures and title.
+
+    Parameters
+    ----------
+    results : list of dict
+        All experiment records. Besides the loss histories, uses
+        "test_metric" (float) and, if present, "diverged" (bool).
+    problem_name : str
+        "classification" or "regression". Decides whether the test
+        metric is labelled MSE (regression) or BCE (otherwise).
+    optimizer : str
+        Optimizer shared by all runs, e.g. "sgd".
+    learning_rate : float
+        Learning rate shared by all runs.
+    batch_size : int
+        Batch size shared by all runs.
+    filename : str
+        Bare PNG file name; the run stamp is added when saving.
+    architectures : list of str, default=A2_VARIANT_ORDER
+        Architectures to compare, one subplot each, top to bottom.
+    title : str, default="A2 Variants: Bias, He Initialization, Batch Norm"
+        First part of the figure title; the shared settings are appended.
+
+    Returns
+    -------
+    None
+        Saves the figure to ``report/comparisons/`` and shows it.
+
+    Raises
+    ------
+    ValueError
+        If the filter does not find exactly one run per architecture.
+
+    Notes
+    -----
+    Processing:
+    1. Select the runs with ``filter_variant_runs`` and check there is one
+       per architecture.
+    2. Create one stacked subplot per run (3.75 inches of height each).
+    3. For each run, title the subplot with its test metric, or with
+       "Diverged" if the run is flagged as diverged or its test metric is
+       not finite, and draw the loss curves with the metrics box.
+    4. Switch a subplot's y-axis to log scale when the run has at least one
+       finite training-loss value.
+    5. Apply shared epoch ticks, label the x-axis, add the overall title,
+       then save and show the figure.
+
+    Each architecture gets its own subplot with its own y-axis, because a
+    collapsed run's loss can be orders of magnitude above a healthy one.
+    """
+    # Select the matching runs, one per architecture, in plotting order.
+    selected_runs = filter_variant_runs(
+        results=results,
+        problem_name=problem_name,
+        optimizer=optimizer,
+        learning_rate=learning_rate,
+        batch_size=batch_size,
+        architectures=architectures
+    )
+
+    # Sanity check: one run per architecture.
+    if len(selected_runs) != len(architectures):
+        raise ValueError(
+            f"Expected {len(architectures)} runs, found {len(selected_runs)} "
+            f"for {problem_name}, optimizer={optimizer}, lr={learning_rate}, batch={batch_size}"
+        )
+
+    # One vertical subplot per variant.
+    fig, axes = plt.subplots(len(selected_runs), 1, figsize=(12, 3.75 * len(selected_runs)), sharex=True)
+
+    # Name of the test metric shown in each subplot title.
+    metric_name = "MSE" if problem_name == "regression" else "BCE"
+    for ax, run in zip(axes, selected_runs):
+        # A diverged run's test metric is NaN or meaningless (it can come from
+        # a finite but enormous checkpoint), so the title says so instead.
+        # Older results files have no "diverged" flag.
+        if run.get("diverged") or not math.isfinite(run["test_metric"]):
+            subplot_title = f"{run['architecture']} | Diverged (loss overflowed)"
+        else:
+            subplot_title = f"{run['architecture']} | Test {metric_name} = {run['test_metric']:.4f}"
+        _plot_loss_curves(ax, run, subplot_title, include_metrics_box=True)
+
+        # Log scale: an exploding run's first-epoch loss can be hundreds of
+        # orders of magnitude above where it settles, which would flatten
+        # the rest of the curve on a linear axis. A diverged run has no
+        # finite values to put on a log axis, so it keeps the default.
+        if any(math.isfinite(v) for v in run["train_loss_history"]):
+            ax.set_yscale("log")
+            ax.set_ylabel("Loss (log scale)")
+
+    # Apply consistent epoch ticks across all subplots.
+    _apply_epoch_ticks(axes, selected_runs)
+
+    # Label the shared x-axis.
+    axes[-1].set_xlabel("Epoch")
+
+    # Add an overall figure title with the shared settings.
+    fig.suptitle(
+        f"{title} | "
+        f"{problem_name.capitalize()} | Optimizer={optimizer.upper()} | "
+        f"LR={learning_rate} | Batch Size={batch_size}",
+        fontsize=14,
+        fontweight="bold"
+    )
+
+    # Adjust spacing so labels and title fit properly.
+    plt.tight_layout(rect=[0, 0, 1, 0.97])
+
+    # Save and display the figure.
+    _save_and_show(fig, filename)
+
+
+def main(results_path=None):
     """
     Generate all required plots and short text analyses.
 
-   -------------------------
-    1. Optimizer comparison:
-       - provide at least 3 different plots
-       - same parameters inside each plot, optimizer varies
+    Parameters
+    ----------
+    results_path : str or None, default=None
+        Path to a main_results_full_<stamp>.json file. When None, the
+        newest stamped results file in report/ is used.
 
-    2. Network depth experiment:
-       - compare A1 vs A2 for one matched experiment
-       - also write a short text analysis
+    Returns
+    -------
+    None
+        Saves (and shows) every comparison figure and writes the two
+        analysis text files in ``report/comparisons/``; prints the run
+        stamp, the results file used and each saved path.
 
-    3. Learning-rate sensitivity:
-       - compare LR 0.1 vs 0.001 for one matched experiment
-       - also write a short text analysis
+    Raises
+    ------
+    FileNotFoundError
+        If ``results_path`` is None and no stamped results file exists.
+    ValueError
+        If a comparison does not find the runs it expects in the results.
+
+    Notes
+    -----
+    Processing:
+    1. Resolve and load the results file.
+    2. Keep only the runs of the first seed (``RANDOM_SEED``); runs with
+       no "seed" field (older files) are kept.
+    3. Optimizer comparison: three plots, each with the same parameters
+       inside the plot and only the optimizer varying.
+    4. Network depth experiment: compare A1 vs A2 for one matched
+       experiment and write a short text analysis.
+    5. Learning-rate sensitivity: compare LR 0.1 vs 0.001 for one matched
+       experiment and write a short text analysis.
+    6. A2 variants (bias, He initialization, batch norm): two plots, only
+       if the results contain variant runs.
+    7. Dropout: one plot comparing A1 / A1-dropout and A2-bn /
+       A2-bn-dropout, only if the results contain dropout runs.
     """
     # Load the full experiment results from disk.
-    results = load_results(RESULTS_PATH)
+    results_path = resolve_results_path(results_path)
+    print(f"Run stamp: {RUN_STAMP}")
+    print(f"Using results file: {results_path}")
+    results = load_results(results_path)
 
-    # Randomly selected runs. To adjust, change the arguments of the plot to any acceptable value. 
-    # Below the acceptable values as up to the latest repo version:
+    # Each plot shows one run's loss curves, so a multi-seed results file is
+    # reduced to its first seed (RANDOM_SEED). Variation across seeds is
+    # reported in the analysis instead. Older files have no "seed" field.
+    results = [run for run in results if run.get("seed", RANDOM_SEED) == RANDOM_SEED]
+
+    # Hand-picked example settings. To adjust, change the arguments of a plot
+    # call to any acceptable value. The acceptable values in the current
+    # experiment grid are:
     # - problem_name: classification or regression
-    # - architecture: A1 or A2
+    # - architecture: A1 or A2 (the variant and dropout plots also use
+    #   A2-bias, A2-he, A2-bias-he, A2-bn, A1-dropout, A2-bn-dropout)
     # - learning_rate: 0.1 or 0.001
     # - batch_size: 16 or 64
     # - optimizer: sgd, momentum, or adabelief
@@ -945,9 +1567,78 @@ def main():
         filename="learning_rate_classification_A1_sgd_bs16.png",
         analysis_filename="learning_rate_analysis.txt")
 
+    # --------------------------------------------------
+    # A2 variants: bias terms, He initialization, batch norm
+    # --------------------------------------------------
+
+    # Here we keep:
+    # - problem fixed (regression)
+    # - optimizer fixed (SGD)
+    # - learning rate fixed (0.1)
+    # - batch size fixed (16)
+    #
+    # And vary only:
+    # - A2 variant (bias and / or He initialization, or batch norm)
+    #
+    # This is one of the settings where the baseline A2 collapses (its ReLU
+    # units die), so the plot shows whether any of the changes prevents it.
+    # Skipped for older results files that have no variant runs.
+    if any(run["architecture"] in A2_VARIANT_ORDER[1:] for run in results):
+        plot_variant_comparison(
+            results=results,
+            problem_name="regression",
+            optimizer="sgd",
+            learning_rate=0.1,
+            batch_size=16,
+            filename="a2_variants_regression_sgd_lr01_bs16.png")
+
+        # Same comparison with momentum and batch size 64: the baseline A2
+        # still collapses here, but no variant diverges, so the plot shows
+        # each fix's outcome side by side.
+        plot_variant_comparison(
+            results=results,
+            problem_name="regression",
+            optimizer="momentum",
+            learning_rate=0.1,
+            batch_size=64,
+            filename="a2_variants_regression_momentum_lr01_bs64.png")
+
+    # --------------------------------------------------
+    # Dropout
+    # --------------------------------------------------
+
+    # Here we keep:
+    # - problem fixed (regression)
+    # - optimizer fixed (AdaBelief)
+    # - learning rate fixed (0.1)
+    # - batch size fixed (16)
+    #
+    # And compare:
+    # - A1 vs A1-dropout, and A2-bn vs A2-bn-dropout
+    #
+    # This is the setting of the best baseline regression run. With dropout,
+    # the plotted training loss is measured with dropout active, so it
+    # includes dropout noise and typically sits above the validation loss.
+    # Skipped for older results files that have no dropout runs.
+    dropout_architectures = ["A1", "A1-dropout", "A2-bn", "A2-bn-dropout"]
+    if any(run["architecture"] == "A1-dropout" for run in results):
+        plot_variant_comparison(
+            results=results,
+            problem_name="regression",
+            optimizer="adabelief",
+            learning_rate=0.1,
+            batch_size=16,
+            filename="dropout_regression_adabelief_lr01_bs16.png",
+            architectures=dropout_architectures,
+            title="Dropout (rate 0.2)")
+
+# Running this file directly builds every comparison plot and analysis from
+# a results JSON (the newest one unless a path is given) and prints the
+# total run time.
 if __name__ == "__main__":
     start_time = time.perf_counter()
-    main()
+    # Optional first argument: an explicit results JSON to plot from.
+    main(sys.argv[1] if len(sys.argv) > 1 else None)
     end_time = time.perf_counter()
 
     elapsed = end_time - start_time

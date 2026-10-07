@@ -1,3 +1,13 @@
+"""
+Optimizers that update layer parameters from their gradients.
+
+Three optimizers are provided: plain SGD, SGD with momentum, and
+AdaBelief. Each has update(layer), which reads layer.get_params() and
+layer.get_grads() and modifies the parameter arrays in place. Stateful
+optimizers keep their state per parameter, keyed by (id(layer), name).
+get_optimizer() builds an optimizer from a config string.
+"""
+
 import numpy as np
 
 
@@ -5,6 +15,13 @@ class SGD:
     """
     Stochastic Gradient Descent (SGD) optimizer.
 
+    Attributes
+    ----------
+    learning_rate : float
+        Step size used for every update.
+
+    Notes
+    -----
     Update rule:
         W = W - learning_rate * dW
 
@@ -16,6 +33,7 @@ class SGD:
         theta_{t+1} = theta_t - eta * g_t
 
     where:
+
     - theta = parameter being updated
     - eta = learning rate
     - g_t = gradient at the current step
@@ -29,40 +47,79 @@ class SGD:
         ----------
         learning_rate : float, default=0.01
             Step size used for each weight update.
+
+        Returns
+        -------
+        None
+            Sets self.learning_rate.
+
+        Notes
+        -----
+        Processing:
+
+        1. Store the learning rate. SGD keeps no other state.
         """
         self.learning_rate = learning_rate
 
     def update(self, layer):
         """
-        Update the weights of a layer using SGD.
+        Update every trainable parameter of a layer using SGD.
 
         Parameters
         ----------
-        layer : object
-            A trainable layer that must have:
-            - layer.weights
-            - layer.dweights
+        layer : Dense or BatchNorm
+            A trainable layer exposing get_params() and get_grads(), which
+            return dicts of str to numpy.ndarray with matching keys and
+            shapes (float64).
 
-        Explanation
-        -----------
-        layer.dweights stores the gradient of the loss
-        with respect to the weights.
+        Returns
+        -------
+        None
+            Each parameter array returned by layer.get_params() is
+            modified in place, so the layer's own parameters change.
+
+        Notes
+        -----
+        Processing:
+
+        1. Read the gradients with layer.get_grads().
+        2. For each parameter name and array from layer.get_params(),
+           subtract learning_rate * gradient in place.
+
+        For a Dense layer the parameters are the weights and, if enabled,
+        the bias. Each gradient is the derivative of the loss with respect
+        to the parameter of the same name.
 
         If the gradient is positive:
-            subtracting it makes the weight smaller
+            subtracting it makes the parameter smaller
 
         If the gradient is negative:
-            subtracting it makes the weight larger
+            subtracting it makes the parameter larger
 
         This is how gradient descent reduces the loss.
         """
-        layer.weights -= self.learning_rate * layer.dweights
+        grads = layer.get_grads()
+        for name, param in layer.get_params().items():
+            # In-place update, so the layer's own array is modified.
+            param -= self.learning_rate * grads[name]
 
 
 class MomentumSGD:
     """
     Momentum-based Stochastic Gradient Descent optimizer.
 
+    Attributes
+    ----------
+    learning_rate : float
+        Step size used for every update.
+    beta : float
+        Momentum coefficient (weight of the previous velocity).
+    velocity : dict of tuple (int, str) to numpy.ndarray
+        One velocity array per parameter, keyed by (id(layer), name),
+        with the same shape as the parameter.
+
+    Notes
+    -----
     Update rule:
         v = beta * v + (1 - beta) * dW
         W = W - learning_rate * v
@@ -71,13 +128,16 @@ class MomentumSGD:
         v_t = beta * v_{t-1} + (1 - beta) * g_t
         theta_{t+1} = theta_t - eta * v_t
 
-    Idea
-    ----
-    Momentum keeps a running average of past gradients.
+    Idea: momentum keeps a running average of past gradients.
     This helps:
+
     - smooth noisy updates
     - accelerate movement in a consistent direction
     - reduce zig-zagging
+
+    This is the exponential-moving-average form of momentum, with the
+    (1 - beta) factor on the gradient; there is no bias correction, so
+    the first few steps are smaller than with plain SGD.
     """
 
     def __init__(self, learning_rate=0.01, beta=0.9):
@@ -89,59 +149,83 @@ class MomentumSGD:
         learning_rate : float, default=0.01
             Step size used for the weight update.
         beta : float, default=0.9
-            Momentum coefficient.
+            Momentum coefficient. The project uses beta = 0.9.
+
+        Returns
+        -------
+        None
+            Sets self.learning_rate, self.beta and an empty
+            self.velocity dict.
 
         Notes
         -----
-        The project uses beta = 0.9.
+        Processing:
+
+        1. Store the hyperparameters.
+        2. Create an empty velocity store; velocities are created lazily
+           the first time each parameter is updated.
         """
         self.learning_rate = learning_rate
         self.beta = beta
 
-        # Store one velocity matrix per layer.
-        # We use id(layer) as the key so each layer keeps its own
-        # momentum state independently.
+        # Store one velocity array per parameter.
+        # The key is (id(layer), parameter name), so each layer's weights
+        # and bias keep their own momentum state independently.
         self.velocity = {}
 
     def update(self, layer):
         """
-        Update the weights of a layer using Momentum SGD.
+        Update every trainable parameter of a layer using Momentum SGD.
 
         Parameters
         ----------
-        layer : object
-            A trainable layer that must have:
-            - layer.weights
-            - layer.dweights
+        layer : Dense or BatchNorm
+            A trainable layer exposing get_params() and get_grads(), which
+            return dicts of str to numpy.ndarray with matching keys and
+            shapes (float64).
 
-        Explanation
-        -----------
-        For each layer, we maintain a velocity matrix.
+        Returns
+        -------
+        None
+            Each parameter array returned by layer.get_params() is
+            modified in place, and self.velocity is updated.
 
-        First:
-            velocity = beta * old_velocity + (1 - beta) * gradient
+        Notes
+        -----
+        Processing:
 
-        Then:
-            weights = weights - learning_rate * velocity
+        1. Read the gradients with layer.get_grads().
+        2. For each parameter, build the key (id(layer), name) and create
+           a zero velocity of the parameter's shape if none exists yet.
+        3. Update the velocity:
+           velocity = beta * old_velocity + (1 - beta) * gradient.
+        4. Update the parameter in place:
+           parameter = parameter - learning_rate * velocity.
 
         So the actual update direction is not just the current gradient,
         but a smoothed version of recent gradients.
+
+        The key uses id(layer), so the state belongs to a specific layer
+        object. Using the same optimizer for a different network would
+        start fresh velocities (unless Python reuses an id).
         """
-        layer_id = id(layer)
+        grads = layer.get_grads()
+        for name, param in layer.get_params().items():
+            key = (id(layer), name)
 
-        # If this is the first time this layer is being updated,
-        # create a zero velocity matrix with the same shape as its weights.
-        if layer_id not in self.velocity:
-            self.velocity[layer_id] = np.zeros_like(layer.weights)
+            # If this is the first time this parameter is being updated,
+            # create a zero velocity array with the same shape.
+            if key not in self.velocity:
+                self.velocity[key] = np.zeros_like(param)
 
-        # Update the momentum term (velocity)
-        self.velocity[layer_id] = (
-            self.beta * self.velocity[layer_id]
-            + (1 - self.beta) * layer.dweights
-        )
+            # Update the momentum term (velocity)
+            self.velocity[key] = (
+                self.beta * self.velocity[key]
+                + (1 - self.beta) * grads[name]
+            )
 
-        # Update the weights using the velocity
-        layer.weights -= self.learning_rate * self.velocity[layer_id]
+            # Update the parameter in place using the velocity
+            param -= self.learning_rate * self.velocity[key]
 
 
 class AdaBelief:
@@ -152,6 +236,26 @@ class AdaBelief:
     moment of the gradient itself, it tracks the second moment of the
     "belief error" between the current gradient and its running average.
 
+    Attributes
+    ----------
+    learning_rate : float
+        Step size used for every update.
+    beta1 : float
+        Decay rate of the first-moment (mean gradient) average.
+    beta2 : float
+        Decay rate of the second-moment (squared belief error) average.
+    epsilon : float
+        Constant added to the denominator for numerical stability.
+    m : dict of tuple (int, str) to numpy.ndarray
+        First-moment estimate per parameter, keyed by (id(layer), name).
+    s : dict of tuple (int, str) to numpy.ndarray
+        Second-moment estimate per parameter, same keys.
+    t : dict of tuple (int, str) to int
+        Number of updates applied to each parameter, used for bias
+        correction.
+
+    Notes
+    -----
     Update equations:
         m_t = beta1 * m_{t-1} + (1 - beta1) * g_t
         s_t = beta2 * s_{t-1} + (1 - beta2) * (g_t - m_t)^2
@@ -161,8 +265,8 @@ class AdaBelief:
 
         W = W - learning_rate * m_hat / (sqrt(s_hat) + epsilon)
 
-    Idea
-    ----
+    Idea:
+
     - m tracks the running average of gradients
     - s tracks how surprising the current gradient is
       compared to that running average
@@ -185,107 +289,129 @@ class AdaBelief:
         epsilon : float, default=1e-8
             Small constant for numerical stability.
 
+        Returns
+        -------
+        None
+            Sets the hyperparameters and empty state dicts self.m, self.s
+            and self.t.
+
         Notes
         -----
-        The project uses:
-        - beta1 = 0.9
-        - beta2 = 0.999
-        - epsilon = 1e-8
+        Processing:
+
+        1. Store the hyperparameters.
+        2. Create empty per-parameter state dicts; the state for each
+           parameter is created lazily on its first update.
+
+        The project uses beta1 = 0.9, beta2 = 0.999 and epsilon = 1e-8
+        (see get_optimizer).
         """
         self.learning_rate = learning_rate
         self.beta1 = beta1
         self.beta2 = beta2
         self.epsilon = epsilon
 
-        # First moment estimate for each layer.
+        # All state below is stored per parameter, keyed by
+        # (id(layer), parameter name), so weights and bias are tracked
+        # separately.
+
+        # First moment estimate for each parameter.
         # This stores the running average of gradients.
         self.m = {}
 
-        # Second moment estimate for each layer.
+        # Second moment estimate for each parameter.
         # In AdaBelief, this stores the running average of
         # squared belief errors: (gradient - first_moment)^2
         self.s = {}
 
-        # Time step for each layer.
+        # Time step for each parameter.
         # Needed for bias correction because m and s start at zero.
         self.t = {}
 
     def update(self, layer):
         """
-        Update the weights of a layer using AdaBelief.
+        Update every trainable parameter of a layer using AdaBelief.
 
         Parameters
         ----------
-        layer : object
-            A trainable layer that must have:
-            - layer.weights
-            - layer.dweights
+        layer : Dense or BatchNorm
+            A trainable layer exposing get_params() and get_grads(), which
+            return dicts of str to numpy.ndarray with matching keys and
+            shapes (float64).
 
-        Explanation
-        -----------
-        Step 1:
-            Read the current gradient g
+        Returns
+        -------
+        None
+            Each parameter array returned by layer.get_params() is
+            modified in place, and self.m, self.s and self.t are updated.
 
-        Step 2:
-            Update first moment:
-                m = beta1 * m + (1 - beta1) * g
+        Notes
+        -----
+        Processing:
 
-        Step 3:
-            Compute belief error:
-                g - m
+        These steps are applied to each parameter (e.g. weights and bias)
+        separately, using the key (id(layer), name).
 
-        Step 4:
-            Update second moment:
-                s = beta2 * s + (1 - beta2) * (belief_error^2)
+        1. Read the current gradient g. On the first update of this
+           parameter, create zero arrays for m and s and set t = 0.
+        2. Increase the step counter t by 1.
+        3. Update the first moment:
+           m = beta1 * m + (1 - beta1) * g
+        4. Compute the belief error g - m, using the m just updated.
+        5. Update the second moment:
+           s = beta2 * s + (1 - beta2) * belief_error^2
+        6. Apply bias correction: m_hat = m / (1 - beta1^t) and
+           s_hat = s / (1 - beta2^t).
+        7. Update the parameter in place:
+           param -= learning_rate * m_hat / (sqrt(s_hat) + epsilon)
 
-        Step 5:
-            Apply bias correction to m and s
-
-        Step 6:
-            Update weights using the corrected values
+        The original AdaBelief paper also adds epsilon inside the s
+        update; this implementation adds it only in the denominator.
         """
-        layer_id = id(layer)
+        grads = layer.get_grads()
+        for name, param in layer.get_params().items():
+            key = (id(layer), name)
 
-        # Current gradient for this layer
-        g = layer.dweights
+            # Current gradient for this parameter
+            g = grads[name]
 
-        # If this is the first time the optimizer sees this layer,
-        # initialize all internal state for it.
-        if layer_id not in self.m:
-            self.m[layer_id] = np.zeros_like(layer.weights)
-            self.s[layer_id] = np.zeros_like(layer.weights)
-            self.t[layer_id] = 0
+            # If this is the first time the optimizer sees this parameter,
+            # initialize all internal state for it.
+            if key not in self.m:
+                self.m[key] = np.zeros_like(param)
+                self.s[key] = np.zeros_like(param)
+                self.t[key] = 0
 
-        # Increase the time step for this layer
-        self.t[layer_id] += 1
-        t = self.t[layer_id]
+            # Increase the time step for this parameter
+            self.t[key] += 1
+            t = self.t[key]
 
-        # Update first moment estimate
-        # This is the exponential moving average of gradients
-        self.m[layer_id] = (
-            self.beta1 * self.m[layer_id]
-            + (1 - self.beta1) * g
-        )
+            # Update first moment estimate
+            # This is the exponential moving average of gradients
+            self.m[key] = (
+                self.beta1 * self.m[key]
+                + (1 - self.beta1) * g
+            )
 
-        # Belief error:
-        # difference between current gradient and expected gradient
-        belief_error = g - self.m[layer_id]
+            # Belief error:
+            # difference between current gradient and expected gradient
+            belief_error = g - self.m[key]
 
-        # Update second moment estimate using the squared belief error
-        self.s[layer_id] = (
-            self.beta2 * self.s[layer_id]
-            + (1 - self.beta2) * (belief_error ** 2)
-        )
+            # Update second moment estimate using the squared belief error
+            self.s[key] = (
+                self.beta2 * self.s[key]
+                + (1 - self.beta2) * (belief_error ** 2)
+            )
 
-        # Bias correction for the first moment
-        # Needed because the running average starts at zero
-        m_hat = self.m[layer_id] / (1 - self.beta1 ** t)
+            # Bias correction for the first moment
+            # Needed because the running average starts at zero
+            m_hat = self.m[key] / (1 - self.beta1 ** t)
 
-        # Bias correction for the second moment
-        s_hat = self.s[layer_id] / (1 - self.beta2 ** t)
+            # Bias correction for the second moment
+            s_hat = self.s[key] / (1 - self.beta2 ** t)
 
-        # Final AdaBelief update
-        layer.weights -= self.learning_rate * m_hat / (np.sqrt(s_hat) + self.epsilon)
+            # Final AdaBelief update, in place
+            param -= self.learning_rate * m_hat / (np.sqrt(s_hat) + self.epsilon)
 
 
 def get_optimizer(name, learning_rate):
@@ -295,30 +421,34 @@ def get_optimizer(name, learning_rate):
     Parameters
     ----------
     name : str
-        Name of the optimizer.
+        Name of the optimizer, case-insensitive. Supported names:
+
+        - SGD: "sgd"
+        - MomentumSGD: "momentum", "momentumsgd", "momentum_sgd"
+        - AdaBelief: "adabelief"
     learning_rate : float
         Learning rate used by the optimizer.
 
     Returns
     -------
-    object
-        Instance of the requested optimizer.
-
-    Supported names
-    ---------------
-    - "sgd"
-    - "momentum"
-    - "momentumsgd"
-    - "momentum_sgd"
-    - "adabelief"
+    SGD or MomentumSGD or AdaBelief
+        A new instance of the requested optimizer.
 
     Raises
     ------
     ValueError
         If the optimizer name is not supported.
 
-    Explanation
-    -----------
+    Notes
+    -----
+    Processing:
+
+    1. Convert name to lowercase.
+    2. Create the matching optimizer with the given learning rate and
+       the project's fixed hyperparameters: beta = 0.9 for momentum;
+       beta1 = 0.9, beta2 = 0.999, epsilon = 1e-8 for AdaBelief.
+    3. Raise ValueError for any other name.
+
     This helper lets the rest of the project choose an optimizer
     from a config file using a simple string.
     """

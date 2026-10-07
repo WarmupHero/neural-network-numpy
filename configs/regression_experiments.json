@@ -40,6 +40,154 @@
         "units": 1,
         "activation": "linear"
       }
+    ],
+    "A2-bias": [
+      {
+        "type": "dense",
+        "units": 32,
+        "activation": "relu",
+        "use_bias": true
+      },
+      {
+        "type": "dense",
+        "units": 32,
+        "activation": "relu",
+        "use_bias": true
+      },
+      {
+        "type": "dense",
+        "units": 32,
+        "activation": "relu",
+        "use_bias": true
+      },
+      {
+        "type": "dense",
+        "units": 1,
+        "activation": "linear",
+        "use_bias": true
+      }
+    ],
+    "A2-he": [
+      {
+        "type": "dense",
+        "units": 32,
+        "activation": "relu",
+        "init": "he"
+      },
+      {
+        "type": "dense",
+        "units": 32,
+        "activation": "relu",
+        "init": "he"
+      },
+      {
+        "type": "dense",
+        "units": 32,
+        "activation": "relu",
+        "init": "he"
+      },
+      {
+        "type": "dense",
+        "units": 1,
+        "activation": "linear",
+        "init": "he"
+      }
+    ],
+    "A2-bias-he": [
+      {
+        "type": "dense",
+        "units": 32,
+        "activation": "relu",
+        "use_bias": true,
+        "init": "he"
+      },
+      {
+        "type": "dense",
+        "units": 32,
+        "activation": "relu",
+        "use_bias": true,
+        "init": "he"
+      },
+      {
+        "type": "dense",
+        "units": 32,
+        "activation": "relu",
+        "use_bias": true,
+        "init": "he"
+      },
+      {
+        "type": "dense",
+        "units": 1,
+        "activation": "linear",
+        "use_bias": true,
+        "init": "he"
+      }
+    ],
+    "A2-bn": [
+      {
+        "type": "dense",
+        "units": 32,
+        "activation": "relu",
+        "batch_norm": true
+      },
+      {
+        "type": "dense",
+        "units": 32,
+        "activation": "relu",
+        "batch_norm": true
+      },
+      {
+        "type": "dense",
+        "units": 32,
+        "activation": "relu",
+        "batch_norm": true
+      },
+      {
+        "type": "dense",
+        "units": 1,
+        "activation": "linear"
+      }
+    ],
+    "A1-dropout": [
+      {
+        "type": "dense",
+        "units": 32,
+        "activation": "sigmoid",
+        "dropout": 0.2
+      },
+      {
+        "type": "dense",
+        "units": 1,
+        "activation": "linear"
+      }
+    ],
+    "A2-bn-dropout": [
+      {
+        "type": "dense",
+        "units": 32,
+        "activation": "relu",
+        "batch_norm": true,
+        "dropout": 0.2
+      },
+      {
+        "type": "dense",
+        "units": 32,
+        "activation": "relu",
+        "batch_norm": true,
+        "dropout": 0.2
+      },
+      {
+        "type": "dense",
+        "units": 32,
+        "activation": "relu",
+        "batch_norm": true,
+        "dropout": 0.2
+      },
+      {
+        "type": "dense",
+        "units": 1,
+        "activation": "linear"
+      }
     ]
   },
   "experiments": {
@@ -55,6 +203,13 @@
     "batch_sizes": [
       16,
       64
+    ],
+    "seeds": [
+      42,
+      43,
+      44,
+      45,
+      46
     ],
     "epochs": 100,
     "early_stopping": true,

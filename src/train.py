@@ -1,3 +1,11 @@
+"""
+Training loop for the from-scratch neural network.
+
+Defines `Trainer`, which runs mini-batch gradient descent on a
+`NeuralNetwork` with a given loss and optimizer, records the loss history,
+optionally stops early on a validation-loss plateau (restoring the best
+checkpoint), and evaluates or scores the trained model.
+"""
 import numpy as np
 
 from src.metrics import binary_cross_entropy, mean_squared_error
@@ -19,6 +27,21 @@ class Trainer:
     It is designed to work for both:
     - binary classification
     - regression
+
+    Attributes
+    ----------
+    network : NeuralNetwork
+        The model being trained.
+    loss_fn : MSELoss or BCELoss
+        Loss object used for training and for the reported loss values.
+    optimizer : object
+        Optimizer with an `update(layer)` method (see src.optimizers).
+    task_type : str
+        "classification" or "regression" (lower-cased).
+    random : numpy.random.RandomState
+        Generator used to shuffle the training data each epoch.
+    history : dict
+        Per-epoch results of the most recent `fit()` call.
     """
 
     def __init__(
@@ -30,23 +53,26 @@ class Trainer:
         early_stopping=False,
         patience=10,
         min_delta=0.0,
-        min_epochs_before_early_stop=0
+        min_epochs_before_early_stop=0,
+        random_seed=RANDOM_SEED
     ):
         """
-        Initialize the trainer.
+        Initialize the trainer and store its settings.
 
         Parameters
         ----------
         network : NeuralNetwork
             The neural network model to train.
-        loss_fn : object
-            Loss function object with:
-            - forward(y_true, y_pred)
-            - backward(y_true, y_pred)
+        loss_fn : MSELoss or BCELoss
+            Loss function object (from src.losses) with:
+            - forward(y_true, y_pred) -> float, the scalar loss
+            - backward(y_true, y_pred) -> numpy.ndarray, dL/dy_pred
         optimizer : object
-            Optimizer object with an update(layer) method.
+            Optimizer object (from src.optimizers) with an update(layer)
+            method that changes the layer's parameters in place.
         task_type : str
-            Either "classification" or "regression".
+            Either "classification" or "regression" (case-insensitive).
+            Selects the metric: BCE for classification, MSE for regression.
         early_stopping : bool, default=False
             Whether to enable early stopping using validation-loss
             patience while also monitoring training loss as an
@@ -60,6 +86,33 @@ class Trainer:
         min_epochs_before_early_stop : int, default=0
             Minimum number of completed epochs required before early
             stopping is allowed to terminate training.
+        random_seed : int, default=RANDOM_SEED
+            Seed for shuffling the training data each epoch.
+
+        Returns
+        -------
+        None
+            Stores the arguments as attributes, creates `self.random` and
+            an empty `self.history`.
+
+        Raises
+        ------
+        ValueError
+            If `task_type` (after lower-casing) is not "classification" or
+            "regression".
+
+        Notes
+        -----
+        Processing:
+        1. Store the network, loss and optimizer, and lower-case
+           `task_type`.
+        2. Check that the task type is supported.
+        3. Store the early-stopping settings.
+        4. Create a dedicated `numpy.random.RandomState(random_seed)` for
+           shuffling, so the batch order is reproducible and independent
+           of the network's own generators.
+        5. Create an empty history with "train_loss", "val_loss" and
+           "val_metric" lists.
         """
         self.network = network
         self.loss_fn = loss_fn
@@ -77,7 +130,7 @@ class Trainer:
 
         # Dedicated random generator used for shuffling training data
         # each epoch in a reproducible way
-        self.random = np.random.RandomState(RANDOM_SEED)
+        self.random = np.random.RandomState(random_seed)
 
         # History dictionary used to store training progress over epochs
         self.history = {
@@ -92,15 +145,25 @@ class Trainer:
 
         Parameters
         ----------
-        X : numpy.ndarray
+        X : numpy.ndarray of shape (n_samples, n_features), dtype float64
             Input features.
-        y : numpy.ndarray
-            Targets.
+        y : numpy.ndarray of shape (n_samples, 1)
+            Targets (int64 0/1 labels for classification, float64 values
+            for regression).
 
         Returns
         -------
-        X_shuffled, y_shuffled : numpy.ndarray
-            Shuffled versions of X and y, using the same permutation.
+        X_shuffled : numpy.ndarray of shape (n_samples, n_features), dtype float64
+            Rows of X in a new random order (a copy; X is not modified).
+        y_shuffled : numpy.ndarray of shape (n_samples, 1), same dtype as y
+            Rows of y in the same order, so each sample keeps its target.
+
+        Notes
+        -----
+        Processing:
+        1. Draw a random permutation of the indices 0..n_samples-1 from
+           `self.random`.
+        2. Index X and y with that same permutation.
         """
         indices = self.random.permutation(len(X))
         return X[indices], y[indices]
@@ -111,17 +174,30 @@ class Trainer:
 
         Parameters
         ----------
-        X : numpy.ndarray
-            Input features.
-        y : numpy.ndarray
-            Targets.
+        X : numpy.ndarray of shape (n_samples, n_features), dtype float64
+            Input features (already shuffled by the caller).
+        y : numpy.ndarray of shape (n_samples, 1)
+            Targets, aligned row-by-row with X.
         batch_size : int
             Number of samples per mini-batch.
 
         Yields
         ------
-        X_batch, y_batch : numpy.ndarray
-            One mini-batch at a time.
+        X_batch : numpy.ndarray of shape (b, n_features), dtype float64
+            Consecutive rows of X, where b = batch_size except possibly
+            for the last batch.
+        y_batch : numpy.ndarray of shape (b, 1), same dtype as y
+            The matching rows of y.
+
+        Notes
+        -----
+        Processing:
+        1. Step through the rows in steps of `batch_size`.
+        2. Yield the slice [start, start + batch_size) of X and y.
+
+        The last batch is smaller when n_samples is not a multiple of
+        batch_size; it is kept, not dropped. The slices are views, not
+        copies.
         """
         for start_idx in range(0, len(X), batch_size):
             end_idx = start_idx + batch_size
@@ -131,22 +207,26 @@ class Trainer:
         """
         Compute the correct evaluation metric for the current task.
 
-        For classification:
-            binary cross-entropy (BCE)
-        For regression:
-            mean squared error (MSE)
-
         Parameters
         ----------
-        y_true : numpy.ndarray
-            True targets.
-        y_pred : numpy.ndarray
-            Predicted outputs.
+        y_true : numpy.ndarray of shape (n_samples, 1)
+            True targets (int64 0/1 labels for classification, float64
+            values for regression).
+        y_pred : numpy.ndarray of shape (n_samples, 1), dtype float64
+            Predicted outputs (probabilities for classification).
 
         Returns
         -------
         float
-            Metric value.
+            Metric value: binary cross-entropy for classification, mean
+            squared error for regression.
+
+        Notes
+        -----
+        Processing:
+        1. If `self.task_type` is "classification", return
+           `binary_cross_entropy(y_true, y_pred)` from src.metrics.
+        2. Otherwise return `mean_squared_error(y_true, y_pred)`.
         """
         if self.task_type == "classification":
             return binary_cross_entropy(y_true, y_pred)
@@ -155,35 +235,81 @@ class Trainer:
 
     def _get_model_state(self):
         """
-        Save a copy of the current trainable weights.
+        Save a copy of the model's current state.
+
+        Parameters
+        ----------
+        None
+            Uses `self.network.get_trainable_layers()`.
 
         Returns
         -------
-        list
-            A list of copied weight matrices, one per trainable layer.
+        list of dict
+            One dictionary per trainable layer, in network order, with:
+            - "params": dict of str to numpy.ndarray (float64), copies of
+              its trainable parameters (e.g. "weights", "bias", "gamma",
+              "beta")
+            - "buffers": dict of str to numpy.ndarray (float64), copies of
+              its non-trainable state, such as BatchNorm's
+              "running_mean" and "running_var" (empty for other layers)
 
-        Why this is needed
-        ------------------
-        During early stopping, we want to restore the best validation
-        checkpoint later. That means we need to save the weights whenever
-        validation loss meaningfully improves.
+        Notes
+        -----
+        Processing:
+        1. For each trainable layer, read its parameters with
+           `get_params()` and, if the layer has `get_buffers()`, its
+           buffers.
+        2. Copy every array, so later training updates do not change the
+           saved values.
+        3. Collect one {"params", "buffers"} dict per layer into a list.
+
+        Why: during early stopping, we want to restore the best validation
+        checkpoint later. That means we need to save the model whenever
+        validation loss meaningfully improves. Buffers must be saved too:
+        restored BatchNorm weights paired with later running statistics
+        would no longer be the model that achieved the best validation loss.
         """
         state = []
         for layer in self.network.get_trainable_layers():
-            state.append(layer.weights.copy())
+            buffers = layer.get_buffers() if hasattr(layer, "get_buffers") else {}
+            state.append({
+                "params": {name: param.copy() for name, param in layer.get_params().items()},
+                "buffers": {name: buf.copy() for name, buf in buffers.items()},
+            })
         return state
 
     def _set_model_state(self, state):
         """
-        Restore previously saved trainable weights.
+        Restore a previously saved model state.
 
         Parameters
         ----------
-        state : list
-            List of saved weight matrices.
+        state : list of dict
+            Saved state, as returned by _get_model_state(): one dict per
+            trainable layer with "params" and "buffers" (each a dict of
+            str to numpy.ndarray, dtype float64).
+
+        Returns
+        -------
+        None
+            Overwrites the parameters (and buffers, if saved) of the
+            network's trainable layers.
+
+        Notes
+        -----
+        Processing:
+        1. Pair each trainable layer with its saved entry, in order.
+        2. Restore its parameters with `layer.set_params(...)`.
+        3. If buffers were saved for that layer (BatchNorm), restore them
+           with `layer.set_buffers(...)`.
+
+        The state must come from the same architecture, because layers
+        and saved entries are matched by position.
         """
-        for layer, saved_weights in zip(self.network.get_trainable_layers(), state):
-            layer.weights = saved_weights.copy()
+        for layer, saved in zip(self.network.get_trainable_layers(), state):
+            layer.set_params(saved["params"])
+            if saved["buffers"]:
+                layer.set_buffers(saved["buffers"])
 
     def _is_meaningful_improvement(self, current_loss, best_loss):
         """
@@ -201,47 +327,95 @@ class Trainer:
         bool
             True if current_loss is lower than best_loss by more than
             min_delta.
+
+        Notes
+        -----
+        Processing:
+        1. Return `current_loss < best_loss - self.min_delta`.
+
+        With min_delta=0.0 any decrease counts. A larger min_delta ignores
+        tiny decreases that are just noise.
         """
         return current_loss < (best_loss - self.min_delta)
 
     def fit(self, X_train, y_train, X_val, y_val, epochs=100, batch_size=32, verbose=True):
         """
-        Train the network.
+        Train the network with mini-batch gradient descent.
 
         Parameters
         ----------
-        X_train, y_train : numpy.ndarray
-            Training data and labels.
-        X_val, y_val : numpy.ndarray
-            Validation data and labels.
+        X_train : numpy.ndarray of shape (n_train, n_features), dtype float64
+            Training inputs.
+        y_train : numpy.ndarray of shape (n_train, 1)
+            Training targets (int64 0/1 labels for classification, float64
+            values for regression).
+        X_val : numpy.ndarray of shape (n_val, n_features), dtype float64
+            Validation inputs, used after every epoch.
+        y_val : numpy.ndarray of shape (n_val, 1)
+            Validation targets, same dtype convention as y_train.
         epochs : int, default=100
             Maximum number of training epochs.
         batch_size : int, default=32
             Number of samples per mini-batch.
         verbose : bool, default=True
-            Whether to print progress.
+            Whether to print per-epoch progress (and early-stopping status).
 
         Returns
         -------
         dict
-            Training history, including:
-            - train_loss
-            - val_loss
-            - val_metric
-            - epochs_ran
-            - stopped_early
-            - best_epoch
-            - best_val_loss
-            - min_epochs_before_early_stop
+            Training history (also stored as `self.history`) with keys:
+            - "train_loss" (list of float): mean training-batch loss per
+              epoch, measured in training mode
+            - "val_loss" (list of float): validation loss per epoch,
+              measured in evaluation mode
+            - "val_metric" (list of float): validation BCE or MSE per epoch
+            - "epochs_ran" (int): number of epochs actually completed
+            - "stopped_early" (bool): True if fewer than `epochs` ran
+              (early stopping or divergence)
+            - "diverged" (bool): True if training stopped because a loss
+              became NaN or infinite
+            - "best_epoch" (int): 1-based epoch with the best validation
+              loss
+            - "best_val_loss" (float): that validation loss
+            - "min_epochs_before_early_stop" (int): the guard setting used
 
         Notes
         -----
+        Processing:
+        1. Reset `self.history` and the early-stopping trackers.
+        2. For each epoch:
+           a. switch the network to training mode and shuffle the
+              training data;
+           b. for each mini-batch: forward pass, compute the loss,
+              backward pass, then let the optimizer update every
+              trainable layer;
+           c. average the batch losses into the epoch's training loss;
+           d. switch to evaluation mode and compute the validation loss
+              and metric on the whole validation set;
+           e. append the three values to the history;
+           f. stop if either loss is not finite (divergence);
+           g. if early stopping is enabled, update the best losses,
+              save a checkpoint when validation loss improves, update the
+              patience counter, and stop once patience runs out after the
+              minimum-epoch guard.
+        3. If early stopping saved a checkpoint, restore it.
+        4. Record "epochs_ran", "stopped_early", "diverged" and the
+           guard setting, switch to evaluation mode, and record
+           "best_epoch" and "best_val_loss".
+
         When early stopping is enabled, checkpoint restoration still
         uses the best validation-loss model. Patience is driven by
         validation-loss non-improvement only after the configured
         minimum-epoch guard has been reached, while training loss is
         still monitored to indicate whether that stagnation looks like
         the onset of overfitting.
+
+        Without early stopping, the model from the last epoch is kept, and
+        "best_epoch"/"best_val_loss" simply report the minimum of the
+        recorded validation losses. The non-finite losses of a diverged
+        epoch are kept in the history, and a NaN validation loss there
+        makes these two values unreliable (`np.argmin` returns the index
+        of the NaN), so check "diverged" before trusting them.
         """
         # Reset history at the start of every fit() call
         # so previous runs do not contaminate the new one
@@ -259,8 +433,14 @@ class Trainer:
         epochs_without_val_improvement = 0
         train_improving_without_val_count = 0
 
+        # Set to True if the loss overflows to NaN or infinity.
+        diverged = False
+
         # Main training loop
         for epoch in range(epochs):
+            # Training mode: layers such as BatchNorm use batch statistics.
+            self.network.train()
+
             # Shuffle training data at the start of each epoch
             X_train_shuffled, y_train_shuffled = self._shuffle_data(X_train, y_train)
 
@@ -289,7 +469,9 @@ class Trainer:
             # Average batch losses to get one training loss for the epoch
             train_loss = np.mean(batch_losses)
 
-            # Validation pass after the epoch finishes
+            # Validation pass after the epoch finishes, in evaluation mode so
+            # the result reflects the model as it would be used for prediction.
+            self.network.eval()
             y_val_pred = self.network.forward(X_val)
             val_loss = self.loss_fn.forward(y_val, y_val_pred)
             val_metric = self._compute_metric(y_val, y_val_pred)
@@ -298,6 +480,15 @@ class Trainer:
             self.history["train_loss"].append(train_loss)
             self.history["val_loss"].append(val_loss)
             self.history["val_metric"].append(val_metric)
+
+            # Stop immediately if the loss overflowed. Once a loss is NaN or
+            # infinite, every later update is NaN too, so continuing would
+            # only waste epochs until early stopping notices.
+            if not (np.isfinite(train_loss) and np.isfinite(val_loss)):
+                diverged = True
+                if verbose:
+                    print(f"\nTraining diverged at epoch {epoch + 1}: the loss is no longer finite.")
+                break
 
             # Optional console output
             if verbose:
@@ -396,6 +587,12 @@ class Trainer:
         # True if training ended before reaching the requested max epochs
         self.history["stopped_early"] = self.history["epochs_ran"] < epochs
 
+        # True if training stopped because the loss stopped being finite
+        self.history["diverged"] = diverged
+
+        # Leave the network ready for evaluation and prediction.
+        self.network.eval()
+
         # Save best-epoch information.
         #
         # If early stopping was enabled, use the checkpoint-tracking values
@@ -414,27 +611,38 @@ class Trainer:
 
     def evaluate(self, X_test, y_test):
         """
-        Evaluate the trained model on the test set.
+        Evaluate the trained model on the test set and print the result.
 
         Parameters
         ----------
-        X_test, y_test : numpy.ndarray
-            Test data and true targets.
+        X_test : numpy.ndarray of shape (n_test, n_features), dtype float64
+            Test inputs.
+        y_test : numpy.ndarray of shape (n_test, 1)
+            True test targets (int64 0/1 labels for classification, float64
+            values for regression).
 
         Returns
         -------
         dict
             Dictionary containing:
-            - test_loss
-            - test_metric
+            - "test_loss" (float): the training loss function on the test set
+            - "test_metric" (float): the task metric on the test set
 
         Notes
         -----
+        Processing:
+        1. Switch the network to evaluation mode and predict the whole
+           test set in one forward pass.
+        2. Compute the loss with `self.loss_fn` and the metric with
+           `_compute_metric`.
+        3. Print both values and return them.
+
         The metric depends on the task:
         - classification -> BCE
         - regression -> MSE
         """
-        # Forward pass on the test set
+        # Forward pass on the test set, in evaluation mode
+        self.network.eval()
         y_test_pred = self.network.forward(X_test)
 
         # Compute test loss and task-specific metric
@@ -454,18 +662,63 @@ class Trainer:
             "test_metric": test_metric
         }
 
+    def score(self, X, y):
+        """
+        Compute the task metric on any dataset, in evaluation mode, without printing.
+
+        Parameters
+        ----------
+        X : numpy.ndarray of shape (n_samples, n_features), dtype float64
+            Inputs.
+        y : numpy.ndarray of shape (n_samples, 1)
+            True targets (int64 0/1 labels for classification, float64
+            values for regression).
+
+        Returns
+        -------
+        float
+            BCE for classification, MSE for regression.
+
+        Notes
+        -----
+        Processing:
+        1. Predict with `predict(X)`, which switches to evaluation mode.
+        2. Compute the task metric with `_compute_metric` and return it
+           as a Python float.
+
+        Why: the training loss recorded during fit() is measured in training
+        mode, so with dropout it includes the dropout noise and is inflated.
+        Scoring the training set here, in evaluation mode, gives a training
+        metric that is directly comparable with the test metric, which is
+        what an honest overfitting (generalization-gap) comparison needs.
+        """
+        return float(self._compute_metric(y, self.predict(X)))
+
     def predict(self, X):
         """
         Run inference using the trained network.
 
         Parameters
         ----------
-        X : numpy.ndarray
+        X : numpy.ndarray of shape (n_samples, n_features), dtype float64
             Input data.
 
         Returns
         -------
-        numpy.ndarray
-            Network predictions.
+        numpy.ndarray of shape (n_samples, 1), dtype float64
+            Network predictions: probabilities in (0, 1) for a sigmoid
+            output (classification), real values for a linear output
+            (regression).
+
+        Notes
+        -----
+        Processing:
+        1. Switch the network to evaluation mode, so BatchNorm uses its
+           running statistics and Dropout is disabled.
+        2. Run one forward pass on all of X and return the output.
+
+        The network is left in evaluation mode afterwards.
         """
+        # Evaluation mode, so predictions do not depend on the batch.
+        self.network.eval()
         return self.network.forward(X)

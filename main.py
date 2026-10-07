@@ -1,16 +1,35 @@
+"""
+Experiment driver: runs the full hyperparameter sweep for both problems.
+
+Input: the two JSON experiment configs in configs/ and the datasets in
+datasets/ (downloaded first if missing).
+
+Processing: for each problem (banknote classification, energy-efficiency
+regression) and each seed, the data is preprocessed once, then one network
+is trained and tested for every combination of architecture, optimizer,
+learning rate and batch size listed in the config.
+
+Output: a console summary table, plus two files in report/ whose names
+carry the run stamp: a compact CSV summary and a full JSON file with every
+run's settings, metrics and training histories (read by src/analysis.py and
+the plotting scripts).
+"""
 import csv
 import json
 import os
 import time
 
+import numpy as np
+
 from src.fetch_data import Fetch
+from src.metrics import binary_cross_entropy, mean_squared_error
 from src.preprocessing import PreprocessBanknote, PreprocessEnergy
 from src.config_loader import ConfigLoader
 from src.network import NeuralNetwork
 from src.losses import get_loss
 from src.optimizers import get_optimizer
 from src.train import Trainer
-from src.utils import ROOT_DIR
+from src.utils import ROOT_DIR, RANDOM_SEED, RUN_STAMP, stamped_filename
 
 # Toggle this to True if you want preprocessing.py to generate EDA plots.
 # Leaving it False makes the full experiment sweep faster and quieter.
@@ -22,12 +41,92 @@ CONFIG_FILES = {
     "regression": "regression_experiments.json"
 }
 
+# Preprocessing class for each problem type.
+PREPROCESSORS = {
+    "classification": PreprocessBanknote,
+    "regression": PreprocessEnergy
+}
+
 # Folder where experiment outputs will be saved.
 # This includes the summary CSV and the full JSON results.
 REPORT_DIR = os.path.join(ROOT_DIR, "report")
 
 # Create the report directory if it does not already exist.
 os.makedirs(REPORT_DIR, exist_ok=True)
+
+
+def get_seeds(experiment_config):
+    """
+    Return the list of seeds to run for one problem.
+
+    Parameters
+    ----------
+    experiment_config : dict
+        The validated contents of one problem's JSON config file. Only the
+        optional "seeds" entry of its "experiments" section is read.
+
+    Returns
+    -------
+    list of int
+        The seeds listed in the config, or [RANDOM_SEED] if the config
+        doesn't list any.
+
+    Notes
+    -----
+    Processing:
+    1. Look up experiment_config["experiments"]["seeds"].
+    2. Fall back to [RANDOM_SEED] when the key is missing.
+
+    Each seed sets the train / validation / test split, the weight
+    initialization, the dropout masks and the per-epoch shuffling, so
+    running several seeds measures how much results vary from those
+    random choices alone.
+    """
+    return experiment_config["experiments"].get("seeds", [RANDOM_SEED])
+
+
+def constant_prediction_baseline(problem_name, dataset_splits):
+    """
+    Compute the test metric of a model that ignores the features entirely.
+
+    Parameters
+    ----------
+    problem_name : str
+        "classification" or "regression". Any value other than
+        "classification" is scored with MSE.
+    dataset_splits : tuple of numpy.ndarray
+        (X_train, y_train, X_val, y_val, X_test, y_test), as returned by the
+        preprocessor's get_data(). Each X has shape (n_samples, n_features),
+        dtype float64; each y has shape (n_samples, 1) and holds 0/1 labels
+        (integer dtype) for classification or float64 targets for
+        regression. Only y_train and y_test are used.
+
+    Returns
+    -------
+    float
+        The constant predictor's test BCE (classification) or MSE
+        (regression).
+
+    Notes
+    -----
+    Processing:
+    1. Take the mean of y_train. For 0/1 labels this is the proportion of
+       class 1; for regression it is the mean target.
+    2. Build a float array the same shape as y_test, filled with that mean.
+    3. Score it against y_test with BCE for classification, MSE otherwise.
+
+    Why these constants: the class proportion is the best constant
+    probability under BCE, and the mean is the best constant under MSE.
+
+    A trained model is only useful to the extent it beats this. The
+    fraction of this error a model removes is its "error removed"
+    (R² for regression, McFadden's pseudo-R² for classification).
+    """
+    _, y_train, _, _, _, y_test = dataset_splits
+    constant = np.full_like(y_test, y_train.mean(), dtype=float)
+    if problem_name == "classification":
+        return float(binary_cross_entropy(y_test, constant))
+    return float(mean_squared_error(y_test, constant))
 
 
 def build_model_config(experiment_config, architecture_name):
@@ -46,8 +145,20 @@ def build_model_config(experiment_config, architecture_name):
     dict
         A smaller dictionary containing only the fields required by
         NeuralNetwork.build_from_config():
-        - "input_dimension"
-        - "layers"
+        - "input_dimension" : int, number of input features.
+        - "layers" : list of dict, the layer specifications of the chosen
+          architecture, taken unchanged from the config.
+
+    Raises
+    ------
+    KeyError
+        If `architecture_name` is not one of the config's architectures.
+
+    Notes
+    -----
+    Processing:
+    1. Copy "input_dimension" from the config.
+    2. Look up the layer list of the chosen architecture.
     """
     return {
         "input_dimension": experiment_config["input_dimension"],
@@ -62,33 +173,75 @@ def run_single_experiment(
     optimizer_name,
     learning_rate,
     batch_size,
-    dataset_splits
+    dataset_splits,
+    seed=RANDOM_SEED,
+    baseline_test_metric=None
 ):
     """
-    Run one experiment.
+    Build, train and test one network for one combination of settings.
 
     Parameters
     ----------
     problem_name : str
-        Either "classification" or "regression".
+        Either "classification" or "regression". Stored in the summary.
     experiment_config : dict
-        Validated config for the current problem.
+        Validated config for the current problem. Supplies the input
+        dimension, architectures, loss name, task type, preprocessing flags
+        and the "experiments" settings (epochs and early stopping).
     architecture_name : str
-        Name of the selected architecture from the config.
+        Name of the selected architecture from the config, e.g. "A1".
     optimizer_name : str
-        Name of the optimizer to use.
+        Name of the optimizer to use, e.g. "sgd", "momentum" or "adabelief".
     learning_rate : float
         Learning rate for the optimizer.
     batch_size : int
         Mini-batch size for training.
-    dataset_splits : tuple
-        (X_train, y_train, X_val, y_val, X_test, y_test)
+    dataset_splits : tuple of numpy.ndarray
+        (X_train, y_train, X_val, y_val, X_test, y_test). Each X has shape
+        (n_samples, input_dimension), dtype float64; each y has shape
+        (n_samples, 1) with 0/1 labels (integer dtype) for classification
+        or float64 targets for regression.
+    seed : int, default=RANDOM_SEED
+        Seed for weight initialization, dropout masks and data shuffling.
+        The same seed was used to create dataset_splits.
+    baseline_test_metric : float or None, default=None
+        Test metric of a model that ignores the features (see
+        constant_prediction_baseline), recorded with the run for reference.
 
     Returns
     -------
     dict
-        Full experiment summary including settings, metrics,
-        early-stopping info, and training histories.
+        Full experiment summary. Keys:
+        - settings: "problem_name", "seed", "architecture", "optimizer",
+          "batch", "learning_rate", "epochs", "early_stopping", "patience",
+          "min_delta", "min_epochs_before_early_stop",
+          "preprocessing_enabled", "scale_features";
+        - training outcome: "epochs_ran", "stopped_early", "diverged",
+          "best_epoch", "best_val_loss";
+        - metrics (float): "test_loss", "test_metric", "train_metric",
+          "baseline_test_metric" (float or None);
+        - histories (list of float, one value per epoch):
+          "train_loss_history", "val_loss_history", "val_metric_history".
+
+    Raises
+    ------
+    ValueError
+        If the number of columns in X_train differs from the config's
+        "input_dimension".
+
+    Notes
+    -----
+    Processing:
+    1. Print a header describing the run.
+    2. Check that the data's feature count matches the config.
+    3. Build the network for the chosen architecture, seeded with `seed`.
+    4. Create the loss function, optimizer and Trainer (with the config's
+       early-stopping settings).
+    5. Train with Trainer.fit on the training set, validating on the
+       validation set each epoch.
+    6. Evaluate on the test set, and score the training set in evaluation
+       mode (no dropout) for the generalization gap.
+    7. Collect settings, results and histories into one dictionary.
     """
     print("\n" + "=" * 70)
     print(
@@ -96,7 +249,8 @@ def run_single_experiment(
         f"architecture={architecture_name} | "
         f"optimizer={optimizer_name} | "
         f"lr={learning_rate} | "
-        f"batch={batch_size}"
+        f"batch={batch_size} | "
+        f"seed={seed}"
     )
     print("=" * 70)
 
@@ -113,7 +267,7 @@ def run_single_experiment(
     model_config = build_model_config(experiment_config, architecture_name)
 
     # Create the neural network and build its layer structure from config
-    network = NeuralNetwork()
+    network = NeuralNetwork(random_seed=seed)
     network.build_from_config(model_config)
 
     # Create the loss function and optimizer from config choices
@@ -131,7 +285,8 @@ def run_single_experiment(
         early_stopping=experiment_config["experiments"]["early_stopping"],
         patience=experiment_config["experiments"]["patience"],
         min_delta=experiment_config["experiments"]["min_delta"],
-        min_epochs_before_early_stop=experiment_config["experiments"]["min_epochs_before_early_stop"]
+        min_epochs_before_early_stop=experiment_config["experiments"]["min_epochs_before_early_stop"],
+        random_seed=seed
     )
 
     # Train the model and collect history
@@ -148,11 +303,17 @@ def run_single_experiment(
     # Evaluate on the held-out test set
     results = trainer.evaluate(X_test, y_test)
 
+    # Same metric on the training set, in evaluation mode, for the
+    # generalization gap (test - train). The training loss recorded during
+    # fit() can't be used for this: with dropout it includes dropout noise.
+    train_metric = trainer.score(X_train, y_train)
+
     # Build a summary record for this run.
     # Keep the full JSON informative for later plotting/analysis,
     # even though the CSV summary is intentionally minimal.
     summary = {
         "problem_name": problem_name,
+        "seed": seed,
         "architecture": architecture_name,
         "optimizer": optimizer_name,
         "batch": batch_size,
@@ -165,11 +326,14 @@ def run_single_experiment(
         "min_epochs_before_early_stop": experiment_config["experiments"]["min_epochs_before_early_stop"],
         "epochs_ran": history["epochs_ran"],
         "stopped_early": history["stopped_early"],
+        "diverged": history["diverged"],
         "best_epoch": history["best_epoch"],
         "best_val_loss": history["best_val_loss"],
 
         "test_loss": float(results["test_loss"]),
         "test_metric": float(results["test_metric"]),
+        "train_metric": train_metric,
+        "baseline_test_metric": baseline_test_metric,
         "train_loss_history": [float(x) for x in history["train_loss"]],
         "val_loss_history": [float(x) for x in history["val_loss"]],
         "val_metric_history": [float(x) for x in history["val_metric"]],
@@ -183,25 +347,40 @@ def run_single_experiment(
 
 def save_summary_csv(results, filename="main_summary.csv"):
     """
-    Save compact experiment summary as CSV.
+    Save a compact experiment summary as a CSV file in report/.
 
     Parameters
     ----------
     results : list of dict
-        List of experiment summaries.
+        One summary dictionary per run, as returned by
+        run_single_experiment.
     filename : str, default="main_summary.csv"
-        Output CSV filename.
+        Output CSV filename. The run stamp is inserted before the
+        extension so earlier runs are never overwritten.
+
+    Returns
+    -------
+    None
+        Writes report/<filename with run stamp> and prints its path.
 
     Notes
     -----
+    Processing:
+    1. Build the stamped output path inside REPORT_DIR.
+    2. Write a header row with the selected column names.
+    3. Write one row per run, keeping only those columns (a missing key is
+       written as an empty cell).
+
     This CSV intentionally keeps only the fields needed for a compact
-    summary table.
+    summary table: problem_name, seed, optimizer, batch, learning_rate,
+    architecture, epochs_ran and test_metric.
     """
-    output_path = os.path.join(REPORT_DIR, filename)
+    output_path = os.path.join(REPORT_DIR, stamped_filename(filename))
 
     # Minimal CSV fields requested for the experiment summary
     fieldnames = [
         "problem_name",
+        "seed",
         "optimizer",
         "batch",
         "learning_rate",
@@ -225,25 +404,34 @@ def save_summary_csv(results, filename="main_summary.csv"):
 
 def save_full_results_json(results, filename="main_results_full.json"):
     """
-    Save full experiment results as JSON.
+    Save the full experiment results as a JSON file in report/.
 
     Parameters
     ----------
     results : list of dict
-        List of experiment summaries, including history arrays.
+        One summary dictionary per run, as returned by
+        run_single_experiment, including the history lists.
     filename : str, default="main_results_full.json"
-        Output JSON filename.
+        Output JSON filename. The run stamp is inserted before the
+        extension so earlier runs are never overwritten.
 
-    Why this is useful
-    ------------------
-    The JSON preserves the full histories:
-    - train_loss_history
-    - val_loss_history
-    - val_metric_history
+    Returns
+    -------
+    None
+        Writes report/<filename with run stamp> and prints its path.
 
-    This makes it useful for later analysis and plotting.
+    Notes
+    -----
+    Processing:
+    1. Build the stamped output path inside REPORT_DIR.
+    2. Dump the whole results list to it as indented JSON.
+
+    Why: unlike the CSV, the JSON preserves every field, including the
+    per-epoch histories (train_loss_history, val_loss_history,
+    val_metric_history). This makes it the input for later analysis and
+    plotting.
     """
-    output_path = os.path.join(REPORT_DIR, filename)
+    output_path = os.path.join(REPORT_DIR, stamped_filename(filename))
 
     with open(output_path, "w") as f:
         json.dump(results, f, indent=2)
@@ -258,10 +446,22 @@ def print_summary_table(results):
     Parameters
     ----------
     results : list of dict
-        List of experiment summaries.
+        One summary dictionary per run, as returned by
+        run_single_experiment. Each must have the keys problem_name, seed,
+        optimizer, batch, learning_rate, architecture, epochs_ran and
+        test_metric.
+
+    Returns
+    -------
+    None
+        Prints the table to standard output.
 
     Notes
     -----
+    Processing:
+    1. Print a title and a header row of fixed-width columns.
+    2. Print one row per run, with the test metric to 6 decimal places.
+
     The "Epochs" column here displays epochs_ran,
     meaning the actual number of epochs completed.
     """
@@ -270,10 +470,11 @@ def print_summary_table(results):
     print("=" * 110)
     print(
         f"{'Problem':<15}"
+        f"{'Seed':<6}"
         f"{'Optimizer':<15}"
         f"{'Batch':<10}"
         f"{'LR':<12}"
-        f"{'Arch':<10}"
+        f"{'Arch':<13}"
         f"{'Epochs':<10}"
         f"{'Test Metric':<15}"
     )
@@ -282,10 +483,11 @@ def print_summary_table(results):
     for row in results:
         print(
             f"{row['problem_name']:<15}"
+            f"{row['seed']:<6}"
             f"{row['optimizer']:<15}"
             f"{row['batch']:<10}"
             f"{row['learning_rate']:<12}"
-            f"{row['architecture']:<10}"
+            f"{row['architecture']:<13}"
             f"{row['epochs_ran']:<10}"
             f"{row['test_metric']:<15.6f}"
         )
@@ -293,16 +495,35 @@ def print_summary_table(results):
 
 def main():
     """
-    Main experiment driver.
+    Run the full experiment sweep for every problem and save the results.
 
-    Workflow
-    --------
-    1. Download datasets if needed
-    2. Load and validate experiment configs
-    3. Preprocess classification and regression datasets once
-    4. Run the full experiment sweep
-    5. Print/save results
+    Parameters
+    ----------
+    None
+        Uses the module-level CONFIG_FILES, PREPROCESSORS, SHOW_EDA and
+        REPORT_DIR, and the run stamp from src.utils.
+
+    Returns
+    -------
+    None
+        Downloads missing datasets, prints progress and a summary table,
+        and writes the stamped summary CSV and full-results JSON to report/.
+
+    Notes
+    -----
+    Processing:
+    1. Download the datasets if they are not already present.
+    2. Load and validate the experiment config of every problem.
+    3. Count the total number of runs, for progress messages.
+    4. For each problem and seed, preprocess the dataset once and compute
+       the constant-prediction baseline on that split.
+    5. Run one experiment for every architecture x optimizer x learning
+       rate x batch size combination on that split.
+    6. Print the summary table and save the CSV and JSON files.
     """
+    # Every file written by this run carries this stamp in its name.
+    print(f"Run stamp: {RUN_STAMP}")
+
     # Ensure all required datasets are available locally
     fetch = Fetch()
     fetch.download_all()
@@ -316,33 +537,6 @@ def main():
         for problem_name, filename in CONFIG_FILES.items()
     }
 
-    # Read preprocessing settings for each problem
-    classification_preprocessing = experiment_configs["classification"]["preprocessing"]
-    regression_preprocessing = experiment_configs["regression"]["preprocessing"]
-
-    # Preprocess each dataset only once.
-    # This is good because all experiments on the same problem then use
-    # the exact same train/validation/test split.
-    print("\nPreprocessing classification dataset...")
-    classification_data = PreprocessBanknote().get_data(
-        show_eda=SHOW_EDA,
-        preprocessing_enabled=classification_preprocessing["enabled"],
-        scale_features=classification_preprocessing["scale_features"]
-    )
-
-    print("\nPreprocessing regression dataset...")
-    regression_data = PreprocessEnergy().get_data(
-        show_eda=SHOW_EDA,
-        preprocessing_enabled=regression_preprocessing["enabled"],
-        scale_features=regression_preprocessing["scale_features"]
-    )
-
-    # Store the ready-to-use dataset splits by problem name
-    datasets = {
-        "classification": classification_data,
-        "regression": regression_data
-    }
-
     # This will hold one summary dictionary per run
     all_results = []
 
@@ -350,7 +544,8 @@ def main():
     total_runs = 0
     for problem_name, config in experiment_configs.items():
         total_runs += (
-            len(config["architectures"])
+            len(get_seeds(config))
+            * len(config["architectures"])
             * len(config["experiments"]["optimizers"])
             * len(config["experiments"]["learning_rates"])
             * len(config["experiments"]["batch_sizes"])
@@ -360,28 +555,51 @@ def main():
 
     # Full nested sweep over:
     # - problem
+    # - seed (data split + weight initialization + shuffling + dropout)
     # - architecture
     # - optimizer
     # - learning rate
     # - batch size
     for problem_name, config in experiment_configs.items():
-        for architecture_name in config["architectures"].keys():
-            for optimizer_name in config["experiments"]["optimizers"]:
-                for learning_rate in config["experiments"]["learning_rates"]:
-                    for batch_size in config["experiments"]["batch_sizes"]:
-                        run_counter += 1
-                        print(f"\nStarting run {run_counter}/{total_runs}...")
+        seeds = get_seeds(config)
+        preprocessing = config["preprocessing"]
 
-                        result = run_single_experiment(
-                            problem_name=problem_name,
-                            experiment_config=config,
-                            architecture_name=architecture_name,
-                            optimizer_name=optimizer_name,
-                            learning_rate=learning_rate,
-                            batch_size=batch_size,
-                            dataset_splits=datasets[problem_name])
+        for seed in seeds:
+            # Preprocess once per seed, so every experiment with this seed
+            # uses the exact same train/validation/test split. EDA plots are
+            # only made for the first seed, so they aren't saved again (and
+            # overwritten) for every seed.
+            print(f"\nPreprocessing {problem_name} dataset (seed {seed})...")
+            dataset_splits = PREPROCESSORS[problem_name]().get_data(
+                show_eda=SHOW_EDA,
+                preprocessing_enabled=preprocessing["enabled"],
+                scale_features=preprocessing["scale_features"],
+                random_seed=seed,
+                run_eda=(seed == seeds[0])
+            )
+            # Error of always predicting a constant on this split, stored with
+            # every run so later analysis can tell whether a model learned.
+            baseline = constant_prediction_baseline(problem_name, dataset_splits)
 
-                        all_results.append(result)
+            for architecture_name in config["architectures"].keys():
+                for optimizer_name in config["experiments"]["optimizers"]:
+                    for learning_rate in config["experiments"]["learning_rates"]:
+                        for batch_size in config["experiments"]["batch_sizes"]:
+                            run_counter += 1
+                            print(f"\nStarting run {run_counter}/{total_runs}...")
+
+                            result = run_single_experiment(
+                                problem_name=problem_name,
+                                experiment_config=config,
+                                architecture_name=architecture_name,
+                                optimizer_name=optimizer_name,
+                                learning_rate=learning_rate,
+                                batch_size=batch_size,
+                                dataset_splits=dataset_splits,
+                                seed=seed,
+                                baseline_test_metric=baseline)
+
+                            all_results.append(result)
 
     # Print a compact console summary
     print_summary_table(all_results)
@@ -393,6 +611,8 @@ def main():
     save_full_results_json(all_results)
 
 
+# Running this file runs the whole experiment sweep, saves the results to
+# report/, and prints the total wall-clock time.
 if __name__ == "__main__":
     start_time = time.perf_counter()
     main()

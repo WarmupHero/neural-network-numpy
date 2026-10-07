@@ -1,0 +1,36 @@
+Learning Rate Sensitivity
+=========================
+
+Selected matched experiment
+---------------------------
+Problem: classification
+Architecture: A1
+Optimizer: sgd
+Batch size: 16
+Only the learning rate changes: 0.1 vs 0.001.
+
+Convergence rule used
+---------------------
+Convergence is defined using TRAINING loss.
+For each run, convergence epoch is the first epoch after which all remaining
+training-loss values stay within a small tolerance of the final training loss.
+
+Measured values
+---------------
+LR = 0.1:
+  - epochs ran: 100
+  - final train loss: 0.023022
+  - final val loss: 0.017256
+  - convergence epoch: 100
+
+LR = 0.001:
+  - epochs ran: 100
+  - final train loss: 0.664019
+  - final val loss: 0.663472
+  - convergence epoch: 82
+
+Interpretation
+--------------
+LR = 0.001 converges faster by this criterion, because it reaches and stays near its final training loss earlier.
+LR = 0.1 ends with the lower final training loss in this matched experiment.
+LR = 0.1 ends with the lower final validation loss in this matched experiment.

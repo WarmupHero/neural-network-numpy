@@ -1,3 +1,12 @@
+"""
+Element-wise activation functions and a factory to create them by name.
+
+Each activation class has forward(x), which applies the function to every
+element, and backward(grad_output), which multiplies the incoming gradient
+by the function's derivative (chain rule). Activations have no trainable
+parameters; they only cache what backward() needs from forward().
+"""
+
 import numpy as np
 
 # --------------------
@@ -8,6 +17,13 @@ class ReLU:
     """
     Rectified Linear Unit activation.
 
+    Attributes
+    ----------
+    input : numpy.ndarray or None
+        Input cached by forward(), same shape as the last x.
+
+    Notes
+    -----
     Forward:
         f(x) = max(0, x)
 
@@ -15,11 +31,31 @@ class ReLU:
         f'(x) = 1 if x > 0, else 0
 
     Meaning:
+
     - Positive inputs stay unchanged
     - Zero and negative inputs become 0
     """
 
     def __init__(self):
+        """
+        Create a ReLU activation with an empty input cache.
+
+        Parameters
+        ----------
+        None
+            Takes no arguments.
+
+        Returns
+        -------
+        None
+            Sets self.input to None.
+
+        Notes
+        -----
+        Processing:
+
+        1. Initialize the input cache used by backward().
+        """
         # We store the input from the forward pass because
         # the backward pass needs to know which values were
         # positive and which were not.
@@ -31,13 +67,20 @@ class ReLU:
 
         Parameters
         ----------
-        x : numpy.ndarray
-            Input array.
+        x : numpy.ndarray of any shape, typically (batch_size, num_features), dtype float64
+            Pre-activations, usually the output of a Dense or BatchNorm layer.
 
         Returns
         -------
-        numpy.ndarray
-            Output after applying ReLU to each element.
+        numpy.ndarray of the same shape as x, dtype float64
+            max(0, x) for each element.
+
+        Notes
+        -----
+        Processing:
+
+        1. Cache x in self.input for the backward pass.
+        2. Return np.maximum(0, x).
         """
         # Save input for use in backward pass
         self.input = x
@@ -52,22 +95,30 @@ class ReLU:
 
         Parameters
         ----------
-        grad_output : numpy.ndarray
-            Gradient coming from the next layer.
+        grad_output : numpy.ndarray of the same shape as the forward input, dtype float64
+            Gradient of the loss with respect to the ReLU output, coming
+            from the next layer.
 
         Returns
         -------
-        numpy.ndarray
-            Gradient with respect to the input of ReLU.
+        numpy.ndarray of the same shape as grad_output, dtype float64
+            Gradient of the loss with respect to the ReLU input.
 
-        Logic
+        Notes
         -----
-        ReLU derivative:
-        - 1 where input > 0
-        - 0 where input <= 0
+        Processing:
 
-        So we pass the gradient through only where the
-        original input was positive.
+        1. Copy grad_output (so the caller's array is not modified).
+        2. Set the copy to 0 wherever the cached input was <= 0.
+        3. Return the copy.
+
+        ReLU derivative:
+
+        - 1 where input > 0
+        - 0 where input <= 0 (the derivative at exactly 0 is taken as 0)
+
+        So we pass the gradient through only where the original input was
+        positive.
         """
         # Start with a copy of the incoming gradient
         grad_input = grad_output.copy()
@@ -87,6 +138,13 @@ class Sigmoid:
     """
     Sigmoid activation.
 
+    Attributes
+    ----------
+    output : numpy.ndarray or None
+        Sigmoid output cached by forward(), same shape as the last x.
+
+    Notes
+    -----
     Forward:
         f(x) = 1 / (1 + exp(-x))
 
@@ -94,11 +152,31 @@ class Sigmoid:
         f'(x) = sigmoid(x) * (1 - sigmoid(x))
 
     Meaning:
+
     - Converts values into the range (0, 1)
     - Commonly used in binary classification output layers
     """
 
     def __init__(self):
+        """
+        Create a sigmoid activation with an empty output cache.
+
+        Parameters
+        ----------
+        None
+            Takes no arguments.
+
+        Returns
+        -------
+        None
+            Sets self.output to None.
+
+        Notes
+        -----
+        Processing:
+
+        1. Initialize the output cache used by backward().
+        """
         # Store the sigmoid output from the forward pass.
         # This is useful because the derivative can be written as:
         # sigmoid(x) * (1 - sigmoid(x))
@@ -110,13 +188,23 @@ class Sigmoid:
 
         Parameters
         ----------
-        x : numpy.ndarray
-            Input array.
+        x : numpy.ndarray of any shape, typically (batch_size, num_features), dtype float64
+            Pre-activations, usually the output of a Dense or BatchNorm layer.
 
         Returns
         -------
-        numpy.ndarray
-            Output after applying sigmoid.
+        numpy.ndarray of the same shape as x, dtype float64
+            1 / (1 + exp(-x)) for each element, in the range [0, 1]
+            (values strictly between 0 and 1 except for extreme inputs).
+
+        Notes
+        -----
+        Processing:
+
+        1. Clip x to [-500, 500] so exp(-x) cannot overflow.
+        2. Compute 1 / (1 + exp(-x_clipped)).
+        3. Cache the result in self.output for the backward pass and
+           return it.
         """
         # Clip very large or very small values to avoid numerical overflow
         # inside exp(). This does not change the intended behavior in a
@@ -134,16 +222,22 @@ class Sigmoid:
 
         Parameters
         ----------
-        grad_output : numpy.ndarray
-            Gradient coming from the next layer.
+        grad_output : numpy.ndarray of the same shape as the forward input, dtype float64
+            Gradient of the loss with respect to the sigmoid output, coming
+            from the next layer (or from the loss).
 
         Returns
         -------
-        numpy.ndarray
-            Gradient with respect to the input of sigmoid.
+        numpy.ndarray of the same shape as grad_output, dtype float64
+            Gradient of the loss with respect to the sigmoid input.
 
-        Logic
+        Notes
         -----
+        Processing:
+
+        1. Read the cached output s from forward().
+        2. Return grad_output * s * (1 - s).
+
         If s = sigmoid(x), then:
             ds/dx = s * (1 - s)
 
@@ -161,6 +255,13 @@ class Tanh:
     """
     Hyperbolic tangent activation.
 
+    Attributes
+    ----------
+    output : numpy.ndarray or None
+        tanh output cached by forward(), same shape as the last x.
+
+    Notes
+    -----
     Forward:
         f(x) = tanh(x)
 
@@ -168,11 +269,31 @@ class Tanh:
         f'(x) = 1 - tanh(x)^2
 
     Meaning:
+
     - Maps inputs into the range (-1, 1)
     - Often used in hidden layers
     """
 
     def __init__(self):
+        """
+        Create a tanh activation with an empty output cache.
+
+        Parameters
+        ----------
+        None
+            Takes no arguments.
+
+        Returns
+        -------
+        None
+            Sets self.output to None.
+
+        Notes
+        -----
+        Processing:
+
+        1. Initialize the output cache used by backward().
+        """
         # Store tanh output during forward pass.
         # This makes the derivative easy to compute later.
         self.output = None
@@ -183,13 +304,21 @@ class Tanh:
 
         Parameters
         ----------
-        x : numpy.ndarray
-            Input array.
+        x : numpy.ndarray of any shape, typically (batch_size, num_features), dtype float64
+            Pre-activations, usually the output of a Dense or BatchNorm layer.
 
         Returns
         -------
-        numpy.ndarray
-            Output after applying tanh.
+        numpy.ndarray of the same shape as x, dtype float64
+            tanh(x) for each element, in the range [-1, 1].
+
+        Notes
+        -----
+        Processing:
+
+        1. Compute np.tanh(x).
+        2. Cache the result in self.output for the backward pass and
+           return it.
         """
         # NumPy applies tanh to every element in the array
         self.output = np.tanh(x)
@@ -201,16 +330,22 @@ class Tanh:
 
         Parameters
         ----------
-        grad_output : numpy.ndarray
-            Gradient coming from the next layer.
+        grad_output : numpy.ndarray of the same shape as the forward input, dtype float64
+            Gradient of the loss with respect to the tanh output, coming
+            from the next layer.
 
         Returns
         -------
-        numpy.ndarray
-            Gradient with respect to the input of tanh.
+        numpy.ndarray of the same shape as grad_output, dtype float64
+            Gradient of the loss with respect to the tanh input.
 
-        Logic
+        Notes
         -----
+        Processing:
+
+        1. Read the cached output t from forward().
+        2. Return grad_output * (1 - t^2).
+
         If t = tanh(x), then:
             dt/dx = 1 - t^2
 
@@ -228,6 +363,8 @@ class Linear:
     """
     Linear (identity) activation.
 
+    Notes
+    -----
     Forward:
         f(x) = x
 
@@ -235,11 +372,32 @@ class Linear:
         f'(x) = 1
 
     Meaning:
+
     - Leaves the input unchanged
     - Commonly used in regression output layers
     """
 
     def __init__(self):
+        """
+        Create a linear (identity) activation.
+
+        Parameters
+        ----------
+        None
+            Takes no arguments.
+
+        Returns
+        -------
+        None
+            Nothing is stored; the object has no attributes.
+
+        Notes
+        -----
+        Processing:
+
+        1. Do nothing. The method exists so all activations share the
+           same structure.
+        """
         # No cached values are needed for linear activation,
         # but we keep the same class structure as the others
         # for consistency.
@@ -251,13 +409,19 @@ class Linear:
 
         Parameters
         ----------
-        x : numpy.ndarray
-            Input array.
+        x : numpy.ndarray of any shape, typically (batch_size, num_features), dtype float64
+            Pre-activations, usually the output of the last Dense layer.
 
         Returns
         -------
-        numpy.ndarray
-            Exactly the same input array.
+        numpy.ndarray of the same shape as x, dtype float64
+            The same array object x (not a copy).
+
+        Notes
+        -----
+        Processing:
+
+        1. Return x as it is.
         """
         return x
 
@@ -267,16 +431,21 @@ class Linear:
 
         Parameters
         ----------
-        grad_output : numpy.ndarray
-            Gradient coming from the next layer.
+        grad_output : numpy.ndarray of the same shape as the forward input, dtype float64
+            Gradient of the loss with respect to the activation output,
+            coming from the next layer (or from the loss).
 
         Returns
         -------
-        numpy.ndarray
-            Same gradient, unchanged.
+        numpy.ndarray of the same shape as grad_output, dtype float64
+            The same array object grad_output, unchanged.
 
-        Logic
+        Notes
         -----
+        Processing:
+
+        1. Return grad_output as it is.
+
         Since f(x) = x, its derivative is 1.
         So the gradient just passes through as-is.
         """
@@ -290,24 +459,28 @@ def get_activation(name):
     Parameters
     ----------
     name : str
-        Name of the activation function.
+        Name of the activation function, case-insensitive. Supported
+        names: "relu", "sigmoid", "tanh", "linear".
 
     Returns
     -------
-    object
-        Instance of the requested activation class.
-
-    Supported names
-    ---------------
-    - "relu"
-    - "sigmoid"
-    - "tanh"
-    - "linear"
+    ReLU or Sigmoid or Tanh or Linear
+        A new instance of the requested activation class.
 
     Raises
     ------
     ValueError
         If the activation name is not supported.
+
+    Notes
+    -----
+    Processing:
+
+    1. Convert name to lowercase.
+    2. Return a new object of the matching class.
+    3. Raise ValueError for any other name.
+
+    This lets configs choose an activation with a plain string.
     """
     # Convert to lowercase so inputs like "ReLU" or "SIGMOID"
     # still work correctly
