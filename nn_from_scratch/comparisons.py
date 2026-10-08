@@ -248,13 +248,16 @@ def _format_metrics_text(run: dict[str, Any]) -> str:
     ----------
     run : dict
         One experiment record with "train_loss_history" and
-        "val_loss_history" (lists of float).
+        "val_loss_history" (lists of float), and optionally "best_epoch"
+        (int).
 
     Returns
     -------
     str
-        Four lines: final train loss and final validation loss (6
-        decimals), epochs ran, and convergence epoch.
+        Final train loss and final validation loss (6 decimals), epochs
+        ran, the convergence epoch (training-loss plateau) and, if the run
+        records it, the best epoch (the checkpoint selected on validation
+        loss).
 
     Notes
     -----
@@ -267,12 +270,15 @@ def _format_metrics_text(run: dict[str, Any]) -> str:
     metrics = _compute_convergence_metrics(run)
 
     # Build a small multi-line string that will be shown inside the figure.
-    return (
+    text = (
         f"Final train loss: {metrics['final_train_loss']:.6f}\n"
         f"Final val loss:   {metrics['final_val_loss']:.6f}\n"
         f"Epochs ran:       {metrics['epochs_ran']}\n"
-        f"Convergence epoch:{metrics['convergence_epoch']}"
+        f"Conv. epoch (train): {metrics['convergence_epoch']}"
     )
+    if run.get("best_epoch") is not None:
+        text += f"\nBest epoch (val):    {run['best_epoch']}"
+    return text
 
 
 def _plot_loss_curves(
@@ -287,7 +293,8 @@ def _plot_loss_curves(
         Subplot axis to draw on.
     run : dict
         One experiment record from the JSON results. Uses
-        "train_loss_history" and "val_loss_history" (lists of float).
+        "train_loss_history" and "val_loss_history" (lists of float), and
+        "best_epoch" (int) if present.
     subplot_title : str
         Title shown above the subplot (" | End Epoch = N" is appended).
     include_metrics_box : bool, default=False
@@ -307,7 +314,8 @@ def _plot_loss_curves(
     2. Plot training loss as a solid line and validation loss as a dashed
        line.
     3. Draw a dotted vertical line at the final epoch, so early stopping is
-       visible.
+       visible, and a dash-dot line at the best epoch: the checkpoint with
+       the lowest validation loss, which is restored and tested.
     4. Set the title and y label, add a light grid and the legend.
     5. If requested, put the convergence-metrics box in the upper-right
        corner (axes coordinates 0.98, 0.98).
@@ -334,6 +342,18 @@ def _plot_loss_curves(
         alpha=0.8,
         label=f"Ended at epoch {end_epoch}",
     )
+
+    # Mark the checkpoint early stopping restored (lowest validation loss).
+    # The model reported on the test set is this one, not the last epoch.
+    if run.get("best_epoch") is not None:
+        ax.axvline(
+            x=run["best_epoch"],
+            color="tab:green",
+            linestyle="-.",
+            linewidth=1.2,
+            alpha=0.8,
+            label=f"Best epoch (val) {run['best_epoch']}",
+        )
 
     # Add the subplot title, including the end epoch for readability.
     ax.set_title(f"{subplot_title} | End Epoch = {end_epoch}", fontsize=11)

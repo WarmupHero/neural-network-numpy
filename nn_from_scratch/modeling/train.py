@@ -223,7 +223,8 @@ def run_single_experiment(
           "min_delta", "min_epochs_before_early_stop",
           "preprocessing_enabled", "scale_features";
         - training outcome: "epochs_ran", "stopped_early", "diverged",
-          "best_epoch", "best_val_loss";
+          "stop_reason" ("diverged", "early_stopping" or "max_epochs"),
+          "overfitting_epochs", "best_epoch", "best_val_loss";
         - metrics (float): "test_loss", "test_metric", "train_metric",
           "baseline_test_metric" (float or None), and "test_accuracy"
           (classification) or "test_r2" (regression);
@@ -351,6 +352,8 @@ def run_single_experiment(
         "epochs_ran": history["epochs_ran"],
         "stopped_early": history["stopped_early"],
         "diverged": history["diverged"],
+        "stop_reason": history["stop_reason"],
+        "overfitting_epochs": history["overfitting_epochs"],
         "best_epoch": history["best_epoch"],
         "best_val_loss": history["best_val_loss"],
         "test_loss": float(results["test_loss"]),
@@ -397,7 +400,7 @@ def save_summary_csv(results: list[dict[str, Any]], filename: str = "main_summar
 
     This CSV intentionally keeps only the fields needed for a compact
     summary table: problem_name, seed, optimizer, batch, learning_rate,
-    architecture, epochs_ran and test_metric.
+    architecture, epochs_ran, best_epoch, stop_reason and test_metric.
     """
     output_path = os.path.join(REPORT_DIR, stamped_filename(filename))
 
@@ -410,6 +413,8 @@ def save_summary_csv(results: list[dict[str, Any]], filename: str = "main_summar
         "learning_rate",
         "architecture",
         "epochs_ran",
+        "best_epoch",
+        "stop_reason",
         "test_metric",
     ]
 

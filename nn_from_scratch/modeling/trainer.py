@@ -142,7 +142,7 @@ class Trainer:
         self.random = np.random.RandomState(random_seed)
 
         # History dictionary used to store training progress over epochs
-        self.history = {"train_loss": [], "val_loss": [], "val_metric": []}
+        self.history: dict[str, Any] = {"train_loss": [], "val_loss": [], "val_metric": []}
 
     def _shuffle_data(self, X: np.ndarray, y: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """
@@ -392,6 +392,12 @@ class Trainer:
               (early stopping or divergence)
             - "diverged" (bool): True if training stopped because a loss
               became NaN or infinite
+            - "stop_reason" (str): why training ended: "diverged",
+              "early_stopping" or "max_epochs"
+            - "overfitting_epochs" (int): consecutive epochs, ending at
+              the stop, in which the training loss still improved by more
+              than `min_delta` while the validation loss did not (the
+              overfitting signature); 0 unless early stopping ended the run
             - "best_epoch" (int): 1-based epoch with the best validation
               loss
             - "best_val_loss" (float): that validation loss
@@ -417,9 +423,9 @@ class Trainer:
               patience counter, and stop once patience runs out after the
               minimum-epoch guard.
         3. If early stopping saved a checkpoint, restore it.
-        4. Record "epochs_ran", "stopped_early", "diverged" and the
-           guard setting, switch to evaluation mode, and record
-           "best_epoch" and "best_val_loss".
+        4. Record "epochs_ran", "stopped_early", "diverged", "stop_reason",
+           "overfitting_epochs" and the guard setting, switch to evaluation
+           mode, and record "best_epoch" and "best_val_loss".
 
         When early stopping is enabled, checkpoint restoration still
         uses the best validation-loss model. Patience is driven by
@@ -607,6 +613,23 @@ class Trainer:
 
         # True if training stopped because the loss stopped being finite
         self.history["diverged"] = diverged
+
+        # Why the loop ended, in one place so reports don't re-derive it.
+        if diverged:
+            self.history["stop_reason"] = "diverged"
+        elif self.history["stopped_early"]:
+            self.history["stop_reason"] = "early_stopping"
+        else:
+            self.history["stop_reason"] = "max_epochs"
+
+        # The overfitting signature at the stop: consecutive epochs in which
+        # training loss still improved while validation loss did not. Only
+        # meaningful when early stopping ended the run.
+        self.history["overfitting_epochs"] = (
+            train_improving_without_val_count
+            if self.history["stop_reason"] == "early_stopping"
+            else 0
+        )
 
         # Leave the network ready for evaluation and prediction.
         self.network.eval()

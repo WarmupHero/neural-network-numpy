@@ -165,3 +165,65 @@ def test_trainer_fits_and_evaluates():
     # The evaluation metric for classification is BCE, the same quantity as the loss
     assert results["test_metric"] == pytest.approx(results["test_loss"])
     assert results["test_metric"] < 0.3  # well below ln(2) ~= 0.693, the BCE of a coin flip
+
+
+def test_a_run_that_reaches_max_epochs_records_why_it_ended():
+    """
+    A run that uses every epoch reports stop_reason "max_epochs" and no overfitting.
+
+    Notes
+    -----
+    Early stopping is on, but patience (100) is longer than the 10
+    requested epochs, so training can only end at the epoch limit.
+    Asserted: stop_reason is "max_epochs", overfitting_epochs is 0, and
+    the run is neither diverged nor stopped early.
+    """
+    X, y = make_classification_data(n=150)
+    trainer = Trainer(
+        network=build_classifier(),
+        loss_fn=get_loss("bce"),
+        optimizer=get_optimizer("adabelief", 0.01),
+        task_type="classification",
+        early_stopping=True,
+        patience=100,
+    )
+    history = trainer.fit(
+        X[:100], y[:100], X[100:], y[100:], epochs=10, batch_size=16, verbose=False
+    )
+
+    assert history["stop_reason"] == "max_epochs"
+    assert history["overfitting_epochs"] == 0
+    assert not history["diverged"] and not history["stopped_early"]
+
+
+def test_early_stopping_records_the_overfitting_signature():
+    """
+    A run whose validation loss rises while training loss falls is stopped
+    as overfitting.
+
+    Notes
+    -----
+    The validation set has the training inputs with flipped labels, so
+    every step that lowers the training loss raises the validation loss:
+    the best checkpoint is epoch 1, and the run must stop after patience
+    (3) epochs without validation improvement (no minimum-epoch guard).
+    Asserted: stop_reason is "early_stopping", best_epoch is 1, 4 epochs
+    ran, and overfitting_epochs counts the 3 epochs in which training
+    improved while validation did not.
+    """
+    X, y = make_classification_data(n=100)
+    trainer = Trainer(
+        network=build_classifier(),
+        loss_fn=get_loss("bce"),
+        optimizer=get_optimizer("adabelief", 0.01),
+        task_type="classification",
+        early_stopping=True,
+        patience=3,
+        min_delta=0.0,
+    )
+    history = trainer.fit(X, y, X, 1.0 - y, epochs=50, batch_size=16, verbose=False)
+
+    assert history["stop_reason"] == "early_stopping"
+    assert history["best_epoch"] == 1
+    assert history["epochs_ran"] == 4
+    assert history["overfitting_epochs"] == 3

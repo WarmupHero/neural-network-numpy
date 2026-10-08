@@ -174,8 +174,11 @@ def add_derived_metrics(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
     -------
     list of dict
         The same list (modified in place), with "final_train_loss" (float)
-        and "convergence_epoch" (int) added to each run, and
-        "best_val_loss" (float) added if the run doesn't have one.
+        and "convergence_epoch" (int) added to each run,
+        "generalization_gap" (float) added when the run records
+        "train_metric", and "best_val_loss" (float), "stop_reason" (str)
+        and "overfitting_epochs" (int or None) added if the run doesn't
+        have them.
 
     Notes
     -----
@@ -187,6 +190,11 @@ def add_derived_metrics(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
        minimum of the validation-loss history.
     2. final_train_loss = last value of the training-loss history.
     3. convergence_epoch = convergence_epoch(train_loss_history).
+    4. generalization_gap = test_metric - train_metric, if train_metric is
+       recorded. A large positive gap means overfitting.
+    5. For older results files: derive stop_reason from the "diverged" and
+       "stopped_early" flags, and set overfitting_epochs to None (not
+       recorded).
 
     Why not always use the minimum of the history: early stopping only
     saves a checkpoint when the validation loss improves by more than
@@ -207,6 +215,20 @@ def add_derived_metrics(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
         # Convergence epoch computed from the training-loss history.
         run["convergence_epoch"] = convergence_epoch(run["train_loss_history"])
+
+        # Generalization gap: test minus training metric (evaluation mode).
+        if "train_metric" in run:
+            run["generalization_gap"] = run["test_metric"] - run["train_metric"]
+
+        # Older results files don't record how a run ended.
+        if "stop_reason" not in run:
+            if run.get("diverged"):
+                run["stop_reason"] = "diverged"
+            elif run.get("stopped_early"):
+                run["stop_reason"] = "early_stopping"
+            else:
+                run["stop_reason"] = "max_epochs"
+        run.setdefault("overfitting_epochs", None)
 
     return results
 
@@ -334,21 +356,25 @@ def summarize_task_group(group_runs: list[dict[str, Any]]) -> dict[str, Any]:
     group_runs : list of dict
         Non-empty list of runs belonging to one group (same optimizer or
         same architecture), all from the same problem. Each needs
-        "convergence_epoch" and "best_val_loss".
+        "convergence_epoch", "best_epoch" and "best_val_loss".
 
     Returns
     -------
     dict
         Summary statistics for that group:
         - "num_runs" : int, number of runs in the group.
-        - "avg_convergence_epoch" : float, mean convergence epoch.
+        - "avg_convergence_epoch" : float, mean convergence epoch
+          (training-loss plateau).
+        - "avg_best_epoch" : float, mean epoch of the restored
+          (validation-selected) checkpoint.
         - "avg_best_val_loss" : float, mean best validation loss.
 
     Notes
     -----
     Processing:
     1. Count the runs.
-    2. Average their convergence epochs and best validation losses.
+    2. Average their convergence epochs, best epochs and best validation
+       losses.
 
     This is used for the classification and regression tables. At the task
     level, we can report average best validation loss directly, because all
@@ -359,6 +385,8 @@ def summarize_task_group(group_runs: list[dict[str, Any]]) -> dict[str, Any]:
         "num_runs": len(group_runs),
         # Average convergence epoch based on training-loss convergence.
         "avg_convergence_epoch": mean(r["convergence_epoch"] for r in group_runs),
+        # Average epoch of the checkpoint selected on validation loss.
+        "avg_best_epoch": mean(r["best_epoch"] for r in group_runs),
         # Average best validation loss inside this task.
         "avg_best_val_loss": mean(r["best_val_loss"] for r in group_runs),
     }
@@ -373,14 +401,17 @@ def summarize_combined_group(group_runs: list[dict[str, Any]]) -> dict[str, Any]
     group_runs : list of dict
         Non-empty list of runs belonging to one group (same optimizer or
         same architecture), possibly from both problems. Each needs
-        "convergence_epoch" and "normalized_best_val_loss".
+        "convergence_epoch", "best_epoch" and "normalized_best_val_loss".
 
     Returns
     -------
     dict
         Summary statistics for that group:
         - "num_runs" : int, number of runs in the group.
-        - "avg_convergence_epoch" : float, mean convergence epoch.
+        - "avg_convergence_epoch" : float, mean convergence epoch
+          (training-loss plateau).
+        - "avg_best_epoch" : float, mean epoch of the restored
+          (validation-selected) checkpoint.
         - "avg_normalized_best_val_loss" : float, mean normalized best
           validation loss.
 
@@ -388,8 +419,8 @@ def summarize_combined_group(group_runs: list[dict[str, Any]]) -> dict[str, Any]
     -----
     Processing:
     1. Count the runs.
-    2. Average their convergence epochs and normalized best validation
-       losses.
+    2. Average their convergence epochs, best epochs and normalized best
+       validation losses.
 
     This is used for the final overall answers across all experiments.
     Because classification and regression use different loss scales,
@@ -400,6 +431,8 @@ def summarize_combined_group(group_runs: list[dict[str, Any]]) -> dict[str, Any]
         "num_runs": len(group_runs),
         # Average convergence epoch across all runs in the group.
         "avg_convergence_epoch": mean(r["convergence_epoch"] for r in group_runs),
+        # Average epoch of the checkpoint selected on validation loss.
+        "avg_best_epoch": mean(r["best_epoch"] for r in group_runs),
         # Average normalized best validation loss across all runs in the group.
         "avg_normalized_best_val_loss": mean(r["normalized_best_val_loss"] for r in group_runs),
     }
@@ -459,7 +492,10 @@ def format_task_table(
     -----
     Processing:
     1. Write the title and an underline of dashes.
-    2. Write the header row (Group, Runs, Avg Conv Epoch, Avg Best Val Loss).
+    2. Write the header row (Group, Runs, Avg Conv Epoch, Avg Best Epoch,
+       Avg Best Val Loss). The convergence epoch is where the training loss
+       plateaus; the best epoch is the checkpoint selected on validation
+       loss.
     3. Write one fixed-width row per group in `preferred_order`.
     4. Join the lines with newlines.
     """
@@ -467,7 +503,10 @@ def format_task_table(
     lines = [title, "-" * len(title)]
 
     # Add the table header row.
-    lines.append(f"{'Group':<15}{'Runs':<8}{'Avg Conv Epoch':<18}{'Avg Best Val Loss':<20}")
+    lines.append(
+        f"{'Group':<15}{'Runs':<8}{'Avg Conv Epoch':<18}{'Avg Best Epoch':<18}"
+        f"{'Avg Best Val Loss':<20}"
+    )
 
     # Add one row per group in the requested order.
     for group_name in ordered_keys(summary_dict, preferred_order):
@@ -476,6 +515,7 @@ def format_task_table(
             f"{group_name:<15}"
             f"{stats['num_runs']:<8}"
             f"{stats['avg_convergence_epoch']:<18.2f}"
+            f"{stats['avg_best_epoch']:<18.2f}"
             f"{stats['avg_best_val_loss']:<20.6f}"
         )
 
@@ -709,7 +749,7 @@ def format_combined_table(
     -----
     Processing:
     1. Write the title and an underline of dashes.
-    2. Write the header row (Group, Runs, Avg Conv Epoch,
+    2. Write the header row (Group, Runs, Avg Conv Epoch, Avg Best Epoch,
        Avg Norm Best Val Loss).
     3. Write one fixed-width row per group in `preferred_order`.
     4. Join the lines with newlines.
@@ -718,7 +758,10 @@ def format_combined_table(
     lines = [title, "-" * len(title)]
 
     # Add the table header row.
-    lines.append(f"{'Group':<15}{'Runs':<8}{'Avg Conv Epoch':<18}{'Avg Norm Best Val Loss':<24}")
+    lines.append(
+        f"{'Group':<15}{'Runs':<8}{'Avg Conv Epoch':<18}{'Avg Best Epoch':<18}"
+        f"{'Avg Norm Best Val Loss':<24}"
+    )
 
     # Add one row per group in the requested order.
     for group_name in ordered_keys(summary_dict, preferred_order):
@@ -727,6 +770,7 @@ def format_combined_table(
             f"{group_name:<15}"
             f"{stats['num_runs']:<8}"
             f"{stats['avg_convergence_epoch']:<18.2f}"
+            f"{stats['avg_best_epoch']:<18.2f}"
             f"{stats['avg_normalized_best_val_loss']:<24.6f}"
         )
 
@@ -1070,8 +1114,8 @@ def format_architecture_seed_table(
         Section title.
     problem_runs : list of dict
         All runs of one problem, from every seed. Each needs "architecture",
-        "best_val_loss", "convergence_epoch", "test_metric" and
-        "baseline_test_metric".
+        "best_val_loss", "convergence_epoch", "best_epoch", "test_metric"
+        and "baseline_test_metric".
     digits : int
         Decimal places used for the test metric.
 
@@ -1087,7 +1131,8 @@ def format_architecture_seed_table(
     variants, then the dropout architectures; others are not shown):
     1. Per seed, select the best run by validation loss and report the mean
        ± std of their test metrics across seeds.
-    2. Per seed, average the convergence epoch over runs that didn't
+    2. Per seed, average the convergence epoch (training-loss plateau) and
+       the best epoch (validation-selected checkpoint) over runs that didn't
        diverge, and report the mean ± std of those averages.
     3. Count the non-diverged runs that were no better than the constant
        baseline, and the diverged runs, each out of all its runs.
@@ -1104,7 +1149,8 @@ def format_architecture_seed_table(
     lines = [title, "-" * len(title)]
     lines.append(
         f"{'Architecture':<15}{'Best run test (mean ± std)':<30}"
-        f"{'Avg conv epoch':<22}{'No better than baseline':<25}{'Diverged':<10}"
+        f"{'Avg conv epoch':<22}{'Avg best epoch':<22}{'No better than baseline':<25}"
+        f"{'Diverged':<10}"
     )
 
     for arch in [a for a in order if a in by_arch]:
@@ -1118,13 +1164,100 @@ def format_architecture_seed_table(
             for rs in runs_by_seed(runs).values()
             if any(not is_diverged(r) for r in rs)
         ]
+        best_epoch_per_seed = [
+            mean(r["best_epoch"] for r in rs if not is_diverged(r))
+            for rs in runs_by_seed(runs).values()
+            if any(not is_diverged(r) for r in rs)
+        ]
         failed = sum(fails_baseline(r) for r in runs if not is_diverged(r))
         diverged = sum(is_diverged(r) for r in runs)
 
         lines.append(
             f"{arch:<15}{mean_pm_std([r['test_metric'] for r in best_per_seed], digits):<30}"
-            f"{mean_pm_std(conv_per_seed, 1):<22}{f'{failed}/{len(runs)}':<25}{f'{diverged}/{len(runs)}':<10}"
+            f"{mean_pm_std(conv_per_seed, 1):<22}{mean_pm_std(best_epoch_per_seed, 1):<22}"
+            f"{f'{failed}/{len(runs)}':<25}{f'{diverged}/{len(runs)}':<10}"
         )
+
+    lines.append("")
+    return "\n".join(lines)
+
+
+def format_stopping_seed_table(title: str, problem_runs: list[dict[str, Any]], digits: int) -> str:
+    """
+    Format a table of how each architecture's runs ended, across seeds.
+
+    Parameters
+    ----------
+    title : str
+        Section title.
+    problem_runs : list of dict
+        All runs of one problem, from every seed, with derived metrics added
+        (see add_derived_metrics). Each needs "architecture", "stop_reason",
+        "overfitting_epochs" (int or None), "best_val_loss" and
+        "test_metric", and optionally "generalization_gap".
+    digits : int
+        Decimal places used for the generalization gap.
+
+    Returns
+    -------
+    str
+        A formatted multi-line string with one row per architecture: how
+        many runs ended by early stopping, at the maximum number of epochs
+        or by diverging; how many early-stopped runs showed the overfitting
+        signature when they stopped; and the generalization gap (test minus
+        train metric) of the run selected per seed, as mean ± std. Ends with
+        a blank line.
+
+    Notes
+    -----
+    Processing, for each architecture (same order as the architecture
+    table; others are not shown):
+    1. Count the runs per stop reason.
+    2. Among the early-stopped runs, count those with overfitting_epochs > 0,
+       i.e. whose training loss was still improving while the validation
+       loss was not. Older results files don't record it ("n/a").
+    3. Per seed, select the best run by validation loss and report the mean
+       ± std of its generalization gap.
+
+    The overfitting count uses the trainer's min_delta as the size of a
+    meaningful improvement, so runs whose losses are already far below
+    min_delta can't show the signature; the gap covers those.
+    """
+    order = (
+        ARCHITECTURE_ORDER
+        + [a for a in A2_VARIANT_ORDER if a not in ARCHITECTURE_ORDER]
+        + [with_dropout for _, with_dropout in DROPOUT_PAIRS]
+    )
+    by_arch = group_by_key(problem_runs, "architecture")
+
+    lines = [title, "-" * len(title)]
+    lines.append(
+        f"{'Architecture':<15}{'Early / max / diverged':<26}"
+        f"{'Overfitting at stop':<22}{'Gap of selected run (test - train)':<36}"
+    )
+
+    for arch in [a for a in order if a in by_arch]:
+        runs = by_arch[arch]
+        counts = {
+            reason: sum(r["stop_reason"] == reason for r in runs)
+            for reason in ("early_stopping", "max_epochs", "diverged")
+        }
+        stops = f"{counts['early_stopping']} / {counts['max_epochs']} / {counts['diverged']}"
+
+        early = [r for r in runs if r["stop_reason"] == "early_stopping"]
+        if all(r["overfitting_epochs"] is not None for r in early):
+            overfit = f"{sum(r['overfitting_epochs'] > 0 for r in early)} of {len(early)}"
+        else:
+            overfit = "n/a"
+
+        best_per_seed = [select_by_validation(rs) for rs in runs_by_seed(runs).values()]
+        gaps = [
+            r["generalization_gap"]
+            for r in best_per_seed
+            if r is not None and "generalization_gap" in r
+        ]
+
+        lines.append(f"{arch:<15}{stops:<26}{overfit:<22}{mean_pm_std(gaps, digits):<36}")
 
     lines.append("")
     return "\n".join(lines)
@@ -1261,8 +1394,8 @@ def build_multi_seed_section(results: list[dict[str, Any]]) -> str:
        constant-prediction baseline and "error removed".
     2. For each problem whose runs record a baseline, add: the selected
        model per seed (baseline architectures, then all architectures), the
-       architecture summary across seeds, and the optimizer x learning-rate
-       table.
+       architecture summary across seeds, how the runs ended (stopping and
+       overfitting), and the optimizer x learning-rate table.
     3. Add the regression collapse-check counts across seeds.
     4. If any dropout run records a training metric, add the dropout
        comparison for each problem over all matched runs.
@@ -1314,6 +1447,13 @@ def build_multi_seed_section(results: list[dict[str, Any]]) -> str:
         lines.append(
             format_architecture_seed_table(
                 f"Architectures Across Seeds — {label} ({loss_name})", problem_runs, digits
+            )
+        )
+        lines.append(
+            format_stopping_seed_table(
+                f"Stopping and Overfitting Across Seeds — {label} ({loss_name})",
+                problem_runs,
+                digits,
             )
         )
         lines.append(
@@ -1487,6 +1627,14 @@ def main(results_path: str | None = None) -> None:
     lines.append(
         "For each run, convergence epoch is the first epoch after which all remaining "
         "training-loss values stay within a small tolerance of the final training loss."
+    )
+    lines.append("")
+    lines.append(
+        "Convergence epoch (training-loss plateau) and best epoch (the checkpoint with the "
+        "lowest validation loss, which early stopping restores and which is tested) answer "
+        "different questions: how fast the optimizer settles, and when the model was best. "
+        "Early stopping is driven by validation loss only. Overfitting shows as training "
+        "loss still improving while validation loss doesn't, and as a large test - train gap."
     )
 
     lines.append("")

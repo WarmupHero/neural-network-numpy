@@ -5,6 +5,8 @@ Method
 ------
 For each run, convergence epoch is the first epoch after which all remaining training-loss values stay within a small tolerance of the final training loss.
 
+Convergence epoch (training-loss plateau) and best epoch (the checkpoint with the lowest validation loss, which early stopping restores and which is tested) answer different questions: how fast the optimizer settles, and when the model was best. Early stopping is driven by validation loss only. Overfitting shows as training loss still improving while validation loss doesn't, and as a large test - train gap.
+
 For overall loss comparison across classification and regression, combined results use normalized best validation loss within each problem separately.
 
 Supporting Data — Classification
@@ -13,16 +15,16 @@ Loss : BCE
 
 Optimizer Summary — Classification
 ----------------------------------
-Group          Runs    Avg Conv Epoch    Avg Best Val Loss   
-sgd            8       57.12             0.353005            
-momentum       8       53.88             0.353303            
-adabelief      8       66.88             0.021827            
+Group          Runs    Avg Conv Epoch    Avg Best Epoch    Avg Best Val Loss   
+sgd            8       57.12             93.00             0.353005            
+momentum       8       53.88             89.00             0.353303            
+adabelief      8       66.88             60.75             0.021827            
 
 Architecture Summary — Classification
 -------------------------------------
-Group          Runs    Avg Conv Epoch    Avg Best Val Loss   
-A1             12      77.67             0.237760            
-A2             12      40.92             0.247663            
+Group          Runs    Avg Conv Epoch    Avg Best Epoch    Avg Best Val Loss   
+A1             12      77.67             94.50             0.237760            
+A2             12      40.92             67.33             0.247663            
 
 Supporting Data — Regression
 ----------------------------
@@ -30,16 +32,16 @@ Loss: MSE
 
 Optimizer Summary — Regression
 ------------------------------
-Group          Runs    Avg Conv Epoch    Avg Best Val Loss   
-sgd            8       65.75             162.851861          
-momentum       8       76.50             162.087696          
-adabelief      8       80.00             5.678145            
+Group          Runs    Avg Conv Epoch    Avg Best Epoch    Avg Best Val Loss   
+sgd            8       65.75             58.38             162.851861          
+momentum       8       76.50             72.50             162.087696          
+adabelief      8       80.00             76.88             5.678145            
 
 Architecture Summary — Regression
 ---------------------------------
-Group          Runs    Avg Conv Epoch    Avg Best Val Loss   
-A1             12      92.00             6.799580            
-A2             12      56.17             213.612221          
+Group          Runs    Avg Conv Epoch    Avg Best Epoch    Avg Best Val Loss   
+A1             12      92.00             92.25             6.799580            
+A2             12      56.17             46.25             213.612221          
 
 Supporting Data — Combined Overall
 ---------------------------------
@@ -47,16 +49,16 @@ Loss values below are normalized within each problem before averaging.
 
 Optimizer Summary — Combined Overall
 ------------------------------------
-Group          Runs    Avg Conv Epoch    Avg Norm Best Val Loss  
-sgd            16      61.44             0.383488                
-momentum       16      65.19             0.383095                
-adabelief      16      73.44             0.019626                
+Group          Runs    Avg Conv Epoch    Avg Best Epoch    Avg Norm Best Val Loss  
+sgd            16      61.44             75.69             0.383488                
+momentum       16      65.19             80.75             0.383095                
+adabelief      16      73.44             68.81             0.019626                
 
 Architecture Summary — Combined Overall
 ---------------------------------------
-Group          Runs    Avg Conv Epoch    Avg Norm Best Val Loss  
-A1             24      84.83             0.176286                
-A2             24      48.54             0.347853                
+Group          Runs    Avg Conv Epoch    Avg Best Epoch    Avg Norm Best Val Loss  
+A1             24      84.83             93.38             0.176286                
+A2             24      48.54             56.79             0.347853                
 
 Answers
 -------
@@ -70,21 +72,21 @@ Each variant changes A2 (3 hidden ReLU layers): A2-bias adds a bias term to ever
 
 A2 Variant Summary — Classification (BCE)
 -----------------------------------------
-Group          Runs    Avg Conv Epoch    Avg Best Val Loss   
-A2             12      40.92             0.247663            
-A2-bias        12      45.33             0.228504            
-A2-he          12      81.67             0.058169            
-A2-bias-he     12      71.42             0.045813            
-A2-bn          12      67.33             0.034570            
+Group          Runs    Avg Conv Epoch    Avg Best Epoch    Avg Best Val Loss   
+A2             12      40.92             67.33             0.247663            
+A2-bias        12      45.33             70.25             0.228504            
+A2-he          12      81.67             78.50             0.058169            
+A2-bias-he     12      71.42             74.83             0.045813            
+A2-bn          12      67.33             59.17             0.034570            
 
 A2 Variant Summary — Regression (MSE)
 -------------------------------------
-Group          Runs    Avg Conv Epoch    Avg Best Val Loss   
-A2             12      56.17             213.612221          
-A2-bias        11      71.27             37.001780           
-A2-he          11      62.18             175.485476          
-A2-bias-he     11      73.55             31.610044           
-A2-bn          10      47.50             3.549473            
+Group          Runs    Avg Conv Epoch    Avg Best Epoch    Avg Best Val Loss   
+A2             12      56.17             46.25             213.612221          
+A2-bias        11      71.27             61.36             37.001780           
+A2-he          11      62.18             52.36             175.485476          
+A2-bias-he     11      73.55             68.64             31.610044           
+A2-bn          10      47.50             35.90             3.549473            
 
 Diverged runs (loss overflowed; excluded from the averages above):
 - A2-bias | sgd | LR=0.1 | Batch=16
@@ -152,15 +154,27 @@ Mean                                                  0.00009 ± 0.00013       9
 
 Architectures Across Seeds — Classification (BCE)
 -------------------------------------------------
-Architecture   Best run test (mean ± std)    Avg conv epoch        No better than baseline  Diverged  
-A1             0.00169 ± 0.00211             79.5 ± 2.5            4/60                     0/60      
-A2             0.00565 ± 0.00401             40.6 ± 6.5            16/60                    0/60      
-A2-bias        0.00014 ± 0.00017             47.0 ± 3.3            6/60                     0/60      
-A2-he          0.00469 ± 0.00450             71.3 ± 7.7            0/60                     0/60      
-A2-bias-he     0.00008 ± 0.00006             70.2 ± 1.8            0/60                     0/60      
-A2-bn          0.00029 ± 0.00023             65.3 ± 2.1            0/60                     0/60      
-A1-dropout     0.00760 ± 0.00858             80.6 ± 10.7           4/60                     0/60      
-A2-bn-dropout  0.00039 ± 0.00047             63.6 ± 3.1            0/60                     0/60      
+Architecture   Best run test (mean ± std)    Avg conv epoch        Avg best epoch        No better than baseline  Diverged  
+A1             0.00169 ± 0.00211             79.5 ± 2.5            90.5 ± 3.0            4/60                     0/60      
+A2             0.00565 ± 0.00401             40.6 ± 6.5            61.6 ± 9.1            16/60                    0/60      
+A2-bias        0.00014 ± 0.00017             47.0 ± 3.3            74.1 ± 6.1            6/60                     0/60      
+A2-he          0.00469 ± 0.00450             71.3 ± 7.7            65.4 ± 9.7            0/60                     0/60      
+A2-bias-he     0.00008 ± 0.00006             70.2 ± 1.8            78.1 ± 5.8            0/60                     0/60      
+A2-bn          0.00029 ± 0.00023             65.3 ± 2.1            57.0 ± 2.4            0/60                     0/60      
+A1-dropout     0.00760 ± 0.00858             80.6 ± 10.7           83.9 ± 6.9            4/60                     0/60      
+A2-bn-dropout  0.00039 ± 0.00047             63.6 ± 3.1            54.9 ± 3.7            0/60                     0/60      
+
+Stopping and Overfitting Across Seeds — Classification (BCE)
+------------------------------------------------------------
+Architecture   Early / max / diverged    Overfitting at stop   Gap of selected run (test - train)  
+A1             12 / 48 / 0               3 of 12               0.00060 ± 0.00139                   
+A2             35 / 25 / 0               8 of 35               -0.00023 ± 0.00565                  
+A2-bias        24 / 36 / 0               1 of 24               0.00010 ± 0.00017                   
+A2-he          30 / 30 / 0               4 of 30               0.00137 ± 0.00543                   
+A2-bias-he     21 / 39 / 0               0 of 21               -0.00006 ± 0.00025                  
+A2-bn          45 / 15 / 0               4 of 45               -0.00005 ± 0.00023                  
+A1-dropout     16 / 44 / 0               0 of 16               0.00392 ± 0.00621                   
+A2-bn-dropout  42 / 18 / 0               6 of 42               -0.00029 ± 0.00081                  
 
 Optimizer x Learning Rate Across Seeds — Classification (BCE), A1 / A2, average test metric
 -------------------------------------------------------------------------------------------
@@ -191,15 +205,27 @@ Mean                                                  0.4993 ± 0.1968         9
 
 Architectures Across Seeds — Regression (MSE)
 ---------------------------------------------
-Architecture   Best run test (mean ± std)    Avg conv epoch        No better than baseline  Diverged  
-A1             0.5200 ± 0.1876               87.5 ± 3.8            0/60                     0/60      
-A2             1.7931 ± 0.7966               52.5 ± 6.1            12/60                    8/60      
-A2-bias        0.7010 ± 0.1849               66.6 ± 11.0           6/60                     12/60     
-A2-he          1.7521 ± 0.5916               61.4 ± 6.8            14/60                    6/60      
-A2-bias-he     0.6841 ± 0.4320               73.8 ± 5.4            9/60                     10/60     
-A2-bn          1.4385 ± 0.2801               53.8 ± 4.9            0/60                     10/60     
-A1-dropout     3.5496 ± 0.6041               75.1 ± 6.1            0/60                     0/60      
-A2-bn-dropout  6.0162 ± 1.7577               43.1 ± 8.3            1/60                     9/60      
+Architecture   Best run test (mean ± std)    Avg conv epoch        Avg best epoch        No better than baseline  Diverged  
+A1             0.5200 ± 0.1876               87.5 ± 3.8            86.0 ± 5.0            0/60                     0/60      
+A2             1.7931 ± 0.7966               52.5 ± 6.1            42.2 ± 7.5            12/60                    8/60      
+A2-bias        0.7010 ± 0.1849               66.6 ± 11.0           58.4 ± 12.2           6/60                     12/60     
+A2-he          1.7521 ± 0.5916               61.4 ± 6.8            52.9 ± 7.4            14/60                    6/60      
+A2-bias-he     0.6841 ± 0.4320               73.8 ± 5.4            68.7 ± 6.4            9/60                     10/60     
+A2-bn          1.4385 ± 0.2801               53.8 ± 4.9            43.5 ± 5.8            0/60                     10/60     
+A1-dropout     3.5496 ± 0.6041               75.1 ± 6.1            67.7 ± 8.2            0/60                     0/60      
+A2-bn-dropout  6.0162 ± 1.7577               43.1 ± 8.3            31.3 ± 9.0            1/60                     9/60      
+
+Stopping and Overfitting Across Seeds — Regression (MSE)
+--------------------------------------------------------
+Architecture   Early / max / diverged    Overfitting at stop   Gap of selected run (test - train)  
+A1             17 / 43 / 0               3 of 17               0.1591 ± 0.1072                     
+A2             45 / 7 / 8                5 of 45               0.2239 ± 0.5254                     
+A2-bias        34 / 14 / 12              6 of 34               0.1931 ± 0.1080                     
+A2-he          35 / 19 / 6               3 of 35               0.5284 ± 0.5976                     
+A2-bias-he     24 / 26 / 10              4 of 24               0.2426 ± 0.2889                     
+A2-bn          48 / 2 / 10               3 of 48               0.2009 ± 0.2934                     
+A1-dropout     37 / 23 / 0               1 of 37               0.6609 ± 0.3740                     
+A2-bn-dropout  50 / 1 / 9                3 of 50               0.9743 ± 0.6927                     
 
 Optimizer x Learning Rate Across Seeds — Regression (MSE), A1 / A2, average test metric
 ---------------------------------------------------------------------------------------

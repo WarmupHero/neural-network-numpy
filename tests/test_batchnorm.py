@@ -387,7 +387,8 @@ def test_trainer_stops_and_flags_a_diverging_run():
     A regression network is trained with SGD at learning rate 10 on
     targets scaled by 1000, which makes the loss overflow. NumPy
     overflow warnings are silenced. Asserted: history["diverged"] is
-    True, fewer than the 50 requested epochs ran, and the last recorded
+    True, stop_reason is "diverged", fewer than the 50 requested epochs
+    ran, and the last recorded
     training or validation loss is not finite.
     """
     rng = np.random.RandomState(8)
@@ -412,6 +413,7 @@ def test_trainer_stops_and_flags_a_diverging_run():
 
     assert history["diverged"] is True
     assert history["epochs_ran"] < 50
+    assert history["stop_reason"] == "diverged"
     assert not np.isfinite(history["train_loss"][-1]) or not np.isfinite(history["val_loss"][-1])
 
 

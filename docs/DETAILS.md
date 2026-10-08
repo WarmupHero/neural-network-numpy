@@ -110,7 +110,7 @@ make analysis       # python -m nn_from_scratch.analysis
 make all
 ```
 
-Steps 2 and 3 read the newest `reports/main_results_full_*.json` and fail if none exists. To analyse a specific run instead, pass its path as the first argument, e.g. `python -m nn_from_scratch.analysis reports/main_results_full_20261007-165753.json`. The repository already includes a results file, so you can run them immediately. `make plots` sets `MPLBACKEND=Agg` so no plot windows open; set it yourself when running the Python command directly.
+Steps 2 and 3 read the newest `reports/main_results_full_*.json` and fail if none exists. To analyse a specific run instead, pass its path as the first argument, e.g. `python -m nn_from_scratch.analysis reports/main_results_full_20261008-215507.json`. The repository already includes a results file, so you can run them immediately. `make plots` sets `MPLBACKEND=Agg` so no plot windows open; set it yourself when running the Python command directly.
 
 `make` is not installed on Windows by default: install it with `winget install ezwinports.make` and open a new terminal.
 
@@ -186,11 +186,16 @@ Each run also records `test_accuracy` (classification, at a 0.5 threshold) or `t
 
 #### Training metric for the generalization gap
 
-Each run also records `train_metric`: the BCE or MSE on the training set, measured in evaluation mode on the restored best model (`Trainer.score`). The training loss recorded during `fit()` can't be used for this, because it's measured in training mode and, with dropout, includes the dropout noise. `test_metric − train_metric` is the generalization gap: a large positive gap means overfitting.
+Each run also records `train_metric`: the BCE or MSE on the training set, measured in evaluation mode on the restored best model (`Trainer.score`). The training loss recorded during `fit()` can't be used for this, because it's measured in training mode and, with dropout, includes the dropout noise. `test_metric − train_metric` is the generalization gap: a large positive gap means overfitting. The analysis adds it to every run as `generalization_gap`.
 
-#### Divergence
+#### How a run ends
 
-If the training or validation loss of an epoch is NaN or infinite, the trainer stops immediately and sets `diverged` in the run's results. If an earlier epoch was finite, early stopping still restores that checkpoint, so a diverged run can report a finite but meaningless test metric. The analysis therefore uses the `diverged` flag rather than the metric.
+Each run records `stop_reason`, one of:
+- `diverged`: the training or validation loss of an epoch became NaN or infinite, and the trainer stopped immediately (`diverged` is also set). If an earlier epoch was finite, early stopping still restores that checkpoint, so a diverged run can report a finite but meaningless test metric. The analysis therefore uses the flag rather than the metric.
+- `early_stopping`: the validation loss didn't improve by more than `min_delta` for `patience` consecutive epochs after the minimum-epoch guard.
+- `max_epochs`: training used every epoch.
+
+Each run also records `overfitting_epochs`: the number of consecutive epochs, ending at the stop, in which the training loss still improved by more than `min_delta` while the validation loss did not. That is the overfitting signature, so an early stop with `overfitting_epochs > 0` stopped because the model was starting to overfit, and one with 0 stopped on a plain plateau. It is 0 for runs that didn't end by early stopping. Because it uses `min_delta` (1e-4) as the size of a meaningful improvement, runs whose losses are already far below that can't show it; the generalization gap covers them.
 
 **Experiment sweep values**
 - `optimizers`: `sgd`, `momentum` (aliases `momentumsgd`, `momentum_sgd`), `adabelief`.
@@ -260,7 +265,17 @@ Convergence is measured from the training-loss curve:
 2. `tolerance = max(absolute_floor, relative_tolerance * abs(final_train_loss))`, with `relative_tolerance = 0.01` and `absolute_floor = 1e-4`. In practice this is a 1% band around the final loss that never gets narrower than 0.0001.
 3. Starting from epoch 1, scan forward to find the first epoch after which all remaining training-loss values stay within that band.
 
-That epoch is the **convergence epoch**, a practical definition of when training has essentially settled. The same helper also records `epochs_ran`, `final_train_loss`, and `final_val_loss`. These values appear in the metrics box on the depth and learning-rate plots.
+That epoch is the **convergence epoch**, a practical definition of when training has essentially settled. The same helper also records `epochs_ran`, `final_train_loss`, and `final_val_loss`. These values appear in the metrics box on the depth and learning-rate plots, together with the run's **best epoch**.
+
+#### Convergence, early stopping and overfitting
+
+Three related ideas, each measured on a different loss:
+
+- **Convergence** means the optimizer has settled: the *training* loss stops changing. The convergence epoch above measures it. It says how fast an optimizer gets there, not whether the model generalizes.
+- **Early stopping** is driven by the *validation* loss only. The trainer tracks the best checkpoint from epoch 1, stops after `patience` epochs without a meaningful validation improvement (after the minimum-epoch guard), and restores that checkpoint. Its epoch is the run's `best_epoch`, and it is the model whose test metric is reported.
+- **Overfitting** is training loss still falling while validation loss stops improving or rises, so the gap between them widens. Each run records it as `overfitting_epochs` (see "How a run ends") and as the generalization gap.
+
+The plots mark both epochs: a dotted line where training ended and a dash-dot line at the best epoch. The analysis tables report the average convergence epoch and best epoch side by side.
 
 #### Helper functions
 
@@ -289,6 +304,8 @@ For each run, it computes:
 - `best_val_loss`: the validation loss saved with the run, i.e. of the checkpoint that early stopping restored and whose test metric is reported (the minimum of `val_loss_history` only for older files without it). The plain minimum of the history is not used, because a later epoch can dip slightly lower without being saved (its improvement was below `min_delta`), and that model was never tested.
 - `final_train_loss`: the last value of `train_loss_history`
 - `convergence_epoch`: the same definition as in `comparisons.py`
+- `generalization_gap`: `test_metric − train_metric`, when the run records `train_metric`
+- for older results files: `stop_reason`, derived from the `diverged` and `stopped_early` flags, and `overfitting_epochs = None` (not recorded)
 
 "Fastest convergence" therefore means the lowest average convergence epoch.
 
@@ -304,8 +321,8 @@ This puts each task's losses on a 0–1 scale before combining them. If every lo
 
 #### Grouping
 
-- **Per task** (classification, regression), grouped by optimizer and by architecture: `num_runs`, `avg_convergence_epoch`, `avg_best_val_loss`.
-- **Combined across tasks**, grouped by optimizer and by architecture: `num_runs`, `avg_convergence_epoch`, `avg_normalized_best_val_loss`. Normalized loss is used here because the groups mix classification and regression runs.
+- **Per task** (classification, regression), grouped by optimizer and by architecture: `num_runs`, `avg_convergence_epoch`, `avg_best_epoch`, `avg_best_val_loss`.
+- **Combined across tasks**, grouped by optimizer and by architecture: `num_runs`, `avg_convergence_epoch`, `avg_best_epoch`, `avg_normalized_best_val_loss`. Normalized loss is used here because the groups mix classification and regression runs.
 
 The "best" group is the one with the smallest value in the relevant field. For the depth question, the script compares A1 and A2 in the combined architecture summary, on both convergence epoch and normalized loss.
 
@@ -314,10 +331,10 @@ All of the sections above use the baseline architectures (A1, A2) only, includin
 #### A2 variants
 
 A separate section compares A2 with its bias, initialization and batch-norm variants:
-- one summary table per task (runs, average convergence epoch, average best validation loss)
+- one summary table per task (runs, average convergence epoch, average best epoch, average best validation loss)
 - a **collapse check**: the regression test MSE of the four runs that collapse in the baseline A2 (SGD and momentum, LR 0.1, batch 16 and 64), for each variant
 
-Diverged runs (see "Divergence" above) are listed separately and left out of the averages. A test MSE of 602.17 means the network outputs a constant 0. One near 101.4 means it outputs a constant close to the mean target, which a dead network can still do through its output bias.
+Diverged runs (see "How a run ends" above) are listed separately and left out of the averages. A test MSE of 602.17 means the network outputs a constant 0. One near 101.4 means it outputs a constant close to the mean target, which a dead network can still do through its output bias.
 
 #### Dropout
 
@@ -334,7 +351,8 @@ The section is skipped for results files without dropout runs or without `train_
 Every section above uses seed 42 only, so its numbers stay comparable with single-seed results files. When the results contain several seeds, a final **Multi-Seed Results** section reports mean ± sample standard deviation across seeds:
 
 - **Selected model per seed**: for each task and seed, the run with the lowest validation loss (never the test score). It's reported once among the baseline architectures A1 / A2 and once among all architectures, with test metric, constant baseline and error removed.
-- **Architectures across seeds**: each architecture's best run per seed (again chosen by validation loss), its average convergence epoch, and how many of its runs were no better than the constant baseline or diverged.
+- **Architectures across seeds**: each architecture's best run per seed (again chosen by validation loss), its average convergence epoch and best epoch, and how many of its runs were no better than the constant baseline or diverged.
+- **Stopping and overfitting across seeds**: per architecture, how many runs ended by early stopping, at the epoch limit or by diverging; how many of the early stops showed the overfitting signature; and the generalization gap of the run selected per seed.
 - **Optimizer × learning rate** (A1 / A2): the average test metric per seed for every optimizer and learning rate.
 - **Collapse check across seeds**: for the regression settings where the baseline A2 collapses, how many runs of each A2 variant learned, were no better than predicting the mean, or diverged.
 - **Dropout across seeds**: the dropout comparison pooled over all seeds, with runs matched on seed as well.
@@ -345,7 +363,7 @@ Diverged runs are excluded from model selection and averages throughout. The com
 
 - `load_results(path)`: loads the JSON results
 - `convergence_epoch(...)`: computes the convergence epoch from the training loss
-- `add_derived_metrics(results)`: adds `best_val_loss`, `final_train_loss`, and `convergence_epoch`
+- `add_derived_metrics(results)`: adds `best_val_loss`, `final_train_loss`, `convergence_epoch` and `generalization_gap`, and fills in `stop_reason` / `overfitting_epochs` for older files
 - `add_normalized_best_val_loss(results)`: normalizes the best validation loss within each task
 - `filter_by_problem(...)`: separates classification and regression runs
 - `group_by_key(...)`: groups runs by optimizer or architecture

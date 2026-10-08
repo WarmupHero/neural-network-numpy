@@ -331,3 +331,77 @@ def test_derived_metrics_keep_the_checkpoint_validation_loss():
     add_derived_metrics([saved, missing])
     assert saved["best_val_loss"] == 0.5
     assert missing["best_val_loss"] == 0.4
+
+
+def test_derived_metrics_add_the_gap_and_fill_in_how_old_runs_ended():
+    """
+    add_derived_metrics adds the generalization gap and a stop reason for old results.
+
+    Notes
+    -----
+    A run with a training metric gets generalization_gap = test - train.
+    Runs from results files written before stop_reason existed get it from
+    their "diverged" / "stopped_early" flags, and overfitting_epochs None
+    (not recorded); a run that records them keeps its values.
+    """
+    from nn_from_scratch.analysis import add_derived_metrics
+
+    histories = {"val_loss_history": [0.9, 0.5], "train_loss_history": [1.0, 0.8]}
+    new = {
+        **histories,
+        "test_metric": 0.3,
+        "train_metric": 0.1,
+        "stop_reason": "max_epochs",
+        "overfitting_epochs": 0,
+    }
+    old_diverged = {**histories, "test_metric": 0.3, "diverged": True, "stopped_early": True}
+    old_early = {**histories, "test_metric": 0.3, "diverged": False, "stopped_early": True}
+    old_full = {**histories, "test_metric": 0.3, "diverged": False, "stopped_early": False}
+    add_derived_metrics([new, old_diverged, old_early, old_full])
+
+    assert new["generalization_gap"] == pytest.approx(0.2)
+    assert "generalization_gap" not in old_full
+    assert (new["stop_reason"], new["overfitting_epochs"]) == ("max_epochs", 0)
+    assert old_diverged["stop_reason"] == "diverged"
+    assert old_early["stop_reason"] == "early_stopping"
+    assert old_full["stop_reason"] == "max_epochs"
+    assert old_full["overfitting_epochs"] is None
+
+
+def test_stopping_table_counts_stop_reasons_and_overfitting():
+    """
+    format_stopping_seed_table counts how runs ended and which early stops overfitted.
+
+    Notes
+    -----
+    Four A1 runs over two seeds: two early stops (one with the overfitting
+    signature), one that ran to the epoch limit and one that diverged. The
+    A1 row must read "2 / 1 / 1" and "1 of 2", and the gap column must be
+    the mean ± std of the gaps of the run selected per seed (0.1 and 0.3).
+    """
+    from nn_from_scratch.analysis import format_stopping_seed_table
+
+    def a1(seed, val, reason, overfit, gap):
+        return {
+            **run(val=val, test=1.0, diverged=reason == "diverged"),
+            "architecture": "A1",
+            "seed": seed,
+            "stop_reason": reason,
+            "overfitting_epochs": overfit,
+            "generalization_gap": gap,
+        }
+
+    runs = [
+        a1(42, 0.2, "early_stopping", 2, 0.1),
+        a1(42, 0.5, "max_epochs", 0, 0.9),
+        a1(43, 0.3, "early_stopping", 0, 0.3),
+        a1(43, float("nan"), "diverged", 0, 5.0),
+    ]
+    row = next(
+        line
+        for line in format_stopping_seed_table("T", runs, 2).splitlines()
+        if line.startswith("A1")
+    )
+    assert "2 / 1 / 1" in row
+    assert "1 of 2" in row
+    assert "0.20 ± 0.14" in row
