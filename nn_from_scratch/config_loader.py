@@ -132,12 +132,14 @@ class ConfigLoader:
             - "input_dimension" (int): number of input features, >= 1
             - "loss" (str): a BCE name for classification, "mse" for
               regression (case-insensitive)
-            - "architectures" (dict of str to list of dict): named
+            - "architectures" (dict of str to list or dict): named
               architectures, each a non-empty list of layer dicts with
               "type" ("dense"), "units" (int >= 1), "activation" (str),
               and optional "use_bias" (bool), "batch_norm" (bool),
               "dropout" (float in [0, 1), not on the last layer) and
-              "init" (str)
+              "init" (str); or a dict with that list under "layers" and
+              the optional "max_grad_norm" (number > 0), the gradient-norm
+              cap used when training it
             - "experiments" (dict): "optimizers" (list), "learning_rates"
               (list), "batch_sizes" (list), "epochs" (int >= 1),
               "early_stopping" (bool), "patience" (int >= 1), "min_delta"
@@ -165,9 +167,10 @@ class ConfigLoader:
         2. Check the preprocessing block: required keys and boolean
            values.
         3. Check that the loss name matches the task type.
-        4. Check every layer of every architecture: required keys, layer
-           type, units, activation, and the optional use_bias,
-           batch_norm, dropout and init settings.
+        4. Check every architecture: for the dict form, only the keys
+           "layers" and "max_grad_norm" and a positive cap; then every
+           layer: required keys, layer type, units, activation, and the
+           optional use_bias, batch_norm, dropout and init settings.
         5. Check the experiments block: required keys, non-empty lists,
            positive epochs and patience, non-negative min_delta and
            min_epochs_before_early_stop, the optional seeds list, and
@@ -259,7 +262,27 @@ class ConfigLoader:
         # Validate architectures
         # ----------------------------
 
-        for arch_name, layers in config["architectures"].items():
+        for arch_name, entry in config["architectures"].items():
+            # The dict form holds the layer list plus training options.
+            if isinstance(entry, dict):
+                unknown = set(entry) - {"layers", "max_grad_norm"}
+                if unknown:
+                    raise ValueError(
+                        f"Architecture '{arch_name}' has unknown keys: {sorted(unknown)}"
+                    )
+                if "layers" not in entry:
+                    raise ValueError(f"Architecture '{arch_name}' is missing 'layers'")
+                if "max_grad_norm" in entry:
+                    cap = entry["max_grad_norm"]
+                    if isinstance(cap, bool) or not isinstance(cap, (int, float)) or cap <= 0:
+                        raise ValueError(
+                            f"Architecture '{arch_name}' must have 'max_grad_norm' "
+                            f"as a positive number"
+                        )
+                layers = entry["layers"]
+            else:
+                layers = entry
+
             # Each architecture should be a non-empty list of layer definitions
             if not isinstance(layers, list) or len(layers) == 0:
                 raise ValueError(f"Architecture '{arch_name}' must be a non-empty list")
@@ -426,6 +449,46 @@ class ConfigLoader:
         # If all checks pass, the config is valid
         return True
 
+    @staticmethod
+    def normalize_architectures(config: dict[str, Any]) -> dict[str, Any]:
+        """
+        Split architectures with options into a layer list and the options.
+
+        Parameters
+        ----------
+        config : dict
+            A validated config. Each architecture is either a list of layer
+            dicts or a dict with "layers" (that list) and options such as
+            "max_grad_norm".
+
+        Returns
+        -------
+        dict
+            The same config (modified in place): every
+            config["architectures"][name] is a plain layer list, and
+            config["architecture_options"] maps the names of architectures
+            that had options to those options, e.g.
+            {"A2-clip": {"max_grad_norm": 20.0}}.
+
+        Notes
+        -----
+        Processing:
+        1. For each architecture given as a dict, move its options into
+           "architecture_options" and replace the entry with its layer
+           list.
+
+        Everything that builds networks (training, the benchmarks, the
+        tests) reads config["architectures"][name] as a layer list, so the
+        options are kept separately and only the training loop reads them.
+        """
+        options = {}
+        for name, entry in config["architectures"].items():
+            if isinstance(entry, dict):
+                options[name] = {k: v for k, v in entry.items() if k != "layers"}
+                config["architectures"][name] = entry["layers"]
+        config["architecture_options"] = options
+        return config
+
     def load_and_validate(self, filename: str) -> dict[str, Any]:
         """
         Load and validate a config file.
@@ -439,7 +502,9 @@ class ConfigLoader:
         Returns
         -------
         dict
-            Loaded and validated config dictionary.
+            Loaded and validated config dictionary, with architectures
+            normalized by normalize_architectures (layer lists, plus
+            "architecture_options").
 
         Raises
         ------
@@ -453,7 +518,8 @@ class ConfigLoader:
         Processing:
         1. Read and parse the file with `load(filename)`.
         2. Check it with `validate(config)`.
-        3. Return the parsed config unchanged.
+        3. Normalize the architectures with `normalize_architectures` and
+           return the config.
         """
         # First load the config from disk
         config = self.load(filename)
@@ -461,4 +527,5 @@ class ConfigLoader:
         # Then validate its structure and contents
         self.validate(config)
 
-        return config
+        # Split architecture options (e.g. a gradient-norm cap) from layers
+        return self.normalize_architectures(config)

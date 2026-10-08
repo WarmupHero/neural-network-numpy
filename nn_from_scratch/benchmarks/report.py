@@ -342,9 +342,10 @@ def build_rows(
         [r for r in numpy_ok if r["architecture"] in BASELINE_ARCHITECTURES], "best_val_loss"
     )
     numpy_all = select_per_seed(numpy_ok, "best_val_loss")
+    n_architectures = len({r["architecture"] for r in numpy_runs})
     rows = [
         summarize("NumPy NN · A1 / A2", numpy_baseline, secondary_key),
-        summarize("NumPy NN · all 8 architectures", numpy_all, secondary_key),
+        summarize(f"NumPy NN · all {n_architectures} architectures", numpy_all, secondary_key),
     ]
     selections = {"numpy": numpy_all}
 

@@ -220,7 +220,8 @@ def run_single_experiment(
         Full experiment summary. Keys:
         - settings: "problem_name", "seed", "architecture", "optimizer",
           "batch", "learning_rate", "epochs", "early_stopping", "patience",
-          "min_delta", "min_epochs_before_early_stop",
+          "min_delta", "min_epochs_before_early_stop", "max_grad_norm"
+          (float or None: the architecture's gradient-norm cap),
           "preprocessing_enabled", "scale_features";
         - training outcome: "epochs_ran", "stopped_early", "diverged",
           "stop_reason" ("diverged", "early_stopping" or "max_epochs"),
@@ -230,7 +231,9 @@ def run_single_experiment(
           (classification) or "test_r2" (regression);
         - "train_seconds" (float): wall-clock time of Trainer.fit;
         - histories (list of float, one value per epoch):
-          "train_loss_history", "val_loss_history", "val_metric_history".
+          "train_loss_history", "val_loss_history", "val_metric_history",
+          and "grad_norm_history" (largest gradient norm per epoch, before
+          clipping).
 
     Raises
     ------
@@ -245,7 +248,8 @@ def run_single_experiment(
     2. Check that the data's feature count matches the config.
     3. Build the network for the chosen architecture, seeded with `seed`.
     4. Create the loss function, optimizer and Trainer (with the config's
-       early-stopping settings).
+       early-stopping settings and the architecture's gradient-norm cap, if
+       it has one in "architecture_options").
     5. Train with Trainer.fit on the training set, validating on the
        validation set each epoch.
     6. Evaluate on the test set, and score the training set in evaluation
@@ -286,6 +290,10 @@ def run_single_experiment(
     loss_fn = get_loss(experiment_config["loss"])
     optimizer = get_optimizer(name=optimizer_name, learning_rate=learning_rate)
 
+    # Architecture options from the config, e.g. a gradient-norm cap.
+    options = experiment_config.get("architecture_options", {}).get(architecture_name, {})
+    max_grad_norm = options.get("max_grad_norm")
+
     # Create the Trainer object, including early stopping settings
     trainer = Trainer(
         network=network,
@@ -299,6 +307,7 @@ def run_single_experiment(
             "min_epochs_before_early_stop"
         ],
         random_seed=seed,
+        max_grad_norm=max_grad_norm,
     )
 
     # Train the model and collect history. The wall-clock training time is
@@ -349,6 +358,7 @@ def run_single_experiment(
         "min_epochs_before_early_stop": experiment_config["experiments"][
             "min_epochs_before_early_stop"
         ],
+        "max_grad_norm": max_grad_norm,
         "epochs_ran": history["epochs_ran"],
         "stopped_early": history["stopped_early"],
         "diverged": history["diverged"],
@@ -365,6 +375,7 @@ def run_single_experiment(
         "train_loss_history": [float(x) for x in history["train_loss"]],
         "val_loss_history": [float(x) for x in history["val_loss"]],
         "val_metric_history": [float(x) for x in history["val_metric"]],
+        "grad_norm_history": [float(x) for x in history["grad_norm"]],
         "preprocessing_enabled": experiment_config["preprocessing"]["enabled"],
         "scale_features": experiment_config["preprocessing"]["scale_features"],
     }

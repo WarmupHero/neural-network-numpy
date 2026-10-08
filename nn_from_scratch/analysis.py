@@ -46,9 +46,9 @@ OPTIMIZER_ORDER = ["sgd", "momentum", "adabelief"]
 ARCHITECTURE_ORDER = ["A1", "A2"]
 
 # A2 and its variants, which change one thing at a time: a bias term,
-# He initialization, both, or batch normalization on the hidden layers.
-# Reported in their own section.
-A2_VARIANT_ORDER = ["A2", "A2-bias", "A2-he", "A2-bias-he", "A2-bn"]
+# He initialization, both, batch normalization on the hidden layers, or a
+# cap on the gradient norm during training. Reported in their own section.
+A2_VARIANT_ORDER = ["A2", "A2-bias", "A2-he", "A2-bias-he", "A2-bn", "A2-clip"]
 
 # The regression runs whose 3-layer ReLU network collapses in the baseline
 # (plain SGD and momentum at learning rate 0.1). The variant section checks
@@ -553,6 +553,40 @@ def is_diverged(run: dict[str, Any]) -> bool:
     validation loss is used for them.
     """
     return bool(run.get("diverged")) or not math.isfinite(run["best_val_loss"])
+
+
+def format_peak_gradient_norm(run: dict[str, Any]) -> str:
+    """
+    Describe the largest gradient norm a run reached, for the diverged-run list.
+
+    Parameters
+    ----------
+    run : dict
+        One run; uses "grad_norm_history" (list of float, the largest
+        gradient norm per epoch) if present.
+
+    Returns
+    -------
+    str
+        " | peak gradient norm 3.2e+38 (epoch 1)" for the largest finite
+        value, " | gradient norm overflowed (epoch 1)" if no value is finite,
+        or "" for older results files without the history.
+
+    Notes
+    -----
+    Processing:
+    1. Return "" if the run has no gradient-norm history.
+    2. Otherwise find the largest finite per-epoch norm and its epoch, or
+       the first epoch if every value overflowed.
+    """
+    history = run.get("grad_norm_history")
+    if not history:
+        return ""
+    finite = [(value, epoch) for epoch, value in enumerate(history, 1) if math.isfinite(value)]
+    if not finite:
+        return " | gradient norm overflowed (epoch 1)"
+    value, epoch = max(finite)
+    return f" | peak gradient norm {value:.1e} (epoch {epoch})"
 
 
 def format_dropout_table(title: str, problem_runs: list[dict[str, Any]]) -> str:
@@ -1731,7 +1765,9 @@ def main(results_path: str | None = None) -> None:
             "Each variant changes A2 (3 hidden ReLU layers): "
             "A2-bias adds a bias term to every layer, A2-he uses He initialization "
             "instead of N(0, 0.1^2), A2-bias-he does both, and A2-bn adds batch "
-            "normalization between each hidden Dense layer and its ReLU. "
+            "normalization between each hidden Dense layer and its ReLU, and A2-clip trains "
+            "A2 with global gradient-norm clipping at 20 (every mini-batch gradient is "
+            "scaled down to a norm of at most 20 before the update). "
             "These runs are not included in the sections above."
         )
         lines.append("")
@@ -1762,6 +1798,7 @@ def main(results_path: str | None = None) -> None:
                     lines.append(
                         f"- {r['architecture']} | {r['optimizer']} | "
                         f"LR={r['learning_rate']} | Batch={r['batch']}"
+                        f"{format_peak_gradient_norm(r)}"
                     )
                 lines.append("")
 

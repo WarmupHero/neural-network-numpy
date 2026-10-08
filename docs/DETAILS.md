@@ -110,7 +110,7 @@ make analysis       # python -m nn_from_scratch.analysis
 make all
 ```
 
-Steps 2 and 3 read the newest `reports/main_results_full_*.json` and fail if none exists. To analyse a specific run instead, pass its path as the first argument, e.g. `python -m nn_from_scratch.analysis reports/main_results_full_20261008-215507.json`. The repository already includes a results file, so you can run them immediately. `make plots` sets `MPLBACKEND=Agg` so no plot windows open; set it yourself when running the Python command directly.
+Steps 2 and 3 read the newest `reports/main_results_full_*.json` and fail if none exists. To analyse a specific run instead, pass its path as the first argument, e.g. `python -m nn_from_scratch.analysis reports/main_results_full_20261008-220824.json`. The repository already includes a results file, so you can run them immediately. `make plots` sets `MPLBACKEND=Agg` so no plot windows open; set it yourself when running the Python command directly.
 
 `make` is not installed on Windows by default: install it with `winget install ezwinports.make` and open a new terminal.
 
@@ -130,6 +130,7 @@ make format         # ruff check --fix and ruff format (rewrites files)
 - `tests/test_metrics.py` checks the accuracy and R² metrics.
 - `tests/test_benchmarks.py` checks that the library comparison uses exactly the main pipeline's splits, the model selection and summaries in the report, the scikit-learn wrappers, and the Keras and PyTorch models (layer structure, optimizers, training records, reproducibility; for PyTorch also the hand-written early stopping and divergence detection). Library tests are skipped automatically when that library isn't installed.
 - `tests/test_seeds.py` checks that the split and the weight initialization follow the seed, the constant-prediction baselines, the `seeds` config validation, and the multi-seed analysis helpers (model selection by validation loss, error removed, mean ± std).
+- `tests/test_clipping.py` checks gradient clipping: the global gradient norm covers every parameter (weights, biases, batch norm's γ and β), clipping scales an over-long gradient to exactly the cap without changing its direction and leaves smaller ones untouched, a clipped SGD step moves the parameters by at most `lr × cap`, a run that diverges without clipping stays finite with it, and the config loader accepts the `max_grad_norm` option and rejects invalid ones.
 - `tests/test_preprocessing.py` checks that the NumPy split has the right sizes, has no overlapping rows, preserves class balance when stratified, and is reproducible from the seed.
 - `tests/test_training.py` checks that each optimizer reduces the loss on a toy problem, and that `Trainer.fit` / `Trainer.evaluate` run end to end and report BCE as the classification metric.
 
@@ -167,10 +168,40 @@ They control a large part of the pipeline, within the limits of the current impl
 
 - `dropout` per layer (optional, default `0`): adds inverted dropout with this rate after the layer's activation (Dense → (BatchNorm) → activation → Dropout). It must be in [0, 1) and isn't allowed on the output layer. Dropout masks come from a separate seeded generator, so adding dropout doesn't change any layer's initial weights.
 
-The configs define eight architectures:
+An architecture can also be a dict with its layer list under `layers` and training options; see "Gradient clipping" below.
+
+The configs define nine architectures:
 - the baselines `A1` (1 hidden sigmoid layer) and `A2` (3 hidden ReLU layers)
 - four variants of A2: `A2-bias` adds bias terms, `A2-he` uses He initialization, `A2-bias-he` does both, and `A2-bn` adds batch normalization to the three hidden layers. `A2-bn` has no Dense biases, because batch norm's β takes over their role.
 - two dropout versions: `A1-dropout` and `A2-bn-dropout`, which add dropout 0.2 after every hidden layer of `A1` and `A2-bn`
+- `A2-clip`: the layers of `A2`, trained with gradient-norm clipping at 20
+
+#### Gradient clipping
+
+An architecture can be given as a dict instead of a layer list, to add a training option:
+
+```json
+"A2-clip": {"layers": [ ...the same layers as A2... ], "max_grad_norm": 20.0}
+```
+
+`max_grad_norm` (a positive number) turns on **global-norm gradient clipping** for that architecture: after each mini-batch's backward pass, if the L2 norm of all gradients together (weights, biases, batch norm's γ and β) exceeds the cap, every gradient is multiplied by `max_grad_norm / norm` before the optimizer step (`NeuralNetwork.clip_gradients`). The update keeps its direction and only its length is capped; gradients below the cap are untouched. This is the rule from Pascanu et al. (2013), the same as Keras's `clipnorm` and PyTorch's `clip_grad_norm_`. `ConfigLoader` validates the option and splits it off into `config["architecture_options"]`, so `config["architectures"][name]` is always a layer list. Architectures without the option train exactly as before.
+
+Every run also records `grad_norm_history`: the largest gradient norm of any mini-batch in each epoch, measured before clipping. It shows the cause of the regression failures directly: in the full sweep, every diverged run's gradient norm exceeds 1,000 in its first epoch, and 37 of the 55 overflow outright, while a healthy shallow run (A1 · AdaBelief) peaks around 130 and typically sits near 3. One huge step pushes every ReLU unit into its dead region (the collapse) or overflows the loss (the divergence). The analysis lists each diverged run's peak gradient norm.
+
+**Why a cap of 20.** A prototype on the 30 failing runs (10 regression configurations at LR 0.1 × 3 seeds) and on healthy runs gave:
+
+| Cap | Failing runs: learned / collapsed / diverged | Effect on healthy runs |
+|---|---|---|
+| none | 1 / 13 / 16 | – |
+| 1 or 5 | 30 / 0 / 0 | cripples shallow runs (A1 · SGD: test MSE 1.0 → 7.3 at a cap of 1) |
+| 10 | 30 / 0 / 0 | slows deep AdaBelief runs (A2: MSE 2.7 → 8.3) |
+| **20** | **30 / 0 / 0** | classification almost unchanged (most of its gradient norms are below 5); shallow regression runs within noise |
+| 50 | 21 / 9 / 0 | |
+| 100 | 5 / 25 / 0 | |
+
+Any cap prevents the overflow, but only caps of about 20 or less also keep the ReLUs alive. The regression gradients are large even in healthy deep runs (a median norm of 50–150), because the targets are unscaled (6–43), so a much smaller cap would bind on almost every batch. Clipping is a variant here, not the default: the other architectures and the library comparisons are trained without it.
+
+**Result on the full sweep (5 seeds).** On the 20 regression runs at LR 0.1 with SGD or momentum, `A2-clip` learns in 18 and collapses in 2, with no divergence; A2 diverged in 8 and collapsed in the other 12. No `A2-clip` run diverged anywhere. With momentum, the clipped runs reach a test MSE of 5–14; with plain SGD, each step is capped at LR × 20 = 2, and the runs end far behind (63–110, two no better than the mean). The cap also binds on healthy runs: A2's best regression result per seed goes from 1.79 ± 0.80 to 4.48 ± 2.41, because AdaBelief at LR 0.1 is slowed. On classification, 57 of 60 runs are identical to A2's; the 3 that differ are AdaBelief runs at LR 0.1 whose gradients spike (up to 270).
 
 #### Training and evaluation mode
 
@@ -247,7 +278,7 @@ Each comparison holds every setting fixed except one:
 | Optimizers | problem, architecture, learning rate, batch size | optimizer (SGD → Momentum → AdaBelief, one subplot each) | `optimizers_*_<stamp>.png` |
 | Network depth | problem, optimizer, learning rate, batch size | architecture (A1 vs A2) | `depth_*_<stamp>.png`, `depth_analysis_<stamp>.txt` |
 | Learning rate | problem, architecture, optimizer, batch size | learning rate (0.1 vs 0.001) | `learning_rate_*_<stamp>.png`, `learning_rate_analysis_<stamp>.txt` |
-| A2 variants | problem, optimizer, learning rate, batch size | A2 → A2-bias → A2-he → A2-bias-he → A2-bn, one subplot each, log-scale loss | `a2_variants_*_<stamp>.png` |
+| A2 variants | problem, optimizer, learning rate, batch size | A2 → A2-bias → A2-he → A2-bias-he → A2-bn → A2-clip, one subplot each, log-scale loss | `a2_variants_*_<stamp>.png` |
 
 There are two A2 variant plots, both regression at LR 0.1, where the baseline A2 collapses:
 - SGD, batch 16: shows all three failure modes (collapse to 0, collapse to the mean, divergence)
@@ -330,11 +361,11 @@ All of the sections above use the baseline architectures (A1, A2) only, includin
 
 #### A2 variants
 
-A separate section compares A2 with its bias, initialization and batch-norm variants:
+A separate section compares A2 with its bias, initialization, batch-norm and gradient-clipping variants:
 - one summary table per task (runs, average convergence epoch, average best epoch, average best validation loss)
 - a **collapse check**: the regression test MSE of the four runs that collapse in the baseline A2 (SGD and momentum, LR 0.1, batch 16 and 64), for each variant
 
-Diverged runs (see "How a run ends" above) are listed separately and left out of the averages. A test MSE of 602.17 means the network outputs a constant 0. One near 101.4 means it outputs a constant close to the mean target, which a dead network can still do through its output bias.
+Diverged runs (see "How a run ends" above) are listed separately, with their peak gradient norm, and left out of the averages. A test MSE of 602.17 means the network outputs a constant 0. One near 101.4 means it outputs a constant close to the mean target, which a dead network can still do through its output bias.
 
 #### Dropout
 

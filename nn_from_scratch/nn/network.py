@@ -432,6 +432,76 @@ class NeuralNetwork:
         ]
         return trainable_layers
 
+    def gradient_norm(self) -> float:
+        """
+        Compute the global L2 norm of all current gradients.
+
+        Parameters
+        ----------
+        None
+            Uses the gradients stored by the last backward pass.
+
+        Returns
+        -------
+        float
+            sqrt of the sum of the squared entries of every gradient array of
+            every trainable layer (Dense weights and biases, BatchNorm gamma
+            and beta). inf or NaN if a gradient has overflowed.
+
+        Notes
+        -----
+        Processing:
+        1. Collect the arrays from get_grads() of every trainable layer.
+        2. Sum their squared entries and take the square root.
+
+        Squaring an exploding gradient can overflow; that warning is
+        suppressed and the result is inf, which callers treat as a
+        non-finite norm.
+        """
+        with np.errstate(over="ignore", invalid="ignore"):
+            total = sum(
+                float(np.sum(grad * grad))
+                for layer in self.get_trainable_layers()
+                for grad in layer.get_grads().values()
+            )
+        return float(np.sqrt(total))
+
+    def clip_gradients(self, max_norm: float) -> float:
+        """
+        Scale all gradients down so their global L2 norm is at most max_norm.
+
+        Parameters
+        ----------
+        max_norm : float
+            Largest allowed global gradient norm (> 0).
+
+        Returns
+        -------
+        float
+            The global gradient norm before clipping.
+
+        Notes
+        -----
+        Processing:
+        1. Compute the global norm with gradient_norm().
+        2. If it is finite and larger than max_norm, multiply every gradient
+           array in place by max_norm / norm. The optimizer then reads the
+           scaled gradients.
+
+        This is global-norm clipping (Pascanu et al., 2013): all gradients
+        are scaled by the same factor, so the update keeps its direction and
+        only its length is capped. Gradients below the cap are left
+        untouched. A non-finite norm is left alone, so the trainer's
+        divergence check still sees the run blow up.
+        """
+        norm = self.gradient_norm()
+        if np.isfinite(norm) and norm > max_norm:
+            scale = max_norm / norm
+            for layer in self.get_trainable_layers():
+                for grad in layer.get_grads().values():
+                    grad *= scale
+        return norm
+
     def build_from_config(self, config: dict[str, Any]) -> None:
         """
         Build the network automatically from a configuration dictionary.

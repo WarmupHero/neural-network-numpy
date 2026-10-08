@@ -188,7 +188,32 @@
         "units": 1,
         "activation": "linear"
       }
-    ]
+    ],
+    "A2-clip": {
+      "layers": [
+        {
+          "type": "dense",
+          "units": 32,
+          "activation": "relu"
+        },
+        {
+          "type": "dense",
+          "units": 32,
+          "activation": "relu"
+        },
+        {
+          "type": "dense",
+          "units": 32,
+          "activation": "relu"
+        },
+        {
+          "type": "dense",
+          "units": 1,
+          "activation": "linear"
+        }
+      ],
+      "max_grad_norm": 20.0
+    }
   },
   "experiments": {
     "optimizers": [

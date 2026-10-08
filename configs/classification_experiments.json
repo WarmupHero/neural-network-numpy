@@ -188,7 +188,32 @@
         "units": 1,
         "activation": "sigmoid"
       }
-    ]
+    ],
+    "A2-clip": {
+      "layers": [
+        {
+          "type": "dense",
+          "units": 32,
+          "activation": "relu"
+        },
+        {
+          "type": "dense",
+          "units": 32,
+          "activation": "relu"
+        },
+        {
+          "type": "dense",
+          "units": 32,
+          "activation": "relu"
+        },
+        {
+          "type": "dense",
+          "units": 1,
+          "activation": "sigmoid"
+        }
+      ],
+      "max_grad_norm": 20.0
+    }
   },
   "experiments": {
     "optimizers": [

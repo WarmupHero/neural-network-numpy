@@ -64,6 +64,7 @@ class Trainer:
         min_delta: float = 0.0,
         min_epochs_before_early_stop: int = 0,
         random_seed: int = RANDOM_SEED,
+        max_grad_norm: float | None = None,
     ) -> None:
         """
         Initialize the trainer and store its settings.
@@ -97,6 +98,10 @@ class Trainer:
             stopping is allowed to terminate training.
         random_seed : int, default=RANDOM_SEED
             Seed for shuffling the training data each epoch.
+        max_grad_norm : float or None, default=None
+            If set, the global gradient norm of every mini-batch is clipped
+            to this value before the optimizer step (see
+            NeuralNetwork.clip_gradients). None trains without clipping.
 
         Returns
         -------
@@ -116,12 +121,12 @@ class Trainer:
         1. Store the network, loss and optimizer, and lower-case
            `task_type`.
         2. Check that the task type is supported.
-        3. Store the early-stopping settings.
+        3. Store the early-stopping settings and the gradient-norm cap.
         4. Create a dedicated `numpy.random.RandomState(random_seed)` for
            shuffling, so the batch order is reproducible and independent
            of the network's own generators.
-        5. Create an empty history with "train_loss", "val_loss" and
-           "val_metric" lists.
+        5. Create an empty history with "train_loss", "val_loss",
+           "val_metric" and "grad_norm" lists.
         """
         self.network = network
         self.loss_fn = loss_fn
@@ -136,13 +141,19 @@ class Trainer:
         self.patience = patience
         self.min_delta = min_delta
         self.min_epochs_before_early_stop = min_epochs_before_early_stop
+        self.max_grad_norm = max_grad_norm
 
         # Dedicated random generator used for shuffling training data
         # each epoch in a reproducible way
         self.random = np.random.RandomState(random_seed)
 
         # History dictionary used to store training progress over epochs
-        self.history: dict[str, Any] = {"train_loss": [], "val_loss": [], "val_metric": []}
+        self.history: dict[str, Any] = {
+            "train_loss": [],
+            "val_loss": [],
+            "val_metric": [],
+            "grad_norm": [],
+        }
 
     def _shuffle_data(self, X: np.ndarray, y: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """
@@ -387,6 +398,9 @@ class Trainer:
             - "val_loss" (list of float): validation loss per epoch,
               measured in evaluation mode
             - "val_metric" (list of float): validation BCE or MSE per epoch
+            - "grad_norm" (list of float): the largest global gradient norm
+              of any mini-batch in each epoch, measured before clipping
+              (inf or NaN once gradients overflow)
             - "epochs_ran" (int): number of epochs actually completed
             - "stopped_early" (bool): True if fewer than `epochs` ran
               (early stopping or divergence)
@@ -411,12 +425,14 @@ class Trainer:
            a. switch the network to training mode and shuffle the
               training data;
            b. for each mini-batch: forward pass, compute the loss,
-              backward pass, then let the optimizer update every
+              backward pass, measure the global gradient norm (and clip it
+              to max_grad_norm if set), then let the optimizer update every
               trainable layer;
            c. average the batch losses into the epoch's training loss;
            d. switch to evaluation mode and compute the validation loss
               and metric on the whole validation set;
-           e. append the three values to the history;
+           e. append the three values and the epoch's largest gradient
+              norm to the history;
            f. stop if either loss is not finite (divergence);
            g. if early stopping is enabled, update the best losses,
               save a checkpoint when validation loss improves, update the
@@ -443,7 +459,7 @@ class Trainer:
         """
         # Reset history at the start of every fit() call
         # so previous runs do not contaminate the new one
-        self.history = {"train_loss": [], "val_loss": [], "val_metric": []}
+        self.history = {"train_loss": [], "val_loss": [], "val_metric": [], "grad_norm": []}
 
         # Variables used for early stopping
         best_train_loss = float("inf")
@@ -464,8 +480,10 @@ class Trainer:
             # Shuffle training data at the start of each epoch
             X_train_shuffled, y_train_shuffled = self._shuffle_data(X_train, y_train)
 
-            # Track batch losses so we can average them into one epoch loss
+            # Track batch losses so we can average them into one epoch loss,
+            # and each batch's gradient norm (before clipping).
             batch_losses = []
+            batch_grad_norms = []
 
             # Mini-batch training
             for X_batch, y_batch in self._create_batches(
@@ -483,6 +501,14 @@ class Trainer:
 
                 # Backpropagate through the whole network
                 self.network.backward(grad_loss)
+
+                # Measure the global gradient norm, and clip it if a cap is
+                # set, before the optimizer reads the gradients. Measuring
+                # alone changes nothing.
+                if self.max_grad_norm is not None:
+                    batch_grad_norms.append(self.network.clip_gradients(self.max_grad_norm))
+                else:
+                    batch_grad_norms.append(self.network.gradient_norm())
 
                 # Update all trainable layers using the optimizer
                 for layer in self.network.get_trainable_layers():
@@ -502,6 +528,8 @@ class Trainer:
             self.history["train_loss"].append(train_loss)
             self.history["val_loss"].append(val_loss)
             self.history["val_metric"].append(val_metric)
+            # Largest norm of the epoch; NaN if any batch's norm was NaN.
+            self.history["grad_norm"].append(float(np.max(batch_grad_norms)))
 
             # Stop immediately if the loss overflowed. Once a loss is NaN or
             # infinite, every later update is NaN too, so continuing would

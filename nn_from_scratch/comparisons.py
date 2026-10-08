@@ -1338,8 +1338,9 @@ def plot_learning_rate_comparison(
 # 4. Architecture variant comparison (A2 variants, dropout)
 # --------------------------------------------------
 # A2 and its variants, each changing one thing: a bias term, He
-# initialization, both, or batch normalization on the hidden layers.
-A2_VARIANT_ORDER = ["A2", "A2-bias", "A2-he", "A2-bias-he", "A2-bn"]
+# initialization, both, batch normalization on the hidden layers, or
+# gradient-norm clipping during training.
+A2_VARIANT_ORDER = ["A2", "A2-bias", "A2-he", "A2-bias-he", "A2-bn", "A2-clip"]
 
 
 def filter_variant_runs(
@@ -1384,7 +1385,7 @@ def filter_variant_runs(
 
     What stays fixed: problem_name, optimizer, learning_rate, batch_size.
     What changes: the architecture only (by default A2, A2-bias, A2-he,
-    A2-bias-he, A2-bn).
+    A2-bias-he, A2-bn, A2-clip).
     """
     filtered = [
         run
@@ -1409,7 +1410,7 @@ def plot_variant_comparison(
     batch_size: int,
     filename: str,
     architectures: list[str] = A2_VARIANT_ORDER,
-    title: str = "A2 Variants: Bias, He Initialization, Batch Norm",
+    title: str = "A2 Variants: Bias, He Init, Batch Norm, Gradient Clipping",
 ) -> None:
     """
     Create one figure comparing several architectures on one matched experiment.
@@ -1435,7 +1436,7 @@ def plot_variant_comparison(
         Bare PNG file name; the run stamp is added when saving.
     architectures : list of str, default=A2_VARIANT_ORDER
         Architectures to compare, one subplot each, top to bottom.
-    title : str, default="A2 Variants: Bias, He Initialization, Batch Norm"
+    title : str, default="A2 Variants: Bias, He Init, Batch Norm, Gradient Clipping"
         First part of the figure title; the shared settings are appended.
 
     Returns
@@ -1700,8 +1701,12 @@ def main(results_path: str | None = None) -> None:
     #
     # This is one of the settings where the baseline A2 collapses (its ReLU
     # units die), so the plot shows whether any of the changes prevents it.
-    # Skipped for older results files that have no variant runs.
-    if any(run["architecture"] in A2_VARIANT_ORDER[1:] for run in results):
+    # Skipped for older results files that have no variant runs; variants
+    # a file doesn't contain (e.g. A2-clip in older files) are left out.
+    present_variants = [
+        name for name in A2_VARIANT_ORDER if any(run["architecture"] == name for run in results)
+    ]
+    if len(present_variants) > 1:
         plot_variant_comparison(
             results=results,
             problem_name="regression",
@@ -1709,6 +1714,7 @@ def main(results_path: str | None = None) -> None:
             learning_rate=0.1,
             batch_size=16,
             filename="a2_variants_regression_sgd_lr01_bs16.png",
+            architectures=present_variants,
         )
 
         # Same comparison with momentum and batch size 64: the baseline A2
@@ -1721,6 +1727,7 @@ def main(results_path: str | None = None) -> None:
             learning_rate=0.1,
             batch_size=64,
             filename="a2_variants_regression_momentum_lr01_bs64.png",
+            architectures=present_variants,
         )
 
     # --------------------------------------------------

@@ -68,7 +68,7 @@ Answers
 
 A2 Variants — Bias Terms, Weight Initialization and Batch Normalization
 ----------------------------------------------------------------------
-Each variant changes A2 (3 hidden ReLU layers): A2-bias adds a bias term to every layer, A2-he uses He initialization instead of N(0, 0.1^2), A2-bias-he does both, and A2-bn adds batch normalization between each hidden Dense layer and its ReLU. These runs are not included in the sections above.
+Each variant changes A2 (3 hidden ReLU layers): A2-bias adds a bias term to every layer, A2-he uses He initialization instead of N(0, 0.1^2), A2-bias-he does both, and A2-bn adds batch normalization between each hidden Dense layer and its ReLU, and A2-clip trains A2 with global gradient-norm clipping at 20 (every mini-batch gradient is scaled down to a norm of at most 20 before the update). These runs are not included in the sections above.
 
 A2 Variant Summary — Classification (BCE)
 -----------------------------------------
@@ -78,6 +78,7 @@ A2-bias        12      45.33             70.25             0.228504
 A2-he          12      81.67             78.50             0.058169            
 A2-bias-he     12      71.42             74.83             0.045813            
 A2-bn          12      67.33             59.17             0.034570            
+A2-clip        12      41.17             67.42             0.246872            
 
 A2 Variant Summary — Regression (MSE)
 -------------------------------------
@@ -87,13 +88,14 @@ A2-bias        11      71.27             61.36             37.001780
 A2-he          11      62.18             52.36             175.485476          
 A2-bias-he     11      73.55             68.64             31.610044           
 A2-bn          10      47.50             35.90             3.549473            
+A2-clip        12      68.08             60.75             21.572852           
 
 Diverged runs (loss overflowed; excluded from the averages above):
-- A2-bias | sgd | LR=0.1 | Batch=16
-- A2-he | momentum | LR=0.1 | Batch=16
-- A2-bias-he | momentum | LR=0.1 | Batch=16
-- A2-bn | sgd | LR=0.1 | Batch=16
-- A2-bn | sgd | LR=0.1 | Batch=64
+- A2-bias | sgd | LR=0.1 | Batch=16 | gradient norm overflowed (epoch 1)
+- A2-he | momentum | LR=0.1 | Batch=16 | gradient norm overflowed (epoch 1)
+- A2-bias-he | momentum | LR=0.1 | Batch=16 | gradient norm overflowed (epoch 1)
+- A2-bn | sgd | LR=0.1 | Batch=16 | gradient norm overflowed (epoch 1)
+- A2-bn | sgd | LR=0.1 | Batch=64 | peak gradient norm 9.9e+96 (epoch 2)
 
 Collapse Check — Regression Test MSE at Learning Rate 0.1
 ---------------------------------------------------------
@@ -103,6 +105,7 @@ A2-bias        diverged        101.4727        101.6350        148.7068
 A2-he          602.1735        602.1735        diverged        602.2349        
 A2-bias-he     101.7276        101.6881        diverged        101.7462        
 A2-bn          diverged        diverged        6.8281          5.7948          
+A2-clip        109.8281        80.7294         4.9402          8.4836          
 
 In the baseline A2, these four runs collapse: the ReLU units in the deeper hidden layers die, the network outputs a constant, and the test MSE equals that of always predicting 0. A collapsed network with bias terms can still learn the output layer's bias, so its constant moves to roughly the mean target and its test MSE matches that of always predicting the mean. Either way the hidden layers are dead: a much lower MSE than the constant-prediction baselines is what indicates a network that actually learned.
 
@@ -161,6 +164,7 @@ A2-bias        0.00014 ± 0.00017             47.0 ± 3.3            74.1 ± 6.1
 A2-he          0.00469 ± 0.00450             71.3 ± 7.7            65.4 ± 9.7            0/60                     0/60      
 A2-bias-he     0.00008 ± 0.00006             70.2 ± 1.8            78.1 ± 5.8            0/60                     0/60      
 A2-bn          0.00029 ± 0.00023             65.3 ± 2.1            57.0 ± 2.4            0/60                     0/60      
+A2-clip        0.00633 ± 0.00530             41.0 ± 6.5            62.3 ± 9.1            16/60                    0/60      
 A1-dropout     0.00760 ± 0.00858             80.6 ± 10.7           83.9 ± 6.9            4/60                     0/60      
 A2-bn-dropout  0.00039 ± 0.00047             63.6 ± 3.1            54.9 ± 3.7            0/60                     0/60      
 
@@ -173,6 +177,7 @@ A2-bias        24 / 36 / 0               1 of 24               0.00010 ± 0.0001
 A2-he          30 / 30 / 0               4 of 30               0.00137 ± 0.00543                   
 A2-bias-he     21 / 39 / 0               0 of 21               -0.00006 ± 0.00025                  
 A2-bn          45 / 15 / 0               4 of 45               -0.00005 ± 0.00023                  
+A2-clip        35 / 25 / 0               8 of 35               0.00036 ± 0.00672                   
 A1-dropout     16 / 44 / 0               0 of 16               0.00392 ± 0.00621                   
 A2-bn-dropout  42 / 18 / 0               6 of 42               -0.00029 ± 0.00081                  
 
@@ -212,6 +217,7 @@ A2-bias        0.7010 ± 0.1849               66.6 ± 11.0           58.4 ± 12.
 A2-he          1.7521 ± 0.5916               61.4 ± 6.8            52.9 ± 7.4            14/60                    6/60      
 A2-bias-he     0.6841 ± 0.4320               73.8 ± 5.4            68.7 ± 6.4            9/60                     10/60     
 A2-bn          1.4385 ± 0.2801               53.8 ± 4.9            43.5 ± 5.8            0/60                     10/60     
+A2-clip        4.4835 ± 2.4139               58.5 ± 5.8            48.3 ± 7.9            2/60                     0/60      
 A1-dropout     3.5496 ± 0.6041               75.1 ± 6.1            67.7 ± 8.2            0/60                     0/60      
 A2-bn-dropout  6.0162 ± 1.7577               43.1 ± 8.3            31.3 ± 9.0            1/60                     9/60      
 
@@ -224,6 +230,7 @@ A2-bias        34 / 14 / 12              6 of 34               0.1931 ± 0.1080
 A2-he          35 / 19 / 6               3 of 35               0.5284 ± 0.5976                     
 A2-bias-he     24 / 26 / 10              4 of 24               0.2426 ± 0.2889                     
 A2-bn          48 / 2 / 10               3 of 48               0.2009 ± 0.2934                     
+A2-clip        49 / 11 / 0               7 of 49               0.9132 ± 0.7524                     
 A1-dropout     37 / 23 / 0               1 of 37               0.6609 ± 0.3740                     
 A2-bn-dropout  50 / 1 / 9                3 of 50               0.9743 ± 0.6927                     
 
@@ -242,6 +249,7 @@ A2-bias        3/20        5/20                  12/20
 A2-he          0/20        14/20                 6/20      
 A2-bias-he     1/20        9/20                  10/20     
 A2-bn          10/20       0/20                  10/20     
+A2-clip        18/20       2/20                  0/20      
 
 Dropout Across Seeds — Classification (BCE), all matched runs
 -------------------------------------------------------------

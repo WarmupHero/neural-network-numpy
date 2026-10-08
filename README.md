@@ -5,7 +5,7 @@ A feed-forward neural network built with **NumPy only**, with no TensorFlow, PyT
 - **Binary classification:** detecting forged banknotes (UCI Banknote Authentication)
 - **Regression:** predicting a building's heating load (UCI Energy Efficiency)
 
-Each task is benchmarked across a grid of 8 architectures × 3 optimizers × 2 learning rates × 2 batch sizes, and every configuration is repeated with 5 random seeds: 960 training runs in total. The results are then [compared with scikit-learn, TensorFlow and PyTorch](#comparison-with-standard-libraries) on exactly the same data.
+Each task is benchmarked across a grid of 9 architectures × 3 optimizers × 2 learning rates × 2 batch sizes, and every configuration is repeated with 5 random seeds: 1,080 training runs in total. The results are then [compared with scikit-learn, TensorFlow and PyTorch](#comparison-with-standard-libraries) on exactly the same data.
 
 ![Python](https://img.shields.io/badge/python-3.12-blue)
 ![NumPy only](https://img.shields.io/badge/built%20with-NumPy%20only-informational)
@@ -20,8 +20,8 @@ Each task is benchmarked across a grid of 8 architectures × 3 optimizers × 2 l
 - **Batch normalization and dropout.** Batch norm with learned scale and shift and running statistics, and inverted dropout. Both have a separate training and evaluation mode, and the trainer switches the network between them.
 - **Weight initialization.** He, Xavier, and a fixed-scale normal initialization, selectable per layer.
 - **Three optimizers.** SGD, SGD with momentum, and [AdaBelief](https://arxiv.org/abs/2010.07468) with bias correction. All three update every parameter of every layer: weights, biases, and batch norm's scale and shift.
-- **Training loop.** Mini-batching with per-epoch shuffling, validation tracking, early stopping with patience and `min_delta`, restoration of the best model (including batch-norm statistics), and detection of runs whose loss diverges. Each run records why it ended (early stopping, epoch limit or divergence) and whether it was starting to overfit.
-- **Verified correctness.** Every analytic gradient (activations, losses, batch norm in both modes, and whole networks with and without bias and batch norm) is checked against central finite differences with `pytest`. The suite has 138 tests in total.
+- **Training loop.** Mini-batching with per-epoch shuffling, validation tracking, early stopping with patience and `min_delta`, restoration of the best model (including batch-norm statistics), optional global-norm gradient clipping, and detection of runs whose loss diverges. Each run records why it ended (early stopping, epoch limit or divergence) and whether it was starting to overfit.
+- **Verified correctness.** Every analytic gradient (activations, losses, batch norm in both modes, and whole networks with and without bias and batch norm) is checked against central finite differences with `pytest`. The suite has 154 tests in total.
 - **Multi-seed results.** Every configuration runs with 5 seeds, and each seed changes the data split, the initial weights, the dropout masks and the shuffling. Results are reported as mean ± standard deviation, so they don't rest on one lucky draw.
 - **Leak-free preprocessing, also in NumPy.** Duplicates are removed, the data gets a 60 / 20 / 20 train / validation / test split (stratified by class for classification), and the standard scaler is fit on the training split only.
 - **Compared with standard practice.** Five scikit-learn models per task, and the same architectures rebuilt in TensorFlow (Keras) and PyTorch, are trained on the same splits and selected by the same validation rule. This puts the from-scratch network's results in context.
@@ -40,32 +40,33 @@ For each task and seed, the reported model is the run with the **lowest validati
 
 **Error removed** = 1 − test metric ÷ baseline metric. For regression this is R². For classification it's McFadden's pseudo-R². Raw BCE and MSE are on different scales: BCE is in nats, and MSE is in squared target units, with Heating_Load spanning 6–43. A small BCE next to a larger MSE therefore says nothing about which model is better. Relative to their baselines, both tasks are almost fully solved, on every seed.
 
-When all 8 architectures are allowed, the selection changes for classification. A2 with bias terms (`A2-bias` or `A2-bias-he`) is chosen on 4 of 5 seeds, and `A2-bn-dropout` on the fifth, with a test BCE of 0.00009 ± 0.00013. For regression, A1 is still chosen on 4 of 5 seeds, with an MSE of 0.50 ± 0.20.
+When all 9 architectures are allowed, the selection changes for classification. A2 with bias terms (`A2-bias` or `A2-bias-he`) is chosen on 4 of 5 seeds, and `A2-bn-dropout` on the fifth, with a test BCE of 0.00009 ± 0.00013. For regression, A1 is still chosen on 4 of 5 seeds, with an MSE of 0.50 ± 0.20.
 
 The typical run is strong too. Across seeds, the median A1 / A2 run removes 97.2% ± 1.6% of the baseline error on classification and 91.1% ± 0.9% on regression. The weaker runs are the failure modes described below.
 
-*A1* = 1 hidden layer (32 units, sigmoid). *A2* = 3 hidden layers (32 units each, ReLU). The other six architectures are variants of these; see [Architectures](#architectures). Full per-run results are in [`main_summary_20261008-215507.csv`](reports/main_summary_20261008-215507.csv).
+*A1* = 1 hidden layer (32 units, sigmoid). *A2* = 3 hidden layers (32 units each, ReLU). The other seven architectures are variants of these; see [Architectures](#architectures). Full per-run results are in [`main_summary_20261008-220824.csv`](reports/main_summary_20261008-220824.csv).
 
 ### Key findings
 
 - **AdaBelief is the optimizer that is robust to the learning rate.** At LR 0.1, all three optimizers reach a similar classification BCE (about 0.019 averaged over runs and seeds). At LR 0.001, SGD and momentum barely learn: their BCE of 0.681 ± 0.004 is essentially the no-information baseline of 0.689. AdaBelief reaches 0.013 ± 0.007. On regression at LR 0.1, AdaBelief averages an MSE of 2.1 ± 0.8, against 164 and 222 for SGD and momentum, whose deep runs fail (next point).
 - **Depth speeds up convergence but makes training fragile.** The 3-layer ReLU network's training loss settles in about 41 epochs on classification and 53 on regression, against about 80 and 88 for the shallow one. The validation-selected checkpoint comes earlier too: epoch 62 and 42, against 91 and 86. But on regression at LR 0.1 with SGD or momentum, A2 never learns, across 20 runs (4 settings × 5 seeds). 12 runs **collapse**: the deeper ReLU units all die, and the network outputs a constant at or near 0, giving an MSE of 577–622, matching each split's error for always predicting 0. The other 8 **diverge**, with the loss overflowing to NaN.
 - **Batch normalization fixes the collapse; bias terms and He initialization don't.** On those same 20 runs, A2 with batch norm learns in 10 (all momentum runs, test MSE 3.0–9.0). The other 10, all plain SGD, still diverge. With bias terms the dead network can at least output the mean instead of 0, but only 3 of 20 runs learn. He initialization makes the first updates even larger (first-epoch losses up to 1e233) and no runs learn.
+- **Gradient clipping prevents both failure modes, at a cost.** The recorded gradient norms show the cause: every diverged run's gradient norm exceeds 1,000 in its first epoch, and 37 of the 55 overflow outright, so one huge step either kills the ReLUs or overflows the loss. Capping the global gradient norm at 20 (`A2-clip`) stops every divergence: on the same 20 regression runs, 18 learn and 2 collapse. With momentum they reach a test MSE of 5–14; with plain SGD the capped steps leave them far behind (63–110). The cap also slows the healthy runs: A2's best regression result per seed worsens from 1.79 ± 0.80 to 4.48 ± 2.41, mostly because AdaBelief at LR 0.1 is held back. On classification, 57 of 60 runs are unchanged.
 - **Bias terms matter most for classification.** Adding biases to A2 lowers the best classification BCE from 0.0057 ± 0.0040 to 0.00014 ± 0.00017. With He initialization as well, it falls to 0.00008 ± 0.00006, the best result of any architecture.
 - **Dropout doesn't help here, because almost nothing overfits.** Of the 515 runs that early stopping ended, only 54 (10%) showed the overfitting signature, training loss still improving while validation loss wasn't; the rest stopped on a plateau, and 390 runs used all 100 epochs. The gap between test and training metric of the models selected per seed is tiny: at most 0.004 BCE on classification (averaged per architecture), and 0.16 MSE for A1 on regression, against a baseline of about 100. With no overfitting to correct, dropout only removes capacity. It wins only 30 of 120 matched classification comparisons and 12 of 110 regression ones.
 
 <p align="center">
-  <img src="reports/figures/comparisons/a2_variants_regression_momentum_lr01_bs64_20261008-220354.png" width="85%" alt="A2 and its variants on regression with momentum at LR 0.1: only the batch-norm variant learns">
+  <img src="reports/figures/comparisons/a2_variants_regression_momentum_lr01_bs64_20261008-222031.png" width="85%" alt="A2 and its variants on regression with momentum at LR 0.1: only the batch-norm and gradient-clipping variants learn">
 </p>
 <p align="center">
-  <img src="reports/figures/comparisons/optimizers_classification_A1_lr01_bs16_20261008-220354.png" width="85%" alt="Training and validation loss for SGD, Momentum and AdaBelief on banknote classification">
+  <img src="reports/figures/comparisons/optimizers_classification_A1_lr01_bs16_20261008-222031.png" width="85%" alt="Training and validation loss for SGD, Momentum and AdaBelief on banknote classification">
 </p>
 <p align="center">
-  <img src="reports/figures/comparisons/depth_classification_sgd_lr01_bs16_20261008-220354.png" width="48%" alt="Depth comparison: A1 vs A2">
-  <img src="reports/figures/comparisons/learning_rate_classification_A1_sgd_bs16_20261008-220354.png" width="48%" alt="Learning-rate comparison: 0.1 vs 0.001">
+  <img src="reports/figures/comparisons/depth_classification_sgd_lr01_bs16_20261008-222031.png" width="48%" alt="Depth comparison: A1 vs A2">
+  <img src="reports/figures/comparisons/learning_rate_classification_A1_sgd_bs16_20261008-222031.png" width="48%" alt="Learning-rate comparison: 0.1 vs 0.001">
 </p>
 
-The plots show seed 42. More plots, including the dropout comparison, EDA, scaling comparisons and correlation heatmaps, are in [`reports/`](reports/). The written analysis, including all multi-seed tables, is in [`analysis_20261008-220408.txt`](reports/analysis_20261008-220408.txt).
+The plots show seed 42. More plots, including the dropout comparison, EDA, scaling comparisons and correlation heatmaps, are in [`reports/`](reports/). The written analysis, including all multi-seed tables, is in [`analysis_20261008-222044.txt`](reports/analysis_20261008-222044.txt).
 
 ### Architectures
 
@@ -79,6 +80,7 @@ The plots show seed 42. More plots, including the dropout comparison, EDA, scali
 | `A2-bn` | A2 + batch norm on each hidden layer | does normalizing the pre-activations fix the collapse? |
 | `A1-dropout` | A1 + dropout 0.2 | regularization of the best shallow model |
 | `A2-bn-dropout` | A2-bn + dropout 0.2 | regularization of the deep model that learns |
+| `A2-clip` | A2 + gradient-norm clipping at 20 | does capping the update size prevent the explosion? |
 
 ## Comparison with standard libraries
 
@@ -96,7 +98,7 @@ The table also lists each framework's best model; the next section compares the 
 | Model | Classification: test BCE | Accuracy | Regression: test MSE | R² |
 |---|---|---|---|---|
 | **NumPy NN, A1 / A2** | 0.0017 ± 0.0021 | 100% | 0.52 ± 0.19 | 0.995 |
-| **NumPy NN, all 8 architectures** | **0.00009 ± 0.00013** | 100% | 0.50 ± 0.20 | 0.995 |
+| **NumPy NN, all 9 architectures** | **0.00009 ± 0.00013** | 100% | 0.50 ± 0.20 | 0.995 |
 | scikit-learn MLP | 0.00033 ± 0.00023 | 100% | 0.54 ± 0.17 | 0.994 |
 | scikit-learn SVM / SVR (RBF) | 0.0036 ± 0.0008 | 100% | 0.39 ± 0.11 | 0.996 |
 | scikit-learn gradient boosting | 0.024 ± 0.030 | 99.5% | **0.18 ± 0.04** | **0.998** |
@@ -107,10 +109,10 @@ The table also lists each framework's best model; the next section compares the 
 
 Mean ± standard deviation over 5 seeds. Lower BCE / MSE is better, and higher accuracy / R² is better.
 
-- **Classification: the from-scratch network wins.** Allowing all 8 architectures, it has the lowest test BCE of any model and beats scikit-learn's best model (its MLP, chosen on every seed) on 4 of 5 seeds. Every neural network and the SVM classify the test set perfectly; the BCE differences are about how confident the correct predictions are.
+- **Classification: the from-scratch network wins.** Allowing all 9 architectures, it has the lowest test BCE of any model and beats scikit-learn's best model (its MLP, chosen on every seed) on 4 of 5 seeds. Every neural network and the SVM classify the test set perfectly; the BCE differences are about how confident the correct predictions are.
 - **Regression: tree ensembles win.** Gradient boosting has about a third of the network's error (MSE 0.18 vs. 0.50) and beats it on all 5 seeds. Random forest and SVR also do better. Tree models suit this dataset, whose 8 building features each take only 2 to 12 distinct values.
 - **The from-scratch network matches scikit-learn's own neural network.** On regression, its MSE (0.52 for A1 / A2) is in line with scikit-learn's MLP (0.54), which suggests the implementation performs like a standard library one.
-- **Training cost is comparable.** The selected configurations train in about 0.2–0.4 s for the NumPy network and from a few milliseconds to 1.2 s for the scikit-learn models, per seed, on one CPU.
+- **Training cost is comparable.** The selected configurations train in about 0.2–0.5 s for the NumPy network and from a few milliseconds to 1.2 s for the scikit-learn models, per seed, on one CPU.
 
 ### Against TensorFlow and PyTorch: same architecture, different implementation
 
@@ -129,20 +131,20 @@ Each cell is the best configuration per seed (selected on validation), mean ± s
 - **The NumPy network's failure mode is real, not a bug.** In the NumPy network, the deep ReLU network on regression at LR 0.1 never learns with SGD or momentum: 8 runs diverge and 12 collapse to a constant output (test MSE 577–622). PyTorch reproduces this almost exactly: of its 20 A2 runs at those settings, 10 diverge and 10 collapse to the same MSE range of 577–622. In Keras, 19 diverge and 1 collapses.
 - **Here the NumPy network's batch norm does better than the frameworks'.** In the NumPy network, batch norm lets the momentum runs at LR 0.1 learn. In both frameworks, all 20 A2-bn runs at those settings diverge, and so do all 20 A2-bias runs. PyTorch's batch norm has the same settings as the NumPy one, so the likely cause is the momentum rule: the frameworks' classical momentum takes steps about 10× larger than the NumPy network's moving average at the same learning rate.
 - **Adam plays the role of AdaBelief.** No Adam run diverged in either framework. Adam at LR 0.1 is the selected configuration in 30 of 40 selections in Keras and 29 of 40 in PyTorch, just as AdaBelief at LR 0.1 dominates the NumPy network's selections. It's less smooth, though. In the PyTorch curves below, Adam's validation loss jumps from 0.000005 to 7.5 at epoch 19, and early stopping restores the epoch-18 checkpoint.
-- **The frameworks are slower on data this small.** A selected model takes 0.2–0.4 s to train in the NumPy network, 0.6–1.6 s in PyTorch, and 4–13 s in Keras. With a few hundred training samples, each step is tiny, and per-step framework overhead dominates; Keras's `fit()` adds the most. The 480 runs took 9 minutes in PyTorch and 81 in Keras on one CPU; the NumPy network's 960 runs take about 10.
+- **The frameworks are slower on data this small.** A selected model takes 0.2–0.5 s to train in the NumPy network, 0.6–1.6 s in PyTorch, and 4–13 s in Keras. With a few hundred training samples, each step is tiny, and per-step framework overhead dominates; Keras's `fit()` adds the most. The 480 runs took 9 minutes in PyTorch and 81 in Keras on one CPU; the NumPy network's 1,080 runs take about 11.
 
 <p align="center">
-  <img src="reports/figures/benchmarks/benchmark_classification_20261008-220409.png" width="48%" alt="Classification test BCE: NumPy network vs. scikit-learn, Keras and PyTorch models">
-  <img src="reports/figures/benchmarks/benchmark_regression_20261008-220409.png" width="48%" alt="Regression test MSE: NumPy network vs. scikit-learn, Keras and PyTorch models">
+  <img src="reports/figures/benchmarks/benchmark_classification_20261008-222045.png" width="48%" alt="Classification test BCE: NumPy network vs. scikit-learn, Keras and PyTorch models">
+  <img src="reports/figures/benchmarks/benchmark_regression_20261008-222045.png" width="48%" alt="Regression test MSE: NumPy network vs. scikit-learn, Keras and PyTorch models">
 </p>
 <p align="center">
-  <img src="reports/figures/benchmarks/benchmark_curves_tensorflow_20261008-220409.png" width="85%" alt="Validation loss of the selected NumPy and Keras models, seed 42">
+  <img src="reports/figures/benchmarks/benchmark_curves_tensorflow_20261008-222045.png" width="85%" alt="Validation loss of the selected NumPy and Keras models, seed 42">
 </p>
 <p align="center">
-  <img src="reports/figures/benchmarks/benchmark_curves_pytorch_20261008-220409.png" width="85%" alt="Validation loss of the selected NumPy and PyTorch models, seed 42">
+  <img src="reports/figures/benchmarks/benchmark_curves_pytorch_20261008-222045.png" width="85%" alt="Validation loss of the selected NumPy and PyTorch models, seed 42">
 </p>
 
-The bar charts include every library model and each framework architecture. The curves show the selected NumPy and framework models on seed 42. The full tables, the configuration each model selected most often and the seed-by-seed head-to-heads are in [`benchmark_report_20261008-220409.txt`](reports/benchmark_report_20261008-220409.txt).
+The bar charts include every library model and each framework architecture. The curves show the selected NumPy and framework models on seed 42. The full tables, the configuration each model selected most often and the seed-by-seed head-to-heads are in [`benchmark_report_20261008-222045.txt`](reports/benchmark_report_20261008-222045.txt).
 
 ### Limitations
 
@@ -150,7 +152,7 @@ These comparisons show that a from-scratch network can match standard libraries 
 
 - **Small, nearly solved datasets.** The test sets have 270 and 154 samples, and the best neural networks reach about 100% accuracy and an R² of about 0.995. Most differences between neural networks are within the variation across the 5 seeds, and no significance tests were run.
 - **Not equally tuned.** The grid (learning rates, batch sizes, early stopping) and the architectures were designed around the NumPy network. The frameworks run with their default initialization, optimizers and batch-norm settings, without per-framework tuning such as learning-rate schedules or weight decay.
-- **Unequal search space.** The NumPy network's best model is selected from 8 architectures, while each framework's comes from 4. Choosing among more candidates is an advantage on its own.
+- **Unequal search space.** The NumPy network's best model is selected from 9 architectures, while each framework's comes from 4. Choosing among more candidates is an advantage on its own.
 - **Different optimizers and precision.** The NumPy network uses AdaBelief, moving-average momentum and float64; the frameworks use Adam, classical momentum and float32.
 - **Timing is specific to this setup.** Times were measured on one CPU with small layers and batches, where each framework's per-step overhead dominates. On larger data, larger models or a GPU, the frameworks are much faster.
 - **Two datasets.** The results shouldn't be generalized beyond these two UCI tasks.
@@ -163,7 +165,7 @@ The project follows the [Cookiecutter Data Science](https://cookiecutter-data-sc
 make create_environment           # python -m venv .venv
 make requirements                 # pinned dependencies + the package + dev tools (pytest, ruff)
 
-make train                        # run all 960 experiments (~10 min)
+make train                        # run all 1,080 experiments (~11 min)
 make plots                        # optimizer / depth / learning-rate / variant / dropout plots
 make analysis                     # summary report -> reports/analysis_<stamp>.txt
 make all                          # train, plots and analysis in one go
@@ -196,9 +198,9 @@ python -m nn_from_scratch.benchmarks.run   # library comparison (or one: ... run
 python -m nn_from_scratch.benchmarks.report
 ```
 
-For a quicker run, set `"seeds": [42]` in both files in `configs/`. That runs the 192 experiments of a single seed in about 2 minutes, and seed 42 reproduces the single-seed results exactly.
+For a quicker run, set `"seeds": [42]` in both files in `configs/`. That runs the 216 experiments of a single seed in about 2 minutes, and seed 42 reproduces the single-seed results exactly.
 
-Every output file is stamped with the time of the run, as `name_YYYYMMDD-HHMMSS.ext`, so a new run never overwrites an earlier one. `nn_from_scratch.comparisons` and `nn_from_scratch.analysis` use the newest `reports/main_results_full_*.json` by default; pass a path as the first argument to pick a specific one, e.g. `python -m nn_from_scratch.analysis reports/main_results_full_20261008-215507.json`. When run directly (not through `make plots`), set `MPLBACKEND=Agg` to stop plot windows from opening.
+Every output file is stamped with the time of the run, as `name_YYYYMMDD-HHMMSS.ext`, so a new run never overwrites an earlier one. `nn_from_scratch.comparisons` and `nn_from_scratch.analysis` use the newest `reports/main_results_full_*.json` by default; pass a path as the first argument to pick a specific one, e.g. `python -m nn_from_scratch.analysis reports/main_results_full_20261008-220824.json`. When run directly (not through `make plots`), set `MPLBACKEND=Agg` to stop plot windows from opening.
 
 Older runs stay on your disk, but only the newest version of each output is committed. Stamped outputs are git-ignored, and a pre-commit hook ([`tools/stage_latest_outputs.py`](tools/stage_latest_outputs.py)) stages the newest ones, untracks older ones, and updates the stamped links in this README. Enable it once per clone with `git config core.hooksPath .githooks`.
 
