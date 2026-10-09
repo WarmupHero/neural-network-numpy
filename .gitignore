@@ -1,4 +1,7 @@
 __pycache__/
+
+# Protégé writes a catalog next to the ontology it opens.
+knowledge/catalog-v001.xml
 *.pyc
 .pytest_cache/
 .venv/

@@ -23,6 +23,9 @@ dependencies = [
 dev = [
     "pytest>=8",
     "ruff==0.16.10",
+    # The knowledge base (tools/build_knowledge_base.py) and its tests.
+    "rdflib==7.6.0",
+    "owlrl==7.6.2",
 ]
 # Libraries the from-scratch network is compared against (nn_from_scratch.benchmarks).
 # Install with  pip install -e ".[benchmarks]"  (or  make benchmark-requirements).

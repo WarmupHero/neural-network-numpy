@@ -1,0 +1,603 @@
+{
+	"nodes": [
+		{
+			"id": "title",
+			"type": "text",
+			"text": "# neural-network-from-scratch — system architecture\n\nA feed-forward neural network in **NumPy only**, trained on two UCI tasks (banknote classification, heating-load regression) over 9 architectures × 3 optimizers × 2 learning rates × 2 batch sizes × 5 seeds = **1,080 runs**, then compared with scikit-learn, TensorFlow (Keras) and PyTorch on the same splits.\n\n**Flow:** left → right. Colored groups are stages; arrows show what feeds what. Every output file is stamped `name_YYYYMMDD-HHMMSS.ext`.",
+			"x": 0,
+			"y": -1190,
+			"width": 1800,
+			"height": 400
+		},
+		{
+			"id": "legend",
+			"type": "text",
+			"text": "### Legend\n- **Inputs** (blue): configs and raw data\n- **Load & preprocess** (green)\n- **Training** (orange): the NumPy network\n- **nn/ library** (purple): the network itself\n- **Results** (yellow): result files\n- **Analysis & reports** (red)\n- **Library comparison** (cyan): optional dependencies\n- **Infrastructure** (grey)",
+			"x": 3420,
+			"y": -1190,
+			"width": 520,
+			"height": 400
+		},
+		{
+			"id": "g_inputs",
+			"type": "group",
+			"label": "Inputs",
+			"x": 0,
+			"y": 0,
+			"width": 864,
+			"height": 1394,
+			"color": "#4a7bd0"
+		},
+		{
+			"id": "configs",
+			"type": "text",
+			"text": "### configs/\n- `classification_experiments.json`\n- `regression_experiments.json`\n\nArchitectures (layer lists, or `{\"layers\", \"max_grad_norm\"}`), optimizers, learning rates, batch sizes, seeds 42–46, epochs, early stopping (patience 10, `min_delta` 1e-4, 20-epoch guard), preprocessing.\n\n- `benchmark_experiments.json` — library model grids",
+			"x": 36,
+			"y": 68,
+			"width": 440,
+			"height": 400
+		},
+		{
+			"id": "raw",
+			"type": "text",
+			"text": "### data/raw/\n- `banknote_auth.csv` — 1,348 unique rows, 4 features\n- `energy_efficiency.csv` — 768 rows, 8 features → Heating_Load\n\nCommitted to the repo. **`dataset.py`** (`Fetch`) downloads them with `ucimlrepo` only if missing.",
+			"x": 36,
+			"y": 816,
+			"width": 440,
+			"height": 300
+		},
+		{
+			"id": "g_prep",
+			"type": "group",
+			"label": "Load & preprocess",
+			"x": 1080,
+			"y": 0,
+			"width": 864,
+			"height": 1700,
+			"color": "4"
+		},
+		{
+			"id": "loader",
+			"type": "text",
+			"text": "### config_loader.py\n`ConfigLoader.load_and_validate()`\n- checks every key, layer, activation, init, dropout, seeds…\n- `normalize_architectures()` splits options (e.g. `max_grad_norm`) into `architecture_options`, so architectures stay plain layer lists",
+			"x": 1116,
+			"y": 68,
+			"width": 440,
+			"height": 300
+		},
+		{
+			"id": "features",
+			"type": "text",
+			"text": "### features.py + scalers.py\n`PreprocessBanknote` / `PreprocessEnergy`\n1. load & drop duplicates\n2. NumPy-only 60 / 20 / 20 train / val / test split, **stratified** for classification, per seed\n3. `StandardScaler` fit on **train only** (no leakage)\n\n→ `X_train, y_train, X_val, y_val, X_test, y_test`",
+			"x": 1116,
+			"y": 646,
+			"width": 440,
+			"height": 360
+		},
+		{
+			"id": "plots",
+			"type": "text",
+			"text": "### plots.py\n`Visualizer`: class balance, pairplot, correlation heatmap, target distribution, scaling before / after (first seed only)\n\n→ `reports/figures/eda/*_<stamp>.png`",
+			"x": 1116,
+			"y": 1326,
+			"width": 440,
+			"height": 200
+		},
+		{
+			"id": "g_train",
+			"type": "group",
+			"label": "Training (NumPy network)",
+			"x": 2160,
+			"y": 0,
+			"width": 1800,
+			"height": 1802,
+			"color": "2"
+		},
+		{
+			"id": "train",
+			"type": "text",
+			"text": "### modeling/train.py — sweep orchestrator\n`main()` → for each problem × seed × architecture × optimizer × LR × batch:\n`run_single_experiment()`\n- builds the network (seeded)\n- passes the architecture's gradient cap\n- fits, evaluates on test, scores train (eval mode)\n- computes the constant-prediction **baseline**\n- records metrics, accuracy / R², timing, histories, `stop_reason`, `overfitting_epochs`, `grad_norm_history`",
+			"x": 2196,
+			"y": 68,
+			"width": 460,
+			"height": 400
+		},
+		{
+			"id": "trainer",
+			"type": "text",
+			"text": "### modeling/trainer.py — `Trainer`\nPer epoch: train mode → shuffle → mini-batches (forward → loss → backward → **clip** → optimizer) → eval mode → validation loss.\n- **early stopping** on validation loss (patience, `min_delta`, min-epoch guard)\n- restores the **best checkpoint** (incl. batch-norm stats)\n- stops on **divergence** (non-finite loss)\n- records `stop_reason`, overfitting signature, gradient norms",
+			"x": 3096,
+			"y": 68,
+			"width": 460,
+			"height": 400
+		},
+		{
+			"id": "g_nn",
+			"type": "group",
+			"label": "nn/ — the network library (NumPy only)",
+			"x": 2196,
+			"y": 816,
+			"width": 1728,
+			"height": 952,
+			"color": "6"
+		},
+		{
+			"id": "network",
+			"type": "text",
+			"text": "### network.py — `NeuralNetwork`\n`build_from_config()`, `forward()`, `backward()`, `train()` / `eval()`, `get_trainable_layers()`, `gradient_norm()`, `clip_gradients()`",
+			"x": 3096,
+			"y": 884,
+			"width": 440,
+			"height": 210
+		},
+		{
+			"id": "layers",
+			"type": "text",
+			"text": "### layers.py\n- `Dense` — X·W (+ b), init normal / He / Xavier\n- `BatchNorm` — γ, β, running stats, train / eval\n- `Dropout` — inverted, own seeded RNG",
+			"x": 2808,
+			"y": 1394,
+			"width": 300,
+			"height": 200
+		},
+		{
+			"id": "actloss",
+			"type": "text",
+			"text": "### activations.py · losses.py\nReLU, Sigmoid, Tanh, Linear · BCE, MSE — each with a hand-derived backward pass",
+			"x": 3384,
+			"y": 1394,
+			"width": 280,
+			"height": 200
+		},
+		{
+			"id": "optim",
+			"type": "text",
+			"text": "### optimizers.py\nSGD · momentum (moving average) · **AdaBelief** — update every parameter of every layer",
+			"x": 2232,
+			"y": 884,
+			"width": 440,
+			"height": 210
+		},
+		{
+			"id": "metrics",
+			"type": "text",
+			"text": "### metrics.py\nBCE, MSE, accuracy, R² — used by the trainer, train.py and **every** library model",
+			"x": 2232,
+			"y": 1394,
+			"width": 300,
+			"height": 200
+		},
+		{
+			"id": "g_results",
+			"type": "group",
+			"label": "Results",
+			"x": 4176,
+			"y": 0,
+			"width": 864,
+			"height": 1020,
+			"color": "3"
+		},
+		{
+			"id": "results",
+			"type": "text",
+			"text": "### reports/main_results_full_<stamp>.json\nOne record per run (1,080): settings, test / train / baseline metrics, best epoch, stop reason, loss + gradient-norm histories, fit time",
+			"x": 4212,
+			"y": 510,
+			"width": 440,
+			"height": 260
+		},
+		{
+			"id": "summary",
+			"type": "text",
+			"text": "### reports/main_summary_<stamp>.csv\nCompact table: problem, seed, optimizer, batch, LR, architecture, epochs ran, best epoch, stop reason, test metric",
+			"x": 4212,
+			"y": 68,
+			"width": 440,
+			"height": 200
+		},
+		{
+			"id": "g_analysis",
+			"type": "group",
+			"label": "Analysis & reports",
+			"x": 5256,
+			"y": 0,
+			"width": 864,
+			"height": 1394,
+			"color": "1"
+		},
+		{
+			"id": "comparisons",
+			"type": "text",
+			"text": "### comparisons.py\nMatched loss-curve plots (seed 42): optimizers, depth, learning rate, A2 variants, dropout — with convergence + best-epoch markers\n\n→ `reports/figures/comparisons/*.png`\n→ `reports/comparisons/*.txt`",
+			"x": 5292,
+			"y": 68,
+			"width": 440,
+			"height": 320
+		},
+		{
+			"id": "analysis",
+			"type": "text",
+			"text": "### analysis.py\nConvergence epoch vs. best epoch, normalized losses, A2 variants & collapse checks, dropout + generalization gap, **multi-seed** mean ± std, model selection on validation, stopping & overfitting table\n\n→ `reports/analysis_<stamp>.txt`",
+			"x": 5292,
+			"y": 680,
+			"width": 440,
+			"height": 400
+		},
+		{
+			"id": "g_bench",
+			"type": "group",
+			"label": "Library comparison — nn_from_scratch/benchmarks (optional: scikit-learn, TensorFlow, PyTorch)",
+			"x": 1080,
+			"y": 2040,
+			"width": 5040,
+			"height": 952,
+			"color": "5"
+		},
+		{
+			"id": "bdata",
+			"type": "text",
+			"text": "### benchmarks/data.py\n`load_splits(problem, seed)` reuses the main pipeline's preprocessing → **identical** splits and baselines for every library",
+			"x": 1116,
+			"y": 2142,
+			"width": 440,
+			"height": 240
+		},
+		{
+			"id": "sk",
+			"type": "text",
+			"text": "### sklearn_models.py\nlogistic / ridge, SVM / SVR, random forest, gradient boosting, MLP — small grids",
+			"x": 3240,
+			"y": 2142,
+			"width": 420,
+			"height": 140
+		},
+		{
+			"id": "keras",
+			"type": "text",
+			"text": "### keras_models.py\nA1, A2, A2-bias, A2-bn rebuilt in Keras (framework defaults, EarlyStopping)",
+			"x": 3240,
+			"y": 2431,
+			"width": 420,
+			"height": 140
+		},
+		{
+			"id": "torch",
+			"type": "text",
+			"text": "### torch_models.py\nSame architectures in PyTorch, hand-written loop with the NumPy trainer's early-stopping rule",
+			"x": 3240,
+			"y": 2720,
+			"width": 420,
+			"height": 140
+		},
+		{
+			"id": "brun",
+			"type": "text",
+			"text": "### benchmarks/run.py\n`python -m nn_from_scratch.benchmarks.run [sklearn|tensorflow|pytorch]` — every model × grid × seed, selected on validation, scored with `nn/metrics.py`",
+			"x": 2196,
+			"y": 2142,
+			"width": 460,
+			"height": 260
+		},
+		{
+			"id": "bresults",
+			"type": "text",
+			"text": "### reports/benchmark_<library>_results_<stamp>.json\nOne file per library",
+			"x": 4212,
+			"y": 2142,
+			"width": 440,
+			"height": 200
+		},
+		{
+			"id": "breport",
+			"type": "text",
+			"text": "### benchmarks/report.py\nTables (mean ± std), per-seed head-to-heads, same-architecture NumPy vs. Keras vs. PyTorch tables\n\n→ `reports/benchmark_report_<stamp>.txt`\n→ `reports/figures/benchmarks/*.png` (bar charts, learning curves)",
+			"x": 5292,
+			"y": 2142,
+			"width": 440,
+			"height": 380
+		},
+		{
+			"id": "g_infra",
+			"type": "group",
+			"label": "Infrastructure",
+			"x": 0,
+			"y": 3196,
+			"width": 6120,
+			"height": 612
+		},
+		{
+			"id": "config",
+			"type": "text",
+			"text": "### config.py\nPaths, `RANDOM_SEED = 42`, `RUN_STAMP`, `stamped_filename()`, `latest_stamped_file()`, `resolve_results_path()` — nothing is ever overwritten",
+			"x": 36,
+			"y": 3264,
+			"width": 520,
+			"height": 280
+		},
+		{
+			"id": "make",
+			"type": "text",
+			"text": "### Makefile\n`make train · plots · analysis · all · benchmarks · benchmark-report · test · lint · format · clean · help`",
+			"x": 1044,
+			"y": 3264,
+			"width": 520,
+			"height": 280
+		},
+		{
+			"id": "hook",
+			"type": "text",
+			"text": "### .githooks/pre-commit → tools/stage_latest_outputs.py\nCommits only the **newest** stamped output of each kind, untracks older ones, rewrites stamped links in README / DETAILS",
+			"x": 2052,
+			"y": 3264,
+			"width": 620,
+			"height": 280
+		},
+		{
+			"id": "tests",
+			"type": "text",
+			"text": "### tests/ (pytest, 154 tests)\nFinite-difference gradient checks, layers, batch norm, dropout, clipping, splits, seeds, training, stop reasons, benchmarks",
+			"x": 5148,
+			"y": 3264,
+			"width": 520,
+			"height": 280
+		},
+		{
+			"id": "docs",
+			"type": "text",
+			"text": "### README.md · docs/DETAILS.md\nResults, findings, limitations, full reference. **ruff** for lint / format; GitHub Actions runs the tests",
+			"x": 3240,
+			"y": 3264,
+			"width": 1000,
+			"height": 280
+		}
+	],
+	"edges": [
+		{
+			"id": "e1",
+			"fromNode": "configs",
+			"fromSide": "right",
+			"toNode": "loader",
+			"toSide": "left",
+			"toEnd": "arrow",
+			"label": "experiment configs"
+		},
+		{
+			"id": "e2",
+			"fromNode": "raw",
+			"fromSide": "right",
+			"toNode": "features",
+			"toSide": "left",
+			"toEnd": "arrow",
+			"label": "CSVs"
+		},
+		{
+			"id": "e3",
+			"fromNode": "loader",
+			"fromSide": "right",
+			"toNode": "train",
+			"toSide": "left",
+			"toEnd": "arrow",
+			"label": "validated configs + architecture options"
+		},
+		{
+			"id": "e4",
+			"fromNode": "features",
+			"fromSide": "right",
+			"toNode": "train",
+			"toSide": "left",
+			"toEnd": "arrow",
+			"label": "splits per seed"
+		},
+		{
+			"id": "e5",
+			"fromNode": "features",
+			"fromSide": "bottom",
+			"toNode": "plots",
+			"toSide": "top",
+			"toEnd": "arrow",
+			"label": "EDA (first seed)"
+		},
+		{
+			"id": "e6",
+			"fromNode": "train",
+			"fromSide": "right",
+			"toNode": "trainer",
+			"toSide": "left",
+			"toEnd": "arrow",
+			"label": "one run per configuration"
+		},
+		{
+			"id": "e7",
+			"fromNode": "train",
+			"fromSide": "bottom",
+			"toNode": "network",
+			"toSide": "left",
+			"toEnd": "arrow",
+			"label": "build_from_config"
+		},
+		{
+			"id": "e8",
+			"fromNode": "trainer",
+			"fromSide": "bottom",
+			"toNode": "optim",
+			"toSide": "right",
+			"toEnd": "arrow",
+			"label": "update(layer)"
+		},
+		{
+			"id": "e9",
+			"fromNode": "trainer",
+			"fromSide": "bottom",
+			"toNode": "network",
+			"toSide": "top",
+			"toEnd": "arrow",
+			"label": "forward / backward / clip"
+		},
+		{
+			"id": "e10",
+			"fromNode": "network",
+			"fromSide": "bottom",
+			"toNode": "layers",
+			"toSide": "top",
+			"toEnd": "arrow",
+			"label": "layers"
+		},
+		{
+			"id": "e11",
+			"fromNode": "network",
+			"fromSide": "bottom",
+			"toNode": "actloss",
+			"toSide": "top",
+			"toEnd": "arrow",
+			"label": "activations, loss"
+		},
+		{
+			"id": "e12",
+			"fromNode": "optim",
+			"fromSide": "bottom",
+			"toNode": "layers",
+			"toSide": "top",
+			"toEnd": "arrow",
+			"label": "get_params / get_grads"
+		},
+		{
+			"id": "e13",
+			"fromNode": "train",
+			"fromSide": "top",
+			"toNode": "g_results",
+			"toSide": "top",
+			"toEnd": "arrow",
+			"label": "writes results JSON + summary CSV"
+		},
+		{
+			"id": "e14",
+			"fromNode": "results",
+			"fromSide": "right",
+			"toNode": "comparisons",
+			"toSide": "left",
+			"toEnd": "arrow",
+			"label": "newest results"
+		},
+		{
+			"id": "e15",
+			"fromNode": "results",
+			"fromSide": "right",
+			"toNode": "analysis",
+			"toSide": "left",
+			"toEnd": "arrow",
+			"label": "newest results"
+		},
+		{
+			"id": "e16",
+			"fromNode": "g_prep",
+			"fromSide": "bottom",
+			"toNode": "bdata",
+			"toSide": "top",
+			"toEnd": "arrow",
+			"label": "same preprocessing"
+		},
+		{
+			"id": "e17",
+			"fromNode": "g_inputs",
+			"fromSide": "bottom",
+			"toNode": "g_bench",
+			"toSide": "left",
+			"toEnd": "arrow",
+			"label": "benchmark grids"
+		},
+		{
+			"id": "e18",
+			"fromNode": "bdata",
+			"fromSide": "right",
+			"toNode": "brun",
+			"toSide": "left",
+			"toEnd": "arrow",
+			"label": "load_splits"
+		},
+		{
+			"id": "e19",
+			"fromNode": "brun",
+			"fromSide": "right",
+			"toNode": "sk",
+			"toSide": "left",
+			"toEnd": "arrow"
+		},
+		{
+			"id": "e20",
+			"fromNode": "brun",
+			"fromSide": "right",
+			"toNode": "keras",
+			"toSide": "left",
+			"toEnd": "arrow",
+			"label": "get_runner"
+		},
+		{
+			"id": "e21",
+			"fromNode": "brun",
+			"fromSide": "right",
+			"toNode": "torch",
+			"toSide": "left",
+			"toEnd": "arrow"
+		},
+		{
+			"id": "e22",
+			"fromNode": "sk",
+			"fromSide": "right",
+			"toNode": "bresults",
+			"toSide": "left",
+			"toEnd": "arrow"
+		},
+		{
+			"id": "e23",
+			"fromNode": "keras",
+			"fromSide": "right",
+			"toNode": "bresults",
+			"toSide": "left",
+			"toEnd": "arrow",
+			"label": "records"
+		},
+		{
+			"id": "e24",
+			"fromNode": "torch",
+			"fromSide": "right",
+			"toNode": "bresults",
+			"toSide": "left",
+			"toEnd": "arrow"
+		},
+		{
+			"id": "e25",
+			"fromNode": "bresults",
+			"fromSide": "right",
+			"toNode": "breport",
+			"toSide": "left",
+			"toEnd": "arrow",
+			"label": "library results"
+		},
+		{
+			"id": "e26",
+			"fromNode": "results",
+			"fromSide": "bottom",
+			"toNode": "breport",
+			"toSide": "top",
+			"toEnd": "arrow",
+			"label": "NumPy runs"
+		},
+		{
+			"id": "e27",
+			"fromNode": "metrics",
+			"fromSide": "bottom",
+			"toNode": "brun",
+			"toSide": "top",
+			"toEnd": "arrow",
+			"label": "same metric functions"
+		},
+		{
+			"id": "e28",
+			"fromNode": "hook",
+			"fromSide": "right",
+			"toNode": "docs",
+			"toSide": "left",
+			"toEnd": "arrow",
+			"label": "rewrites links"
+		}
+	]
+}

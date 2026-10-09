@@ -71,6 +71,11 @@ benchmark-report: export MPLBACKEND = Agg
 benchmark-report:
 	$(PYTHON_INTERPRETER) -m $(PACKAGE).benchmarks.report
 
+## Build the OWL knowledge base in knowledge/ from the configs, sources and Makefile
+.PHONY: knowledge-base
+knowledge-base:
+	$(PYTHON_INTERPRETER) tools/build_knowledge_base.py
+
 ## Run the test suite
 .PHONY: test
 test:

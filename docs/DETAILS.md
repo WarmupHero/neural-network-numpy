@@ -14,6 +14,7 @@ This is the in-depth reference for the project. For a quick overview, results, a
    - [comparisons.py](#comparisonspy)
    - [analysis.py](#analysispy)
 4. [Library comparison](#4-library-comparison)
+5. [Knowledge base](#5-knowledge-base)
 
 ---
 
@@ -130,6 +131,7 @@ make format         # ruff check --fix and ruff format (rewrites files)
 - `tests/test_metrics.py` checks the accuracy and R² metrics.
 - `tests/test_benchmarks.py` checks that the library comparison uses exactly the main pipeline's splits, the model selection and summaries in the report, the scikit-learn wrappers, and the Keras and PyTorch models (layer structure, optimizers, training records, reproducibility; for PyTorch also the hand-written early stopping and divergence detection). Library tests are skipped automatically when that library isn't installed.
 - `tests/test_seeds.py` checks that the split and the weight initialization follow the seed, the constant-prediction baselines, the `seeds` config validation, and the multi-seed analysis helpers (model selection by validation loss, error removed, mean ± std).
+- `tests/test_knowledge_base.py` checks the generated OWL knowledge base: it reads back to the same graph and is written identically twice, no IRI has two kinds and nothing references an undeclared name, every assertion respects its property's domain and range, and the OWL RL reasoner infers the pipeline order, stage membership, module roles and architecture families (see [section 5](#5-knowledge-base)).
 - `tests/test_clipping.py` checks gradient clipping: the global gradient norm covers every parameter (weights, biases, batch norm's γ and β), clipping scales an over-long gradient to exactly the cap without changing its direction and leaves smaller ones untouched, a clipped SGD step moves the parameters by at most `lr × cap`, a run that diverges without clipping stays finite with it, and the config loader accepts the `max_grad_norm` option and rejects invalid ones.
 - `tests/test_preprocessing.py` checks that the NumPy split has the right sizes, has no overlapping rows, preserves class balance when stratified, and is reproducible from the seed.
 - `tests/test_training.py` checks that each optimizer reduces the loss on a toy problem, and that `Trainer.fit` / `Trainer.evaluate` run end to end and report BCE as the classification metric.
@@ -483,3 +485,30 @@ Training time is the wall-clock time of the selected configuration's fit, on one
 - `reports/benchmark_report_<stamp>.txt`: per task, the test metric, secondary metric, error removed and training time (mean ± std over seeds) for the NumPy network and every library model, the configuration chosen most often, a seed-by-seed head-to-head between the NumPy network (all architectures) and each library's best model, and, per framework, an architecture-by-architecture table (NumPy vs. framework version of A1, A2, A2-bias, A2-bn, with diverged-run counts).
 - `reports/figures/benchmarks/benchmark_<task>_<stamp>.png`: the test metric per model as a bar chart (log scale).
 - `reports/figures/benchmarks/benchmark_curves_<framework>_<stamp>.png`: the validation-loss curves of the NumPy network's and the framework's selected models on the first seed, for both tasks.
+
+---
+
+## 5. Knowledge base
+
+`knowledge/nn_from_scratch.owl` describes the repository as an OWL 2 ontology: the nodes and edges of the architecture canvas, plus the concepts the code implements. It opens in Protégé 5.5, and its reasoner infers the architecture from the asserted facts.
+
+### What it contains
+
+- **Structure** (from the canvas): every module, package, artifact and make target is an individual of `Component`, with its path, a description taken from the module's docstring, and its stage. Edges: `reads` / `writes` (module ↔ artifact), `imports` (read from the sources with `ast`, lazy imports included), `partOf` (module → package), `runs` (make target → module), `covers` (test module → the modules it imports), `requiresLibrary`, `implements`.
+- **Domain** (from the configs): the two tasks with their datasets, losses, metrics and output activations; the nine architectures with their hidden-layer count, units, activation, techniques (bias terms, initialization, batch norm, dropout, gradient clipping) and the architecture each is a variant of; the sweep (optimizers, learning rates, batch sizes, seeds, early stopping, run count); the libraries from `pyproject.toml` with their versions, split into core, optional (benchmarks) and development; the scikit-learn, Keras and PyTorch models of the comparison.
+- **Results**: the result files are individuals with a `filePattern`, `writtenBy` the module that produces them and a description of what they contain. No result numbers are stored.
+
+Nothing is asserted that a reasoner can derive. `feeds` is inferred from `writes ∘ readBy` (a module feeds the modules that read what it writes), and `upstreamOf` is its transitive closure; a module's stage is inferred from its package through `partOf ∘ belongsToStage`; and the defined classes classify individuals by their edges: `Producer`, `Consumer`, `PipelineStep`, `EntryPoint`, `OptionalModule`, `TestedModule`, `StampedArtifact`, one `…StageComponent` class per stage, `Variant`, `DeepArchitecture` / `ShallowArchitecture`, `NormalizedArchitecture`, `RegularizedArchitecture`, `ClippedArchitecture`, `BiasedArchitecture` and `FrameworkReimplementation`.
+
+### Using it in Protégé
+
+1. Open `knowledge/nn_from_scratch.owl` (or `extensions.owl`, which imports it from the same folder).
+2. Reasoner → HermiT → Start reasoner. The inferred class hierarchy and each individual's inferred types appear in the usual views.
+3. To see the inferred edges (`feeds`, `upstreamOf`, `belongsToStage`) on an individual, tick **Object property assertions** under Reasoner → Configure.
+4. DL Query examples: `Component and upstreamOf value BenchmarkReport` (everything behind the benchmark report), `Module and belongsToStage value NetworkLibraryStage`, `Architecture and usesTechnique some GradientClipping`, `LibraryModel and not FrameworkReimplementation`.
+
+The generated file is never edited by hand: put manual classes, individuals or axioms in `knowledge/extensions.owl`, which regeneration doesn't touch. Protégé writes a `catalog-v001.xml` next to the files; it is git-ignored.
+
+### Regenerating and testing
+
+`make knowledge-base` (or `python tools/build_knowledge_base.py`) rebuilds the file from the current repository with `rdflib` (a dev dependency). The output is deterministic, so regenerating without changes produces no diff. `tests/test_knowledge_base.py` checks that the file reads back to the same graph, that no IRI has two kinds and nothing references an undeclared name, that every assertion respects its property's domain and range, and, with the pure-Python OWL RL reasoner `owlrl`, that the intended inferences hold (pipeline order, stage membership, roles, architecture families). The two classes defined by a numeric range, `DeepArchitecture` and `ShallowArchitecture`, need a reasoner with datatype facets such as HermiT, so they are only verified in Protégé.

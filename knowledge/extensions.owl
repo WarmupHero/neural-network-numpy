@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rdf:RDF
+  xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+  xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+  xmlns:owl="http://www.w3.org/2002/07/owl#"
+  xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
+  xmlns:nnfs="https://github.com/WarmupHero/neural-network-from-scratch/ontology#"
+>
+  <owl:Ontology rdf:about="https://github.com/WarmupHero/neural-network-from-scratch/ontology/extensions">
+    <rdfs:label>neural-network-from-scratch knowledge base: extensions</rdfs:label>
+    <rdfs:comment>Manual additions to the generated knowledge base. Open this file in Protégé (it imports nn_from_scratch.owl from the same folder) and add classes, individuals or axioms here; regenerating the knowledge base never touches this file.</rdfs:comment>
+    <owl:imports rdf:resource="https://github.com/WarmupHero/neural-network-from-scratch/ontology"/>
+  </owl:Ontology>
+</rdf:RDF>
