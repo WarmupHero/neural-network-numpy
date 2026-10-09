@@ -576,6 +576,9 @@ class Builder:
         parents: list[str] | None = None,
         functional: bool = False,
         inverse_functional: bool = False,
+        asymmetric: bool = False,
+        irreflexive: bool = False,
+        symmetric: bool = False,
     ) -> URIRef:
         """
         Declare an object property.
@@ -601,6 +604,16 @@ class Builder:
         inverse_functional : bool, default=False
             Whether each value belongs to at most one subject (the inverse
             is then functional).
+        asymmetric : bool, default=False
+            Whether the property can never hold in both directions between
+            two individuals (implies irreflexive). The inverse is
+            asymmetric too.
+        irreflexive : bool, default=False
+            Whether no individual is related to itself. The inverse is
+            irreflexive too.
+        symmetric : bool, default=False
+            Whether the property always holds in both directions; such a
+            property is its own inverse, so no inverse is declared.
 
         Returns
         -------
@@ -616,9 +629,10 @@ class Builder:
            mirrored characteristics: transitive stays transitive,
            functional becomes inverse functional and vice versa.
 
-        OWL 2 DL only allows functional and inverse-functional
-        characteristics on simple properties: not on transitive ones, nor on
-        properties defined by a chain or with such sub-properties.
+        OWL 2 DL only allows functional, inverse-functional, asymmetric and
+        irreflexive characteristics on simple properties: not on transitive
+        ones, nor on properties defined by a chain or with such
+        sub-properties.
         """
         iri = self.entity(name, OWL.ObjectProperty, name, comment)
         if domain:
@@ -631,6 +645,12 @@ class Builder:
             self.graph.add((iri, RDF.type, OWL.FunctionalProperty))
         if inverse_functional:
             self.graph.add((iri, RDF.type, OWL.InverseFunctionalProperty))
+        if asymmetric:
+            self.graph.add((iri, RDF.type, OWL.AsymmetricProperty))
+        if irreflexive:
+            self.graph.add((iri, RDF.type, OWL.IrreflexiveProperty))
+        if symmetric:
+            self.graph.add((iri, RDF.type, OWL.SymmetricProperty))
         for parent in parents or []:
             self.graph.add((iri, RDFS.subPropertyOf, NNFS[parent]))
         if inverse:
@@ -646,6 +666,10 @@ class Builder:
                 self.graph.add((inv, RDF.type, OWL.InverseFunctionalProperty))
             if inverse_functional:
                 self.graph.add((inv, RDF.type, OWL.FunctionalProperty))
+            if asymmetric:
+                self.graph.add((inv, RDF.type, OWL.AsymmetricProperty))
+            if irreflexive:
+                self.graph.add((inv, RDF.type, OWL.IrreflexiveProperty))
         return iri
 
     def data_property(self, name: str, domain: str, datatype: URIRef, comment: str) -> URIRef:
@@ -1075,9 +1099,15 @@ def add_schema(b: Builder) -> None:
         inverse="writtenBy",
         parents=["feeds"],
         inverse_functional=True,
+        asymmetric=True,
     )
     b.object_property(
-        "reads", "Module", "Artifact", "The module consumes the artifact.", inverse="readBy"
+        "reads",
+        "Module",
+        "Artifact",
+        "The module consumes the artifact.",
+        inverse="readBy",
+        asymmetric=True,
     )
     g.add((NNFS.readBy, RDFS.subPropertyOf, NNFS.feeds))
     b.object_property(
@@ -1086,6 +1116,8 @@ def add_schema(b: Builder) -> None:
         "Module",
         "The module imports the other module (from the source, including imports inside functions).",
         inverse="importedBy",
+        asymmetric=True,
+        irreflexive=True,
     )
     g.add((NNFS.importedBy, RDFS.subPropertyOf, NNFS.feeds))
     chain = b.bnode()
@@ -1116,6 +1148,7 @@ def add_schema(b: Builder) -> None:
         "The make target runs the module as a script. Each target runs one module.",
         inverse="runs",
         inverse_functional=True,
+        asymmetric=True,
     )
     b.object_property(
         "testedBy",
@@ -1123,6 +1156,7 @@ def add_schema(b: Builder) -> None:
         "TestModule",
         "The test module imports, and so exercises, the module.",
         inverse="covers",
+        asymmetric=True,
     )
     b.object_property(
         "requiresLibrary",
@@ -1130,6 +1164,7 @@ def add_schema(b: Builder) -> None:
         "Library",
         "The module imports the library.",
         inverse="requiredBy",
+        asymmetric=True,
     )
     b.object_property(
         "implements",
@@ -1138,6 +1173,7 @@ def add_schema(b: Builder) -> None:
         "The module contains the implementation of the concept. Each concept is implemented in one module.",
         inverse="implementedIn",
         inverse_functional=True,
+        asymmetric=True,
     )
     b.object_property(
         "definedIn",
@@ -1145,6 +1181,7 @@ def add_schema(b: Builder) -> None:
         "ConfigFile",
         "The architecture, task, sweep or library model is defined in the config file.",
         inverse="defines",
+        asymmetric=True,
     )
     b.object_property(
         "hasArchitecture",
@@ -1152,6 +1189,7 @@ def add_schema(b: Builder) -> None:
         "Architecture",
         "An architecture of the grid.",
         inverse="architectureOfSweep",
+        asymmetric=True,
     )
     b.object_property(
         "hasOptimizer",
@@ -1159,6 +1197,7 @@ def add_schema(b: Builder) -> None:
         "Optimizer",
         "An optimizer of the grid.",
         inverse="optimizerOfSweep",
+        asymmetric=True,
     )
     b.object_property(
         "hasLearningRate",
@@ -1166,6 +1205,7 @@ def add_schema(b: Builder) -> None:
         "LearningRate",
         "A learning rate of the grid.",
         inverse="learningRateOfSweep",
+        asymmetric=True,
     )
     b.object_property(
         "hasBatchSize",
@@ -1173,8 +1213,11 @@ def add_schema(b: Builder) -> None:
         "BatchSize",
         "A batch size of the grid.",
         inverse="batchSizeOfSweep",
+        asymmetric=True,
     )
-    b.object_property("hasSeed", "Sweep", "Seed", "A seed of the grid.", inverse="seedOfSweep")
+    b.object_property(
+        "hasSeed", "Sweep", "Seed", "A seed of the grid.", inverse="seedOfSweep", asymmetric=True
+    )
     b.object_property(
         "hasEarlyStopping",
         "Sweep",
@@ -1182,9 +1225,15 @@ def add_schema(b: Builder) -> None:
         "The early-stopping settings of every run. A sweep has one policy.",
         inverse="earlyStoppingOfSweep",
         functional=True,
+        asymmetric=True,
     )
     b.object_property(
-        "onTask", "Sweep", "Task", "The sweep is run on the task.", inverse="taskOfSweep"
+        "onTask",
+        "Sweep",
+        "Task",
+        "The sweep is run on the task.",
+        inverse="taskOfSweep",
+        asymmetric=True,
     )
     b.object_property(
         "variantOf",
@@ -1200,6 +1249,7 @@ def add_schema(b: Builder) -> None:
         "Technique",
         "The architecture uses the technique.",
         inverse="usedByArchitecture",
+        asymmetric=True,
     )
     b.object_property(
         "usesHiddenActivation",
@@ -1208,6 +1258,7 @@ def add_schema(b: Builder) -> None:
         "The activation of the hidden layers. An architecture has one.",
         inverse="hiddenActivationOf",
         functional=True,
+        asymmetric=True,
     )
     b.object_property(
         "usesOutputActivation",
@@ -1216,6 +1267,7 @@ def add_schema(b: Builder) -> None:
         "The activation of the output layer for this task. A task has one.",
         inverse="outputActivationOf",
         functional=True,
+        asymmetric=True,
     )
     b.object_property(
         "onDataset",
@@ -1225,6 +1277,7 @@ def add_schema(b: Builder) -> None:
         inverse="datasetOfTask",
         functional=True,
         inverse_functional=True,
+        asymmetric=True,
     )
     b.object_property(
         "usesLoss",
@@ -1234,9 +1287,15 @@ def add_schema(b: Builder) -> None:
         inverse="lossOfTask",
         functional=True,
         inverse_functional=True,
+        asymmetric=True,
     )
     b.object_property(
-        "evaluatedBy", "Task", "Metric", "An evaluation metric of the task.", inverse="evaluates"
+        "evaluatedBy",
+        "Task",
+        "Metric",
+        "An evaluation metric of the task.",
+        inverse="evaluates",
+        asymmetric=True,
     )
     b.object_property(
         "providedBy",
@@ -1245,6 +1304,7 @@ def add_schema(b: Builder) -> None:
         "The library that implements the model. A model has one.",
         inverse="provides",
         functional=True,
+        asymmetric=True,
     )
     b.object_property(
         "mirrorsArchitecture",
@@ -1253,6 +1313,7 @@ def add_schema(b: Builder) -> None:
         "The model rebuilds the network's architecture layer for layer. A model mirrors one.",
         inverse="mirroredBy",
         functional=True,
+        asymmetric=True,
     )
     b.object_property(
         "forTask",
@@ -1260,6 +1321,15 @@ def add_schema(b: Builder) -> None:
         "Task",
         "A task the model is trained on.",
         inverse="hasLibraryModel",
+        asymmetric=True,
+    )
+    b.object_property(
+        "frameworkCounterpartOf",
+        "LibraryModel",
+        "LibraryModel",
+        "The two library models rebuild the same architecture in different frameworks (e.g. the Keras A1 and the PyTorch A1). Symmetric, and no model is its own counterpart.",
+        symmetric=True,
+        irreflexive=True,
     )
 
     # ---- data and annotation properties ------------------------------------
@@ -1903,6 +1973,8 @@ def add_domain(b: Builder) -> None:
             )
             b.fact(local, "providedBy", pip_name)
             b.fact(local, "mirrorsArchitecture", arch.replace("-", "_"))
+            if library == "pytorch" and arch in benchmark["tensorflow"]["architectures"]:
+                b.fact(local, "frameworkCounterpartOf", f"tensorflow_{arch.replace('-', '_')}")
             for task in tasks.values():
                 b.fact(local, "forTask", task)
             b.fact(local, "definedIn", "BenchmarkConfig")

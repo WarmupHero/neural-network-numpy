@@ -563,6 +563,7 @@
     </owl:equivalentClass>
   </owl:Class>
   <owl:ObjectProperty rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#architectureOfSweep">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AsymmetricProperty"/>
     <rdfs:label>architectureOfSweep</rdfs:label>
     <rdfs:comment>Inverse of hasArchitecture.</rdfs:comment>
     <owl:inverseOf rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#hasArchitecture"/>
@@ -570,6 +571,7 @@
     <rdfs:range rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Sweep"/>
   </owl:ObjectProperty>
   <owl:ObjectProperty rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#batchSizeOfSweep">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AsymmetricProperty"/>
     <rdfs:label>batchSizeOfSweep</rdfs:label>
     <rdfs:comment>Inverse of hasBatchSize.</rdfs:comment>
     <owl:inverseOf rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#hasBatchSize"/>
@@ -595,6 +597,7 @@
     <rdfs:range rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Component"/>
   </owl:ObjectProperty>
   <owl:ObjectProperty rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#covers">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AsymmetricProperty"/>
     <rdfs:label>covers</rdfs:label>
     <rdfs:comment>Inverse of testedBy.</rdfs:comment>
     <owl:inverseOf rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#testedBy"/>
@@ -602,6 +605,7 @@
     <rdfs:range rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Module"/>
   </owl:ObjectProperty>
   <owl:ObjectProperty rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#datasetOfTask">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AsymmetricProperty"/>
     <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
     <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#InverseFunctionalProperty"/>
     <rdfs:label>datasetOfTask</rdfs:label>
@@ -611,11 +615,13 @@
     <rdfs:range rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Task"/>
   </owl:ObjectProperty>
   <owl:ObjectProperty rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#definedIn">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AsymmetricProperty"/>
     <rdfs:label>definedIn</rdfs:label>
     <rdfs:comment>The architecture, task, sweep or library model is defined in the config file.</rdfs:comment>
     <rdfs:range rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#ConfigFile"/>
   </owl:ObjectProperty>
   <owl:ObjectProperty rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#defines">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AsymmetricProperty"/>
     <rdfs:label>defines</rdfs:label>
     <rdfs:comment>Inverse of definedIn.</rdfs:comment>
     <owl:inverseOf rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#definedIn"/>
@@ -630,6 +636,7 @@
     <rdfs:range rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Component"/>
   </owl:ObjectProperty>
   <owl:ObjectProperty rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#earlyStoppingOfSweep">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AsymmetricProperty"/>
     <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#InverseFunctionalProperty"/>
     <rdfs:label>earlyStoppingOfSweep</rdfs:label>
     <rdfs:comment>Inverse of hasEarlyStopping.</rdfs:comment>
@@ -638,12 +645,14 @@
     <rdfs:range rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Sweep"/>
   </owl:ObjectProperty>
   <owl:ObjectProperty rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#evaluatedBy">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AsymmetricProperty"/>
     <rdfs:label>evaluatedBy</rdfs:label>
     <rdfs:comment>An evaluation metric of the task.</rdfs:comment>
     <rdfs:domain rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Task"/>
     <rdfs:range rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Metric"/>
   </owl:ObjectProperty>
   <owl:ObjectProperty rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#evaluates">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AsymmetricProperty"/>
     <rdfs:label>evaluates</rdfs:label>
     <rdfs:comment>Inverse of evaluatedBy.</rdfs:comment>
     <owl:inverseOf rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#evaluatedBy"/>
@@ -669,24 +678,36 @@
     <rdfs:range rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Component"/>
   </owl:ObjectProperty>
   <owl:ObjectProperty rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#forTask">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AsymmetricProperty"/>
     <rdfs:label>forTask</rdfs:label>
     <rdfs:comment>A task the model is trained on.</rdfs:comment>
     <rdfs:domain rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#LibraryModel"/>
     <rdfs:range rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Task"/>
   </owl:ObjectProperty>
+  <owl:ObjectProperty rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#frameworkCounterpartOf">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#IrreflexiveProperty"/>
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#SymmetricProperty"/>
+    <rdfs:label>frameworkCounterpartOf</rdfs:label>
+    <rdfs:comment>The two library models rebuild the same architecture in different frameworks (e.g. the Keras A1 and the PyTorch A1). Symmetric, and no model is its own counterpart.</rdfs:comment>
+    <rdfs:domain rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#LibraryModel"/>
+    <rdfs:range rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#LibraryModel"/>
+  </owl:ObjectProperty>
   <owl:ObjectProperty rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#hasArchitecture">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AsymmetricProperty"/>
     <rdfs:label>hasArchitecture</rdfs:label>
     <rdfs:comment>An architecture of the grid.</rdfs:comment>
     <rdfs:domain rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Sweep"/>
     <rdfs:range rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Architecture"/>
   </owl:ObjectProperty>
   <owl:ObjectProperty rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#hasBatchSize">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AsymmetricProperty"/>
     <rdfs:label>hasBatchSize</rdfs:label>
     <rdfs:comment>A batch size of the grid.</rdfs:comment>
     <rdfs:domain rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Sweep"/>
     <rdfs:range rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#BatchSize"/>
   </owl:ObjectProperty>
   <owl:ObjectProperty rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#hasEarlyStopping">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AsymmetricProperty"/>
     <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
     <rdfs:label>hasEarlyStopping</rdfs:label>
     <rdfs:comment>The early-stopping settings of every run. A sweep has one policy.</rdfs:comment>
@@ -694,12 +715,14 @@
     <rdfs:range rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#EarlyStoppingPolicy"/>
   </owl:ObjectProperty>
   <owl:ObjectProperty rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#hasLearningRate">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AsymmetricProperty"/>
     <rdfs:label>hasLearningRate</rdfs:label>
     <rdfs:comment>A learning rate of the grid.</rdfs:comment>
     <rdfs:domain rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Sweep"/>
     <rdfs:range rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#LearningRate"/>
   </owl:ObjectProperty>
   <owl:ObjectProperty rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#hasLibraryModel">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AsymmetricProperty"/>
     <rdfs:label>hasLibraryModel</rdfs:label>
     <rdfs:comment>Inverse of forTask.</rdfs:comment>
     <owl:inverseOf rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#forTask"/>
@@ -707,12 +730,14 @@
     <rdfs:range rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#LibraryModel"/>
   </owl:ObjectProperty>
   <owl:ObjectProperty rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#hasOptimizer">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AsymmetricProperty"/>
     <rdfs:label>hasOptimizer</rdfs:label>
     <rdfs:comment>An optimizer of the grid.</rdfs:comment>
     <rdfs:domain rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Sweep"/>
     <rdfs:range rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Optimizer"/>
   </owl:ObjectProperty>
   <owl:ObjectProperty rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#hasSeed">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AsymmetricProperty"/>
     <rdfs:label>hasSeed</rdfs:label>
     <rdfs:comment>A seed of the grid.</rdfs:comment>
     <rdfs:domain rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Sweep"/>
@@ -734,6 +759,7 @@
     <rdfs:range rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Architecture"/>
   </owl:ObjectProperty>
   <owl:ObjectProperty rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#hiddenActivationOf">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AsymmetricProperty"/>
     <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#InverseFunctionalProperty"/>
     <rdfs:label>hiddenActivationOf</rdfs:label>
     <rdfs:comment>Inverse of usesHiddenActivation.</rdfs:comment>
@@ -742,6 +768,7 @@
     <rdfs:range rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Architecture"/>
   </owl:ObjectProperty>
   <owl:ObjectProperty rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#implementedIn">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AsymmetricProperty"/>
     <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
     <rdfs:label>implementedIn</rdfs:label>
     <rdfs:comment>Inverse of implements.</rdfs:comment>
@@ -749,12 +776,15 @@
     <rdfs:range rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Module"/>
   </owl:ObjectProperty>
   <owl:ObjectProperty rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#implements">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AsymmetricProperty"/>
     <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#InverseFunctionalProperty"/>
     <rdfs:label>implements</rdfs:label>
     <rdfs:comment>The module contains the implementation of the concept. Each concept is implemented in one module.</rdfs:comment>
     <rdfs:domain rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Module"/>
   </owl:ObjectProperty>
   <owl:ObjectProperty rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#importedBy">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AsymmetricProperty"/>
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#IrreflexiveProperty"/>
     <rdfs:label>importedBy</rdfs:label>
     <rdfs:comment>Inverse of imports.</rdfs:comment>
     <rdfs:subPropertyOf rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#feeds"/>
@@ -763,12 +793,15 @@
     <rdfs:range rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Module"/>
   </owl:ObjectProperty>
   <owl:ObjectProperty rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#imports">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AsymmetricProperty"/>
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#IrreflexiveProperty"/>
     <rdfs:label>imports</rdfs:label>
     <rdfs:comment>The module imports the other module (from the source, including imports inside functions).</rdfs:comment>
     <rdfs:domain rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Module"/>
     <rdfs:range rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Module"/>
   </owl:ObjectProperty>
   <owl:ObjectProperty rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#learningRateOfSweep">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AsymmetricProperty"/>
     <rdfs:label>learningRateOfSweep</rdfs:label>
     <rdfs:comment>Inverse of hasLearningRate.</rdfs:comment>
     <owl:inverseOf rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#hasLearningRate"/>
@@ -776,6 +809,7 @@
     <rdfs:range rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Sweep"/>
   </owl:ObjectProperty>
   <owl:ObjectProperty rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#lossOfTask">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AsymmetricProperty"/>
     <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
     <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#InverseFunctionalProperty"/>
     <rdfs:label>lossOfTask</rdfs:label>
@@ -785,6 +819,7 @@
     <rdfs:range rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Task"/>
   </owl:ObjectProperty>
   <owl:ObjectProperty rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#mirroredBy">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AsymmetricProperty"/>
     <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#InverseFunctionalProperty"/>
     <rdfs:label>mirroredBy</rdfs:label>
     <rdfs:comment>Inverse of mirrorsArchitecture.</rdfs:comment>
@@ -793,6 +828,7 @@
     <rdfs:range rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#LibraryModel"/>
   </owl:ObjectProperty>
   <owl:ObjectProperty rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#mirrorsArchitecture">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AsymmetricProperty"/>
     <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
     <rdfs:label>mirrorsArchitecture</rdfs:label>
     <rdfs:comment>The model rebuilds the network's architecture layer for layer. A model mirrors one.</rdfs:comment>
@@ -800,6 +836,7 @@
     <rdfs:range rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Architecture"/>
   </owl:ObjectProperty>
   <owl:ObjectProperty rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#onDataset">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AsymmetricProperty"/>
     <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
     <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#InverseFunctionalProperty"/>
     <rdfs:label>onDataset</rdfs:label>
@@ -808,12 +845,14 @@
     <rdfs:range rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Dataset"/>
   </owl:ObjectProperty>
   <owl:ObjectProperty rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#onTask">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AsymmetricProperty"/>
     <rdfs:label>onTask</rdfs:label>
     <rdfs:comment>The sweep is run on the task.</rdfs:comment>
     <rdfs:domain rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Sweep"/>
     <rdfs:range rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Task"/>
   </owl:ObjectProperty>
   <owl:ObjectProperty rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#optimizerOfSweep">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AsymmetricProperty"/>
     <rdfs:label>optimizerOfSweep</rdfs:label>
     <rdfs:comment>Inverse of hasOptimizer.</rdfs:comment>
     <owl:inverseOf rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#hasOptimizer"/>
@@ -821,6 +860,7 @@
     <rdfs:range rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Sweep"/>
   </owl:ObjectProperty>
   <owl:ObjectProperty rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#outputActivationOf">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AsymmetricProperty"/>
     <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#InverseFunctionalProperty"/>
     <rdfs:label>outputActivationOf</rdfs:label>
     <rdfs:comment>Inverse of usesOutputActivation.</rdfs:comment>
@@ -836,6 +876,7 @@
     <rdfs:range rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Package"/>
   </owl:ObjectProperty>
   <owl:ObjectProperty rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#providedBy">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AsymmetricProperty"/>
     <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
     <rdfs:label>providedBy</rdfs:label>
     <rdfs:comment>The library that implements the model. A model has one.</rdfs:comment>
@@ -843,6 +884,7 @@
     <rdfs:range rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Library"/>
   </owl:ObjectProperty>
   <owl:ObjectProperty rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#provides">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AsymmetricProperty"/>
     <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#InverseFunctionalProperty"/>
     <rdfs:label>provides</rdfs:label>
     <rdfs:comment>Inverse of providedBy.</rdfs:comment>
@@ -851,6 +893,7 @@
     <rdfs:range rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#LibraryModel"/>
   </owl:ObjectProperty>
   <owl:ObjectProperty rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#readBy">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AsymmetricProperty"/>
     <rdfs:label>readBy</rdfs:label>
     <rdfs:comment>Inverse of reads.</rdfs:comment>
     <rdfs:subPropertyOf rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#feeds"/>
@@ -859,12 +902,14 @@
     <rdfs:range rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Module"/>
   </owl:ObjectProperty>
   <owl:ObjectProperty rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#reads">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AsymmetricProperty"/>
     <rdfs:label>reads</rdfs:label>
     <rdfs:comment>The module consumes the artifact.</rdfs:comment>
     <rdfs:domain rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Module"/>
     <rdfs:range rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Artifact"/>
   </owl:ObjectProperty>
   <owl:ObjectProperty rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#requiredBy">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AsymmetricProperty"/>
     <rdfs:label>requiredBy</rdfs:label>
     <rdfs:comment>Inverse of requiresLibrary.</rdfs:comment>
     <owl:inverseOf rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#requiresLibrary"/>
@@ -872,12 +917,14 @@
     <rdfs:range rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Module"/>
   </owl:ObjectProperty>
   <owl:ObjectProperty rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#requiresLibrary">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AsymmetricProperty"/>
     <rdfs:label>requiresLibrary</rdfs:label>
     <rdfs:comment>The module imports the library.</rdfs:comment>
     <rdfs:domain rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Module"/>
     <rdfs:range rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Library"/>
   </owl:ObjectProperty>
   <owl:ObjectProperty rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#runBy">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AsymmetricProperty"/>
     <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#InverseFunctionalProperty"/>
     <rdfs:label>runBy</rdfs:label>
     <rdfs:comment>The make target runs the module as a script. Each target runs one module.</rdfs:comment>
@@ -885,6 +932,7 @@
     <rdfs:range rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#MakeTarget"/>
   </owl:ObjectProperty>
   <owl:ObjectProperty rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#runs">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AsymmetricProperty"/>
     <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
     <rdfs:label>runs</rdfs:label>
     <rdfs:comment>Inverse of runBy.</rdfs:comment>
@@ -893,6 +941,7 @@
     <rdfs:range rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Module"/>
   </owl:ObjectProperty>
   <owl:ObjectProperty rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#seedOfSweep">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AsymmetricProperty"/>
     <rdfs:label>seedOfSweep</rdfs:label>
     <rdfs:comment>Inverse of hasSeed.</rdfs:comment>
     <owl:inverseOf rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#hasSeed"/>
@@ -900,6 +949,7 @@
     <rdfs:range rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Sweep"/>
   </owl:ObjectProperty>
   <owl:ObjectProperty rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#taskOfSweep">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AsymmetricProperty"/>
     <rdfs:label>taskOfSweep</rdfs:label>
     <rdfs:comment>Inverse of onTask.</rdfs:comment>
     <owl:inverseOf rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#onTask"/>
@@ -907,6 +957,7 @@
     <rdfs:range rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Sweep"/>
   </owl:ObjectProperty>
   <owl:ObjectProperty rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#testedBy">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AsymmetricProperty"/>
     <rdfs:label>testedBy</rdfs:label>
     <rdfs:comment>The test module imports, and so exercises, the module.</rdfs:comment>
     <rdfs:domain rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Module"/>
@@ -920,6 +971,7 @@
     <rdfs:range rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Component"/>
   </owl:ObjectProperty>
   <owl:ObjectProperty rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#usedByArchitecture">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AsymmetricProperty"/>
     <rdfs:label>usedByArchitecture</rdfs:label>
     <rdfs:comment>Inverse of usesTechnique.</rdfs:comment>
     <owl:inverseOf rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#usesTechnique"/>
@@ -927,6 +979,7 @@
     <rdfs:range rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Architecture"/>
   </owl:ObjectProperty>
   <owl:ObjectProperty rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#usesHiddenActivation">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AsymmetricProperty"/>
     <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
     <rdfs:label>usesHiddenActivation</rdfs:label>
     <rdfs:comment>The activation of the hidden layers. An architecture has one.</rdfs:comment>
@@ -934,6 +987,7 @@
     <rdfs:range rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Activation"/>
   </owl:ObjectProperty>
   <owl:ObjectProperty rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#usesLoss">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AsymmetricProperty"/>
     <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
     <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#InverseFunctionalProperty"/>
     <rdfs:label>usesLoss</rdfs:label>
@@ -942,6 +996,7 @@
     <rdfs:range rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Loss"/>
   </owl:ObjectProperty>
   <owl:ObjectProperty rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#usesOutputActivation">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AsymmetricProperty"/>
     <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
     <rdfs:label>usesOutputActivation</rdfs:label>
     <rdfs:comment>The activation of the output layer for this task. A task has one.</rdfs:comment>
@@ -949,6 +1004,7 @@
     <rdfs:range rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Activation"/>
   </owl:ObjectProperty>
   <owl:ObjectProperty rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#usesTechnique">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AsymmetricProperty"/>
     <rdfs:label>usesTechnique</rdfs:label>
     <rdfs:comment>The architecture uses the technique.</rdfs:comment>
     <rdfs:domain rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Architecture"/>
@@ -962,6 +1018,7 @@
     <rdfs:range rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Architecture"/>
   </owl:ObjectProperty>
   <owl:ObjectProperty rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#writes">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AsymmetricProperty"/>
     <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#InverseFunctionalProperty"/>
     <rdfs:label>writes</rdfs:label>
     <rdfs:comment>The module produces the artifact. Each artifact is written by one module.</rdfs:comment>
@@ -970,6 +1027,7 @@
     <rdfs:range rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Artifact"/>
   </owl:ObjectProperty>
   <owl:ObjectProperty rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#writtenBy">
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#AsymmetricProperty"/>
     <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#FunctionalProperty"/>
     <rdfs:label>writtenBy</rdfs:label>
     <rdfs:comment>Inverse of writes.</rdfs:comment>
@@ -2140,6 +2198,7 @@
     <nnfs:definedIn rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#BenchmarkConfig"/>
     <nnfs:forTask rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#ClassificationTask"/>
     <nnfs:forTask rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#RegressionTask"/>
+    <nnfs:frameworkCounterpartOf rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#tensorflow_A1"/>
     <nnfs:mirrorsArchitecture rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#A1"/>
     <nnfs:providedBy rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#torch"/>
   </owl:NamedIndividual>
@@ -2150,6 +2209,7 @@
     <nnfs:definedIn rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#BenchmarkConfig"/>
     <nnfs:forTask rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#ClassificationTask"/>
     <nnfs:forTask rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#RegressionTask"/>
+    <nnfs:frameworkCounterpartOf rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#tensorflow_A2"/>
     <nnfs:mirrorsArchitecture rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#A2"/>
     <nnfs:providedBy rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#torch"/>
   </owl:NamedIndividual>
@@ -2160,6 +2220,7 @@
     <nnfs:definedIn rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#BenchmarkConfig"/>
     <nnfs:forTask rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#ClassificationTask"/>
     <nnfs:forTask rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#RegressionTask"/>
+    <nnfs:frameworkCounterpartOf rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#tensorflow_A2_bias"/>
     <nnfs:mirrorsArchitecture rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#A2_bias"/>
     <nnfs:providedBy rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#torch"/>
   </owl:NamedIndividual>
@@ -2170,6 +2231,7 @@
     <nnfs:definedIn rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#BenchmarkConfig"/>
     <nnfs:forTask rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#ClassificationTask"/>
     <nnfs:forTask rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#RegressionTask"/>
+    <nnfs:frameworkCounterpartOf rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#tensorflow_A2_bn"/>
     <nnfs:mirrorsArchitecture rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#A2_bn"/>
     <nnfs:providedBy rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#torch"/>
   </owl:NamedIndividual>
@@ -2336,7 +2398,7 @@
     <nnfs:belongsToStage rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#InfrastructureStage"/>
     <nnfs:canvasNodeId>tests</nnfs:canvasNodeId>
     <nnfs:path>tests/</nnfs:path>
-    <nnfs:testCount rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">104</nnfs:testCount>
+    <nnfs:testCount rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">105</nnfs:testCount>
   </owl:NamedIndividual>
   <owl:NamedIndividual rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#tests.test_batchnorm">
     <rdf:type rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#TestModule"/>

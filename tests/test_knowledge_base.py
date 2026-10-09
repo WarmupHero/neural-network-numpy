@@ -291,3 +291,36 @@ def test_property_characteristics_hold_and_respect_owl_dl(graph, inferred):
     transitive = set(graph.subjects(RDF.type, OWL.TransitiveProperty))
     for p, q in graph.subject_objects(OWL.inverseOf):
         assert (p in transitive) == (q in transitive), (p, q)
+
+
+def test_symmetric_asymmetric_and_irreflexive_properties_hold(graph, inferred):
+    """
+    Symmetric, asymmetric and irreflexive properties are valid OWL 2 DL and true of the data.
+
+    Notes
+    -----
+    Asymmetric and irreflexive characteristics are only allowed on simple
+    properties (not transitive, not chain-defined). No asymmetric property
+    may hold in both directions between two individuals and no irreflexive
+    one may relate an individual to itself, in the asserted or the inferred
+    graph. The symmetric frameworkCounterpartOf, asserted once per pair
+    (PyTorch -> Keras), must be inferred in the other direction too.
+    """
+    non_simple = set(graph.subjects(RDF.type, OWL.TransitiveProperty)) | set(
+        graph.subjects(OWL.propertyChainAxiom, None)
+    )
+    asymmetric = set(graph.subjects(RDF.type, OWL.AsymmetricProperty))
+    irreflexive = set(graph.subjects(RDF.type, OWL.IrreflexiveProperty))
+    assert (asymmetric | irreflexive) & non_simple == set()
+    assert len(asymmetric) >= 40
+
+    for g in (graph, inferred):
+        for prop in asymmetric:
+            assert [(a, b) for a, b in g.subject_objects(prop) if (b, prop, a) in g] == [], prop
+        for prop in asymmetric | irreflexive:
+            assert [a for a, b in g.subject_objects(prop) if a == b] == [], prop
+
+    counterpart = NNFS.frameworkCounterpartOf
+    assert (counterpart, RDF.type, OWL.SymmetricProperty) in graph
+    assert (NNFS.pytorch_A2_bn, counterpart, NNFS.tensorflow_A2_bn) in graph
+    assert (NNFS.tensorflow_A2_bn, counterpart, NNFS.pytorch_A2_bn) in inferred
