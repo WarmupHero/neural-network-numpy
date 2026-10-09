@@ -8,17 +8,17 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from nn_from_scratch.analysis import (
+from nn_numpy.analysis import (
     error_removed,
     fails_baseline,
     mean_pm_std,
     select_by_validation,
 )
-from nn_from_scratch.config import RANDOM_SEED
-from nn_from_scratch.config_loader import ConfigLoader
-from nn_from_scratch.features import train_val_test_split
-from nn_from_scratch.modeling.train import constant_prediction_baseline, get_seeds
-from nn_from_scratch.nn.network import NeuralNetwork
+from nn_numpy.config import RANDOM_SEED
+from nn_numpy.config_loader import ConfigLoader
+from nn_numpy.features import train_val_test_split
+from nn_numpy.modeling.train import constant_prediction_baseline, get_seeds
+from nn_numpy.nn.network import NeuralNetwork
 
 # ------------------------------------------------------------------
 # Seed plumbing
@@ -320,7 +320,7 @@ def test_derived_metrics_keep_the_checkpoint_validation_loss():
     was below min_delta). Selection must use 0.5. A run without a saved
     value falls back to the history minimum.
     """
-    from nn_from_scratch.analysis import add_derived_metrics
+    from nn_numpy.analysis import add_derived_metrics
 
     saved = {
         "best_val_loss": 0.5,
@@ -344,7 +344,7 @@ def test_derived_metrics_add_the_gap_and_fill_in_how_old_runs_ended():
     their "diverged" / "stopped_early" flags, and overfitting_epochs None
     (not recorded); a run that records them keeps its values.
     """
-    from nn_from_scratch.analysis import add_derived_metrics
+    from nn_numpy.analysis import add_derived_metrics
 
     histories = {"val_loss_history": [0.9, 0.5], "train_loss_history": [1.0, 0.8]}
     new = {
@@ -379,7 +379,7 @@ def test_stopping_table_counts_stop_reasons_and_overfitting():
     A1 row must read "2 / 1 / 1" and "1 of 2", and the gap column must be
     the mean ± std of the gaps of the run selected per seed (0.1 and 0.3).
     """
-    from nn_from_scratch.analysis import format_stopping_seed_table
+    from nn_numpy.analysis import format_stopping_seed_table
 
     def a1(seed, val, reason, overfit, gap):
         return {

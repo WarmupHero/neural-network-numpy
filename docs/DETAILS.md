@@ -20,7 +20,7 @@ This is the in-depth reference for the project. For a quick overview, results, a
 
 ## 1. Project overview
 
-This project implements a feed-forward neural network from scratch in NumPy for two tasks: binary classification and regression.
+This project implements a feed-forward neural network in plain NumPy for two tasks: binary classification and regression.
 
 1. The pipeline downloads the datasets.
 2. It preprocesses them: cleaning, optional scaling, and a train / validation / test split (60 / 20 / 20).
@@ -28,47 +28,47 @@ This project implements a feed-forward neural network from scratch in NumPy for 
 4. It trains and evaluates every configured network and saves the results.
 5. Separate scripts read the saved results to generate comparison plots and a written analysis.
 
-The repository follows the [Cookiecutter Data Science](https://cookiecutter-data-science.drivendata.org/) layout: raw data in `data/raw/`, generated results in `reports/` and figures in `reports/figures/`, and all source code in the `nn_from_scratch` package. Its `nn/` subpackage is the neural-network library and `modeling/` holds the trainer and the experiment sweep. `configs/` (experiment definitions) and `tools/` (repository helpers) are this project's additions to the template, and `data/{external,interim,processed}/`, `models/`, `notebooks/` and `references/` are kept empty, with a `.gitkeep`, for future use.
+The repository follows the [Cookiecutter Data Science](https://cookiecutter-data-science.drivendata.org/) layout: raw data in `data/raw/`, generated results in `reports/` and figures in `reports/figures/`, and all source code in the `nn_numpy` package. Its `nn/` subpackage is the neural-network library and `modeling/` holds the trainer and the experiment sweep. `configs/` (experiment definitions) and `tools/` (repository helpers) are this project's additions to the template, and `data/{external,interim,processed}/`, `models/`, `notebooks/` and `references/` are kept empty, with a `.gitkeep`, for future use.
 
 | Task | Dataset | Target | Loss | Evaluation metric |
 |---|---|---|---|---|
 | Classification | Banknote Authentication (UCI #267) | `class` (0/1) | Binary cross-entropy (BCE) | BCE |
 | Regression | Energy Efficiency (UCI #242) | `Heating_Load` (`Cooling_Load` is dropped) | Mean squared error (MSE) | MSE |
 
-The same quantity is used for training and for evaluation, so the reported metric is directly comparable with the loss curves. The `test_metric` column in `reports/main_summary_<stamp>.csv` holds the **test-set BCE** for classification rows and the **test-set MSE** for regression rows. Lower is better in both cases. The metric is chosen in `nn_from_scratch/modeling/trainer.py` (`Trainer._compute_metric`) and implemented in `nn_from_scratch/nn/metrics.py`, which reuses the loss classes from `nn_from_scratch/nn/losses.py`.
+The same quantity is used for training and for evaluation, so the reported metric is directly comparable with the loss curves. The `test_metric` column in `reports/main_summary_<stamp>.csv` holds the **test-set BCE** for classification rows and the **test-set MSE** for regression rows. Lower is better in both cases. The metric is chosen in `nn_numpy/modeling/trainer.py` (`Trainer._compute_metric`) and implemented in `nn_numpy/nn/metrics.py`, which reuses the loss classes from `nn_numpy/nn/losses.py`.
 
 ### Pipeline map
 
 | Module | Role | Reads | Writes |
 |---|---|---|---|
-| `nn_from_scratch/config.py` | Shared constants: project paths and `RANDOM_SEED`; the per-process `RUN_STAMP` and the `stamped_filename` / `latest_stamped_file` / `resolve_results_path` helpers | – | – |
-| `nn_from_scratch/dataset.py` | Downloads the raw UCI datasets with `ucimlrepo` if they are not cached | – | `data/raw/banknote_auth.csv`, `data/raw/energy_efficiency.csv` |
-| `nn_from_scratch/features.py` | Removes duplicates, splits train/val/test with a NumPy-only `train_val_test_split` (stratified by class for classification), optionally standardizes features (fit on train only), runs EDA plots | `data/raw/*.csv` | `reports/figures/eda/*.png` |
-| `nn_from_scratch/scalers.py` | Custom standard scaler, (x − μ) / σ | – | – |
-| `nn_from_scratch/plots.py` | Exploratory and preprocessing plots used by `features.py` | – | – |
-| `nn_from_scratch/config_loader.py` | Loads and validates the JSON experiment configs | `configs/*.json` | – |
-| `nn_from_scratch/nn/layers.py` | Dense layer, Z = X·W (+ b), with its backward pass; optional bias and `normal` / `he` / `xavier` weight initialization. BatchNorm layer with learned scale and shift, running statistics, and a training / evaluation mode. Inverted Dropout layer | – | – |
-| `nn_from_scratch/nn/activations.py` | ReLU, Sigmoid, Tanh, Linear (forward and backward) | – | – |
-| `nn_from_scratch/nn/network.py` | Builds the network from a config; full forward and backward passes | – | – |
-| `nn_from_scratch/nn/losses.py` | BCE and MSE (forward and gradient) | – | – |
-| `nn_from_scratch/nn/optimizers.py` | SGD, Momentum SGD, AdaBelief | – | – |
-| `nn_from_scratch/nn/metrics.py` | Evaluation metrics: BCE (classification) and MSE (regression) | – | – |
-| `nn_from_scratch/modeling/trainer.py` | Mini-batch training loop, validation, early stopping, best-model restore, divergence detection, test evaluation; switches the network between training and evaluation mode | – | – |
-| `nn_from_scratch/modeling/train.py` | Orchestrates the full experiment grid (every config and seed) | everything above | `reports/main_results_full_<stamp>.json`, `reports/main_summary_<stamp>.csv` |
-| `nn_from_scratch/comparisons.py` | Optimizer, depth, and learning-rate comparison plots with short text analyses | newest `reports/main_results_full_*.json` (or a path given as the first argument) | `reports/figures/comparisons/*_<stamp>.png`, `reports/comparisons/*_<stamp>.txt` |
-| `nn_from_scratch/analysis.py` | Aggregate analysis across all runs | newest `reports/main_results_full_*.json` (or a path given as the first argument) | `reports/analysis_<stamp>.txt` |
-| `nn_from_scratch/benchmarks/run.py` | Trains the library models (scikit-learn, TensorFlow, PyTorch) on the same splits; see [section 4](#4-library-comparison) | `configs/benchmark_experiments.json`, `data/raw/*.csv` | `reports/benchmark_<library>_results_<stamp>.json` |
-| `nn_from_scratch/benchmarks/report.py` | Compares the NumPy network with the library models | newest NumPy and library results | `reports/benchmark_report_<stamp>.txt`, `reports/figures/benchmarks/*.png` |
+| `nn_numpy/config.py` | Shared constants: project paths and `RANDOM_SEED`; the per-process `RUN_STAMP` and the `stamped_filename` / `latest_stamped_file` / `resolve_results_path` helpers | – | – |
+| `nn_numpy/dataset.py` | Downloads the raw UCI datasets with `ucimlrepo` if they are not cached | – | `data/raw/banknote_auth.csv`, `data/raw/energy_efficiency.csv` |
+| `nn_numpy/features.py` | Removes duplicates, splits train/val/test with a NumPy-only `train_val_test_split` (stratified by class for classification), optionally standardizes features (fit on train only), runs EDA plots | `data/raw/*.csv` | `reports/figures/eda/*.png` |
+| `nn_numpy/scalers.py` | Custom standard scaler, (x − μ) / σ | – | – |
+| `nn_numpy/plots.py` | Exploratory and preprocessing plots used by `features.py` | – | – |
+| `nn_numpy/config_loader.py` | Loads and validates the JSON experiment configs | `configs/*.json` | – |
+| `nn_numpy/nn/layers.py` | Dense layer, Z = X·W (+ b), with its backward pass; optional bias and `normal` / `he` / `xavier` weight initialization. BatchNorm layer with learned scale and shift, running statistics, and a training / evaluation mode. Inverted Dropout layer | – | – |
+| `nn_numpy/nn/activations.py` | ReLU, Sigmoid, Tanh, Linear (forward and backward) | – | – |
+| `nn_numpy/nn/network.py` | Builds the network from a config; full forward and backward passes | – | – |
+| `nn_numpy/nn/losses.py` | BCE and MSE (forward and gradient) | – | – |
+| `nn_numpy/nn/optimizers.py` | SGD, Momentum SGD, AdaBelief | – | – |
+| `nn_numpy/nn/metrics.py` | Evaluation metrics: BCE (classification) and MSE (regression) | – | – |
+| `nn_numpy/modeling/trainer.py` | Mini-batch training loop, validation, early stopping, best-model restore, divergence detection, test evaluation; switches the network between training and evaluation mode | – | – |
+| `nn_numpy/modeling/train.py` | Orchestrates the full experiment grid (every config and seed) | everything above | `reports/main_results_full_<stamp>.json`, `reports/main_summary_<stamp>.csv` |
+| `nn_numpy/comparisons.py` | Optimizer, depth, and learning-rate comparison plots with short text analyses | newest `reports/main_results_full_*.json` (or a path given as the first argument) | `reports/figures/comparisons/*_<stamp>.png`, `reports/comparisons/*_<stamp>.txt` |
+| `nn_numpy/analysis.py` | Aggregate analysis across all runs | newest `reports/main_results_full_*.json` (or a path given as the first argument) | `reports/analysis_<stamp>.txt` |
+| `nn_numpy/benchmarks/run.py` | Trains the library models (scikit-learn, TensorFlow, PyTorch) on the same splits; see [section 4](#4-library-comparison) | `configs/benchmark_experiments.json`, `data/raw/*.csv` | `reports/benchmark_<library>_results_<stamp>.json` |
+| `nn_numpy/benchmarks/report.py` | Compares the NumPy network with the library models | newest NumPy and library results | `reports/benchmark_report_<stamp>.txt`, `reports/figures/benchmarks/*.png` |
 
-`nn_from_scratch/modeling/train.py` has a `SHOW_EDA` flag (default `False`). Set it to `True` to display the preprocessing plots interactively while the pipeline runs. The plots are saved to `reports/figures/eda/` either way.
+`nn_numpy/modeling/train.py` has a `SHOW_EDA` flag (default `False`). Set it to `True` to display the preprocessing plots interactively while the pipeline runs. The plots are saved to `reports/figures/eda/` either way.
 
 #### Run stamps
 
-Every file a run writes carries a stamp of the form `name_YYYYMMDD-HHMMSS.ext` (local time), so nothing from an earlier run is ever overwritten. The stamp is `RUN_STAMP` in `nn_from_scratch/config.py`, computed once when the module is first imported, so all files written by one process share it. The training sweep, `nn_from_scratch.comparisons` and `nn_from_scratch.analysis` are separate processes and therefore get their own stamps. `nn_from_scratch.comparisons` and `nn_from_scratch.analysis` print which results file they used.
+Every file a run writes carries a stamp of the form `name_YYYYMMDD-HHMMSS.ext` (local time), so nothing from an earlier run is ever overwritten. The stamp is `RUN_STAMP` in `nn_numpy/config.py`, computed once when the module is first imported, so all files written by one process share it. The training sweep, `nn_numpy.comparisons` and `nn_numpy.analysis` are separate processes and therefore get their own stamps. `nn_numpy.comparisons` and `nn_numpy.analysis` print which results file they used.
 
 Only the newest version of each output is committed. `.gitignore` ignores all stamped files under `reports/`, and the pre-commit hook in `.githooks/` runs `tools/stage_latest_outputs.py`, which:
 
-- force-adds the newest stamped file of each output (using `latest_stamped_outputs` in `nn_from_scratch/config.py`)
+- force-adds the newest stamped file of each output (using `latest_stamped_outputs` in `nn_numpy/config.py`)
 - removes older stamped files from the index, leaving them on disk
 - rewrites stamped output names in `README.md` and `docs/DETAILS.md` to the newest stamps, and stops the commit if either file has unstaged edits, so those edits are never committed by accident
 
@@ -97,21 +97,21 @@ make requirements   # pip install -r requirements.txt && pip install -e ".[dev]"
 
 # 1. Load or download the data, preprocess, train all configured experiments.
 #    Writes reports/main_results_full_<stamp>.json and reports/main_summary_<stamp>.csv
-make train          # python -m nn_from_scratch.modeling.train
+make train          # python -m nn_numpy.modeling.train
 
 # 2. Optimizer / network-depth / learning-rate / variant / dropout comparisons.
 #    Writes stamped plots to reports/figures/comparisons/ and short analyses to reports/comparisons/
-make plots          # MPLBACKEND=Agg python -m nn_from_scratch.comparisons
+make plots          # MPLBACKEND=Agg python -m nn_numpy.comparisons
 
 # 3. Aggregate analysis.
 #    Writes reports/analysis_<stamp>.txt
-make analysis       # python -m nn_from_scratch.analysis
+make analysis       # python -m nn_numpy.analysis
 
 # Or all three in order:
 make all
 ```
 
-Steps 2 and 3 read the newest `reports/main_results_full_*.json` and fail if none exists. To analyse a specific run instead, pass its path as the first argument, e.g. `python -m nn_from_scratch.analysis reports/main_results_full_20261008-220824.json`. The repository already includes a results file, so you can run them immediately. `make plots` sets `MPLBACKEND=Agg` so no plot windows open; set it yourself when running the Python command directly.
+Steps 2 and 3 read the newest `reports/main_results_full_*.json` and fail if none exists. To analyse a specific run instead, pass its path as the first argument, e.g. `python -m nn_numpy.analysis reports/main_results_full_20261008-220824.json`. The repository already includes a results file, so you can run them immediately. `make plots` sets `MPLBACKEND=Agg` so no plot windows open; set it yourself when running the Python command directly.
 
 `make` is not installed on Windows by default: install it with `winget install ezwinports.make` and open a new terminal.
 
@@ -215,7 +215,7 @@ Each run records its `seed` and a `baseline_test_metric`: the test metric of a m
 
 #### Accuracy, R² and training time
 
-Each run also records `test_accuracy` (classification, at a 0.5 threshold) or `test_r2` (regression), computed with the NumPy functions in `nn_from_scratch/nn/metrics.py`, and `train_seconds`, the wall-clock time of `Trainer.fit`. They are easier to read than BCE / MSE and are used by the library comparison ([section 4](#4-library-comparison)). BCE and MSE remain the metrics used for training and model selection.
+Each run also records `test_accuracy` (classification, at a 0.5 threshold) or `test_r2` (regression), computed with the NumPy functions in `nn_numpy/nn/metrics.py`, and `train_seconds`, the wall-clock time of `Trainer.fit`. They are easier to read than BCE / MSE and are used by the library comparison ([section 4](#4-library-comparison)). BCE and MSE remain the metrics used for training and model selection.
 
 #### Training metric for the generalization gap
 
@@ -251,10 +251,10 @@ Each run also records `overfitting_epochs`: the number of consecutive epochs, en
 ### What the JSON does not control
 
 1. **Layer types.** Each layer has a `"type"` field, but only `dense` is implemented; batch norm is attached to a dense layer with `batch_norm`. Batch norm and dropout are attached to a dense layer with `batch_norm` and `dropout`. Convolutional or recurrent layers would need code changes first. (Optimizers and checkpoints already handle any number of parameters per layer, through `get_params()` / `get_grads()`, and non-trainable state through `get_buffers()`.)
-2. **Optimizer internals.** Only the learning rate comes from JSON. Momentum uses β = 0.9, and AdaBelief uses β₁ = 0.9, β₂ = 0.999, ε = 1e-8, all fixed in `nn_from_scratch/nn/optimizers.py` (`get_optimizer`).
+2. **Optimizer internals.** Only the learning rate comes from JSON. Momentum uses β = 0.9, and AdaBelief uses β₁ = 0.9, β₂ = 0.999, ε = 1e-8, all fixed in `nn_numpy/nn/optimizers.py` (`get_optimizer`).
 3. **Evaluation metrics.** The task type determines them: BCE for classification and MSE for regression, matching the training losses.
-4. **The default random seed.** `RANDOM_SEED` in `nn_from_scratch/config.py` (42) is used when a config lists no `seeds`, and it's the seed that the single-seed analysis sections and the comparison plots use.
-5. **EDA display.** It's controlled by `SHOW_EDA` in `nn_from_scratch/modeling/train.py` (see above).
+4. **The default random seed.** `RANDOM_SEED` in `nn_numpy/config.py` (42) is used when a config lists no `seeds`, and it's the seed that the single-seed analysis sections and the comparison plots use.
+5. **EDA display.** It's controlled by `SHOW_EDA` in `nn_numpy/modeling/train.py` (see above).
 
 ### Summary
 
@@ -415,15 +415,15 @@ The report (`reports/analysis_<stamp>.txt`) contains a method section, supportin
 
 ## 4. Library comparison
 
-The `nn_from_scratch.benchmarks` subpackage compares the from-scratch NumPy network with standard libraries: scikit-learn's classic models, and the same network built in TensorFlow (Keras) and in PyTorch. The network itself stays NumPy-only; the libraries are only used here, as an optional install:
+The `nn_numpy.benchmarks` subpackage compares the NumPy network with standard libraries: scikit-learn's classic models, and the same network built in TensorFlow (Keras) and in PyTorch. The network itself stays NumPy-only; the libraries are only used here, as an optional install:
 
 ```bash
 make benchmark-requirements   # pip install -e ".[dev,benchmarks]"
-make benchmarks               # python -m nn_from_scratch.benchmarks.run
-make benchmark-report         # python -m nn_from_scratch.benchmarks.report
+make benchmarks               # python -m nn_numpy.benchmarks.run
+make benchmark-report         # python -m nn_numpy.benchmarks.report
 ```
 
-`scipy` is pinned in the `benchmarks` group because newer SciPy releases require NumPy 2, which would replace the project's pinned NumPy 1.26.4. TensorFlow 2.21 works with NumPy 1.26.4 and runs on the CPU on Windows (it no longer supports GPUs on native Windows). PyTorch 2.14 also works with NumPy 1.26.4; on Windows and macOS the PyPI wheel is CPU-only, while on Linux it includes CUDA (a much larger download; `pip install torch --index-url https://download.pytorch.org/whl/cpu` installs the CPU build instead). `make benchmarks` runs every library; `python -m nn_from_scratch.benchmarks.run pytorch` runs one.
+`scipy` is pinned in the `benchmarks` group because newer SciPy releases require NumPy 2, which would replace the project's pinned NumPy 1.26.4. TensorFlow 2.21 works with NumPy 1.26.4 and runs on the CPU on Windows (it no longer supports GPUs on native Windows). PyTorch 2.14 also works with NumPy 1.26.4; on Windows and macOS the PyPI wheel is CPU-only, while on Linux it includes CUDA (a much larger download; `pip install torch --index-url https://download.pytorch.org/whl/cpu` installs the CPU build instead). `make benchmarks` runs every library; `python -m nn_numpy.benchmarks.run pytorch` runs one.
 
 ### What is compared
 
@@ -473,7 +473,7 @@ Runs are seeded with `torch.manual_seed` (weights) and a seeded generator (shuff
 ### How the comparison is kept fair
 
 - **Same data.** `benchmarks/data.py` calls the main pipeline's own preprocessing for each seed in the main configs, so every library sees exactly the same train / validation / test split and scaling. A test checks this element by element.
-- **Same metrics.** Every model is scored with the project's NumPy metric functions (`nn_from_scratch.nn.metrics`): BCE (from predicted probabilities) and accuracy for classification, MSE and R² for regression.
+- **Same metrics.** Every model is scored with the project's NumPy metric functions (`nn_numpy.nn.metrics`): BCE (from predicted probabilities) and accuracy for classification, MSE and R² for regression.
 - **Same selection rule.** On each seed, every configuration of a model is trained on the training set, the one with the lowest validation metric is selected, and only its test metric is reported. "Best model (selected on validation)" applies the same rule across all of a library's models, which is what a practitioner would pick.
 - **Reproducible.** Every scikit-learn estimator with a `random_state` gets the seed, and Keras and PyTorch are seeded and run deterministically.
 
@@ -490,7 +490,7 @@ Training time is the wall-clock time of the selected configuration's fit, on one
 
 ## 5. Knowledge base
 
-`knowledge/nn_from_scratch.owl` describes the repository as an OWL 2 ontology: the nodes and edges of the architecture canvas, plus the concepts the code implements. It opens in Protégé 5.5, and its reasoner infers the architecture from the asserted facts.
+`knowledge/nn_numpy.owl` describes the repository as an OWL 2 ontology: the nodes and edges of the architecture canvas, plus the concepts the code implements. It opens in Protégé 5.5, and its reasoner infers the architecture from the asserted facts.
 
 ### What it contains
 
@@ -502,7 +502,7 @@ Nothing is asserted that a reasoner can derive. `feeds` is inferred from `writes
 
 ### Using it in Protégé
 
-1. Open `knowledge/nn_from_scratch.owl` (or `extensions.owl`, which imports it from the same folder).
+1. Open `knowledge/nn_numpy.owl` (or `extensions.owl`, which imports it from the same folder).
 2. Reasoner → HermiT → Start reasoner. The inferred class hierarchy and each individual's inferred types appear in the usual views.
 3. To see the inferred edges (`feeds`, `upstreamOf`, `belongsToStage`) on an individual, tick **Object property assertions** under Reasoner → Configure.
 4. DL Query examples: `Component and upstreamOf value BenchmarkReport` (everything behind the benchmark report), `Module and belongsToStage value NetworkLibraryStage`, `Architecture and usesTechnique some GradientClipping`, `LibraryModel and not FrameworkReimplementation`.

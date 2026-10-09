@@ -1,7 +1,7 @@
 """
 Feature scaling used during preprocessing.
 
-Provides a from-scratch StandardScaler that learns per-column mean and
+Provides a NumPy StandardScaler that learns per-column mean and
 standard deviation on the training data and applies the same
 transformation to any other split.
 """

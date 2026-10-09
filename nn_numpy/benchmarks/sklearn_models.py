@@ -7,8 +7,8 @@ Output: one result record per hyperparameter configuration, with the
 validation, test and training metrics and the training time.
 
 Every model is scored with the project's own NumPy metric functions
-(``nn_from_scratch.nn.metrics``), not scikit-learn's, so the numbers are
-computed exactly like the from-scratch network's.
+(``nn_numpy.nn.metrics``), not scikit-learn's, so the numbers are
+computed exactly like the NumPy network's.
 """
 
 import time
@@ -28,7 +28,7 @@ from sklearn.model_selection import ParameterGrid
 from sklearn.neural_network import MLPClassifier, MLPRegressor
 from sklearn.svm import SVC, SVR
 
-from nn_from_scratch.nn.metrics import (
+from nn_numpy.nn.metrics import (
     accuracy,
     binary_cross_entropy,
     mean_squared_error,
@@ -196,7 +196,7 @@ def run_model(
         The model's hyperparameter grid from the config.
     splits : tuple of numpy.ndarray
         (X_train, y_train, X_val, y_val, X_test, y_test) from
-        nn_from_scratch.benchmarks.data.load_splits.
+        nn_numpy.benchmarks.data.load_splits.
     seed : int
         The split's seed, also used as the estimator's random_state.
     baseline : float

@@ -11,9 +11,9 @@ from typing import Any
 
 import numpy as np
 
-from nn_from_scratch.config import RANDOM_SEED
-from nn_from_scratch.nn.activations import get_activation
-from nn_from_scratch.nn.layers import BatchNorm, Dense, Dropout
+from nn_numpy.config import RANDOM_SEED
+from nn_numpy.nn.activations import get_activation
+from nn_numpy.nn.layers import BatchNorm, Dense, Dropout
 
 
 class NeuralNetwork:
@@ -265,7 +265,7 @@ class NeuralNetwork:
         ----------
         activation_name : str
             Name of the activation function: "relu", "sigmoid", "tanh" or
-            "linear" (case-insensitive; see `nn_from_scratch.nn.activations.get_activation`).
+            "linear" (case-insensitive; see `nn_numpy.nn.activations.get_activation`).
 
         Returns
         -------

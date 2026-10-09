@@ -1,5 +1,5 @@
 """
-Numerical gradient checks for the from-scratch backpropagation.
+Numerical gradient checks for the NumPy backpropagation.
 
 Every analytic gradient (activations, losses, and full networks) is compared
 against a central finite-difference estimate:
@@ -10,9 +10,9 @@ against a central finite-difference estimate:
 import numpy as np
 import pytest
 
-from nn_from_scratch.nn.activations import get_activation
-from nn_from_scratch.nn.losses import get_loss
-from nn_from_scratch.nn.network import NeuralNetwork
+from nn_numpy.nn.activations import get_activation
+from nn_numpy.nn.losses import get_loss
+from nn_numpy.nn.network import NeuralNetwork
 
 EPS = 1e-6
 RTOL = 1e-5

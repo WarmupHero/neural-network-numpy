@@ -1,7 +1,7 @@
 """
 Aggregate analysis of the experiment sweep, written as a plain-text report.
 
-Input: a full-results JSON written by nn_from_scratch.modeling.train (reports/main_results_full_<stamp>.json,
+Input: a full-results JSON written by nn_numpy.modeling.train (reports/main_results_full_<stamp>.json,
 the newest one by default, or a path given on the command line).
 
 Processing: adds derived values to every run (best validation loss, final
@@ -24,7 +24,7 @@ import sys
 import time
 from typing import Any
 
-from nn_from_scratch.config import (
+from nn_numpy.config import (
     RANDOM_SEED,
     REPORT_DIR,
     RUN_STAMP,
@@ -72,7 +72,7 @@ def load_results(path: str) -> list[dict[str, Any]]:
     Returns
     -------
     list of dict
-        One dictionary per experiment run, as written by nn_from_scratch.modeling.train (keys such
+        One dictionary per experiment run, as written by nn_numpy.modeling.train (keys such
         as "problem_name", "architecture", "optimizer", "learning_rate",
         "batch", "test_metric", "train_loss_history", "val_loss_history").
 
@@ -184,7 +184,7 @@ def add_derived_metrics(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
     -----
     Processing, for each run:
     1. best_val_loss: keep the value saved by
-       nn_from_scratch.modeling.train. It is the validation loss of the
+       nn_numpy.modeling.train. It is the validation loss of the
        checkpoint that early stopping restored, i.e. of the model whose
        test metric is reported. Only if it is missing, fall back to the
        minimum of the validation-loss history.

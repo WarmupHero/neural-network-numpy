@@ -1,5 +1,5 @@
 """
-Trainable and regularization layers for the from-scratch network.
+Trainable and regularization layers for the NumPy network.
 
 This module defines the building blocks that sit between activations:
 

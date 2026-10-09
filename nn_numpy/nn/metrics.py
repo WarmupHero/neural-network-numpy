@@ -9,7 +9,7 @@ functions accept 1-D or column-vector inputs and return a plain float.
 import numpy as np
 from numpy.typing import ArrayLike
 
-from nn_from_scratch.nn.losses import BCELoss, MSELoss
+from nn_numpy.nn.losses import BCELoss, MSELoss
 
 
 def binary_cross_entropy(y_true: ArrayLike, y_pred: ArrayLike) -> float:

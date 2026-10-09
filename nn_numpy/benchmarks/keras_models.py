@@ -13,7 +13,7 @@ activations, bias and batch-norm placement), but everything else is what
 Keras provides by default: Glorot-uniform weight initialization, Keras's
 SGD / momentum / Adam optimizers, BatchNormalization's own momentum and
 epsilon, float32 computation, and the built-in EarlyStopping callback. The
-comparison therefore shows how the from-scratch network compares with the
+comparison therefore shows how the NumPy network compares with the
 standard way of building the same model in TensorFlow.
 
 Every model is scored with the project's own NumPy metric functions.
@@ -34,8 +34,8 @@ os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "3")
 import keras
 import tensorflow as tf
 
-from nn_from_scratch.benchmarks.data import load_problem_config
-from nn_from_scratch.nn.metrics import (
+from nn_numpy.benchmarks.data import load_problem_config
+from nn_numpy.nn.metrics import (
     accuracy,
     binary_cross_entropy,
     mean_squared_error,
@@ -230,7 +230,7 @@ def run_model(
         float) and "batch_size" (list of int).
     splits : tuple of numpy.ndarray
         (X_train, y_train, X_val, y_val, X_test, y_test) from
-        nn_from_scratch.benchmarks.data.load_splits.
+        nn_numpy.benchmarks.data.load_splits.
     seed : int
         The split's seed, also used to seed Keras.
     baseline : float

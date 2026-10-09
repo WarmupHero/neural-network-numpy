@@ -10,8 +10,8 @@ import json
 import os
 from typing import Any
 
-from nn_from_scratch.config import ROOT_DIR
-from nn_from_scratch.nn.layers import SUPPORTED_INITS
+from nn_numpy.config import ROOT_DIR
+from nn_numpy.nn.layers import SUPPORTED_INITS
 
 
 class ConfigLoader:
@@ -45,11 +45,11 @@ class ConfigLoader:
     - using the wrong loss for the task type
     """
 
-    # Supported activation names used by nn_from_scratch.nn.activations.get_activation(...)
+    # Supported activation names used by nn_numpy.nn.activations.get_activation(...)
     # Frozensets, because these are fixed constants shared by every instance.
     SUPPORTED_ACTIVATIONS = frozenset({"relu", "sigmoid", "tanh", "linear"})
 
-    # Supported loss names used by nn_from_scratch.nn.losses.get_loss(...)
+    # Supported loss names used by nn_numpy.nn.losses.get_loss(...)
     SUPPORTED_CLASSIFICATION_LOSSES = frozenset(
         {"bce", "binary_crossentropy", "binary_cross_entropy"}
     )
@@ -62,7 +62,7 @@ class ConfigLoader:
         Parameters
         ----------
         None
-            Uses `ROOT_DIR` from nn_from_scratch.config.
+            Uses `ROOT_DIR` from nn_numpy.config.
 
         Returns
         -------

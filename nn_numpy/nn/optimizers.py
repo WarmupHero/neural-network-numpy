@@ -10,7 +10,7 @@ get_optimizer() builds an optimizer from a config string.
 
 import numpy as np
 
-from nn_from_scratch.nn.layers import BatchNorm, Dense
+from nn_numpy.nn.layers import BatchNorm, Dense
 
 
 class SGD:

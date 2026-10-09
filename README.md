@@ -9,7 +9,7 @@ Each task is benchmarked across a grid of 9 architectures × 3 optimizers × 2 l
 
 ![Python](https://img.shields.io/badge/python-3.12-blue)
 ![NumPy only](https://img.shields.io/badge/built%20with-NumPy%20only-informational)
-[![tests](https://github.com/WarmupHero/neural-network-from-scratch/actions/workflows/tests.yml/badge.svg)](https://github.com/WarmupHero/neural-network-from-scratch/actions/workflows/tests.yml)
+[![tests](https://github.com/WarmupHero/neural-network-numpy/actions/workflows/tests.yml/badge.svg)](https://github.com/WarmupHero/neural-network-numpy/actions/workflows/tests.yml)
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
 
 ---
@@ -24,7 +24,7 @@ Each task is benchmarked across a grid of 9 architectures × 3 optimizers × 2 l
 - **Verified correctness.** Every analytic gradient (activations, losses, batch norm in both modes, and whole networks with and without bias and batch norm) is checked against central finite differences with `pytest`. The suite has 160 tests in total.
 - **Multi-seed results.** Every configuration runs with 5 seeds, and each seed changes the data split, the initial weights, the dropout masks and the shuffling. Results are reported as mean ± standard deviation, so they don't rest on one lucky draw.
 - **Leak-free preprocessing, also in NumPy.** Duplicates are removed, the data gets a 60 / 20 / 20 train / validation / test split (stratified by class for classification), and the standard scaler is fit on the training split only.
-- **Compared with standard practice.** Five scikit-learn models per task, and the same architectures rebuilt in TensorFlow (Keras) and PyTorch, are trained on the same splits and selected by the same validation rule. This puts the from-scratch network's results in context.
+- **Compared with standard practice.** Five scikit-learn models per task, and the same architectures rebuilt in TensorFlow (Keras) and PyTorch, are trained on the same splits and selected by the same validation rule. This puts the NumPy network's results in context.
 - **Knowledge base.** The repository itself is described as an OWL ontology in [`knowledge/`](knowledge/), generated from the configs, the sources and the Makefile. Opened in Protégé, its reasoner infers the pipeline order, each module's stage and role, and the architecture families from the asserted nodes and edges.
 - **Config-driven experiments.** Architectures (including bias, initialization, batch norm and dropout per layer), optimizers, learning rates, batch sizes, seeds and early-stopping settings are defined in JSON. One command runs the whole sweep.
 
@@ -85,12 +85,12 @@ The plots show seed 42. More plots, including the dropout comparison, EDA, scali
 
 ## Comparison with standard libraries
 
-How does a network written from scratch compare with standard practice? Two comparisons answer this:
+How does a network written in plain NumPy compare with standard practice? Two comparisons answer this:
 
 - **scikit-learn:** five model families per task (linear, SVM, random forest, gradient boosting, MLP).
 - **TensorFlow (Keras) and PyTorch:** the network's own architectures A1, A2, A2-bias and A2-bn, rebuilt layer for layer.
 
-Every library model was trained on **exactly the same splits** (same 5 seeds), scored with **the same NumPy metric functions**, and selected with **the same rule**: for every model, the configuration with the lowest validation loss on each seed, then its test score. The from-scratch network itself stays NumPy-only; the libraries are an optional install used only for these comparisons.
+Every library model was trained on **exactly the same splits** (same 5 seeds), scored with **the same NumPy metric functions**, and selected with **the same rule**: for every model, the configuration with the lowest validation loss on each seed, then its test score. The network itself stays NumPy-only; the libraries are an optional install used only for these comparisons.
 
 ### Against scikit-learn
 
@@ -110,9 +110,9 @@ The table also lists each framework's best model; the next section compares the 
 
 Mean ± standard deviation over 5 seeds. Lower BCE / MSE is better, and higher accuracy / R² is better.
 
-- **Classification: the from-scratch network wins.** Allowing all 9 architectures, it has the lowest test BCE of any model and beats scikit-learn's best model (its MLP, chosen on every seed) on 4 of 5 seeds. Every neural network and the SVM classify the test set perfectly; the BCE differences are about how confident the correct predictions are.
+- **Classification: the NumPy network wins.** Allowing all 9 architectures, it has the lowest test BCE of any model and beats scikit-learn's best model (its MLP, chosen on every seed) on 4 of 5 seeds. Every neural network and the SVM classify the test set perfectly; the BCE differences are about how confident the correct predictions are.
 - **Regression: tree ensembles win.** Gradient boosting has about a third of the network's error (MSE 0.18 vs. 0.50) and beats it on all 5 seeds. Random forest and SVR also do better. Tree models suit this dataset, whose 8 building features each take only 2 to 12 distinct values.
-- **The from-scratch network matches scikit-learn's own neural network.** On regression, its MSE (0.52 for A1 / A2) is in line with scikit-learn's MLP (0.54), which suggests the implementation performs like a standard library one.
+- **The NumPy network matches scikit-learn's own neural network.** On regression, its MSE (0.52 for A1 / A2) is in line with scikit-learn's MLP (0.54), which suggests the implementation performs like a standard library one.
 - **Training cost is comparable.** The selected configurations train in about 0.2–0.5 s for the NumPy network and from a few milliseconds to 1.2 s for the scikit-learn models, per seed, on one CPU.
 
 ### Against TensorFlow and PyTorch: same architecture, different implementation
@@ -135,21 +135,21 @@ Each cell is the best configuration per seed (selected on validation), mean ± s
 - **The frameworks are slower on data this small.** A selected model takes 0.2–0.5 s to train in the NumPy network, 0.6–1.6 s in PyTorch, and 4–13 s in Keras. With a few hundred training samples, each step is tiny, and per-step framework overhead dominates; Keras's `fit()` adds the most. The 480 runs took 9 minutes in PyTorch and 81 in Keras on one CPU; the NumPy network's 1,080 runs take about 11.
 
 <p align="center">
-  <img src="reports/figures/benchmarks/benchmark_classification_20261008-222045.png" width="48%" alt="Classification test BCE: NumPy network vs. scikit-learn, Keras and PyTorch models">
-  <img src="reports/figures/benchmarks/benchmark_regression_20261008-222045.png" width="48%" alt="Regression test MSE: NumPy network vs. scikit-learn, Keras and PyTorch models">
+  <img src="reports/figures/benchmarks/benchmark_classification_20261009-134829.png" width="48%" alt="Classification test BCE: NumPy network vs. scikit-learn, Keras and PyTorch models">
+  <img src="reports/figures/benchmarks/benchmark_regression_20261009-134829.png" width="48%" alt="Regression test MSE: NumPy network vs. scikit-learn, Keras and PyTorch models">
 </p>
 <p align="center">
-  <img src="reports/figures/benchmarks/benchmark_curves_tensorflow_20261008-222045.png" width="85%" alt="Validation loss of the selected NumPy and Keras models, seed 42">
+  <img src="reports/figures/benchmarks/benchmark_curves_tensorflow_20261009-134829.png" width="85%" alt="Validation loss of the selected NumPy and Keras models, seed 42">
 </p>
 <p align="center">
-  <img src="reports/figures/benchmarks/benchmark_curves_pytorch_20261008-222045.png" width="85%" alt="Validation loss of the selected NumPy and PyTorch models, seed 42">
+  <img src="reports/figures/benchmarks/benchmark_curves_pytorch_20261009-134829.png" width="85%" alt="Validation loss of the selected NumPy and PyTorch models, seed 42">
 </p>
 
-The bar charts include every library model and each framework architecture. The curves show the selected NumPy and framework models on seed 42. The full tables, the configuration each model selected most often and the seed-by-seed head-to-heads are in [`benchmark_report_20261008-222045.txt`](reports/benchmark_report_20261008-222045.txt).
+The bar charts include every library model and each framework architecture. The curves show the selected NumPy and framework models on seed 42. The full tables, the configuration each model selected most often and the seed-by-seed head-to-heads are in [`benchmark_report_20261009-134829.txt`](reports/benchmark_report_20261009-134829.txt).
 
 ### Limitations
 
-These comparisons show that a from-scratch network can match standard libraries on these two tasks. They don't show that it's better in general.
+These comparisons show that a NumPy network can match standard libraries on these two tasks. They don't show that it's better in general.
 
 - **Small, nearly solved datasets.** The test sets have 270 and 154 samples, and the best neural networks reach about 100% accuracy and an R² of about 0.995. Most differences between neural networks are within the variation across the 5 seeds, and no significance tests were run.
 - **Not equally tuned.** The grid (learning rates, batch sizes, early stopping) and the architectures were designed around the NumPy network. The frameworks run with their default initialization, optimizers and batch-norm settings, without per-framework tuning such as learning-rate schedules or weight decay.
@@ -175,7 +175,7 @@ make benchmark-requirements       # optional: scikit-learn, TensorFlow, PyTorch
 make benchmarks                   # train the library models on the same splits (scikit-learn ~1 min, PyTorch ~9, TensorFlow ~80)
 make benchmark-report             # comparison report -> reports/benchmark_report_<stamp>.txt
 
-make knowledge-base               # OWL ontology of the repo -> knowledge/nn_from_scratch.owl (open in Protégé)
+make knowledge-base               # OWL ontology of the repo -> knowledge/nn_numpy.owl (open in Protégé)
 
 make test                         # gradient checks, layer tests, split checks, training tests
 make lint                         # check style and lint with ruff (changes nothing)
@@ -191,26 +191,26 @@ python -m venv .venv
 pip install -r requirements.txt
 pip install -e ".[dev]"
 
-python -m nn_from_scratch.modeling.train   # run all experiments
-python -m nn_from_scratch.comparisons      # comparison plots
-python -m nn_from_scratch.analysis         # analysis report
+python -m nn_numpy.modeling.train   # run all experiments
+python -m nn_numpy.comparisons      # comparison plots
+python -m nn_numpy.analysis         # analysis report
 python -m pytest                           # tests
 
 pip install -e ".[benchmarks]"             # optional: scikit-learn, TensorFlow, PyTorch
-python -m nn_from_scratch.benchmarks.run   # library comparison (or one: ... run sklearn / tensorflow / pytorch)
-python -m nn_from_scratch.benchmarks.report
+python -m nn_numpy.benchmarks.run   # library comparison (or one: ... run sklearn / tensorflow / pytorch)
+python -m nn_numpy.benchmarks.report
 ```
 
 For a quicker run, set `"seeds": [42]` in both files in `configs/`. That runs the 216 experiments of a single seed in about 2 minutes, and seed 42 reproduces the single-seed results exactly.
 
-Every output file is stamped with the time of the run, as `name_YYYYMMDD-HHMMSS.ext`, so a new run never overwrites an earlier one. `nn_from_scratch.comparisons` and `nn_from_scratch.analysis` use the newest `reports/main_results_full_*.json` by default; pass a path as the first argument to pick a specific one, e.g. `python -m nn_from_scratch.analysis reports/main_results_full_20261008-220824.json`. When run directly (not through `make plots`), set `MPLBACKEND=Agg` to stop plot windows from opening.
+Every output file is stamped with the time of the run, as `name_YYYYMMDD-HHMMSS.ext`, so a new run never overwrites an earlier one. `nn_numpy.comparisons` and `nn_numpy.analysis` use the newest `reports/main_results_full_*.json` by default; pass a path as the first argument to pick a specific one, e.g. `python -m nn_numpy.analysis reports/main_results_full_20261008-220824.json`. When run directly (not through `make plots`), set `MPLBACKEND=Agg` to stop plot windows from opening.
 
 Older runs stay on your disk, but only the newest version of each output is committed. Stamped outputs are git-ignored, and a pre-commit hook ([`tools/stage_latest_outputs.py`](tools/stage_latest_outputs.py)) stages the newest ones, untracks older ones, and updates the stamped links in this README. Enable it once per clone with `git config core.hooksPath .githooks`.
 
 ## Project structure
 
 ```
-neural-network-from-scratch/
+neural-network-numpy/
 ├── Makefile                     # make train / plots / analysis / test / lint / format / ...
 ├── pyproject.toml               # package metadata, dev tools, pytest and ruff settings
 ├── requirements.txt             # pinned runtime dependencies
@@ -223,7 +223,7 @@ neural-network-from-scratch/
 ├── docs/
 │   └── DETAILS.md               # detailed documentation
 ├── knowledge/                   # the repository as an OWL ontology, for Protégé
-│   ├── nn_from_scratch.owl      # generated by tools/build_knowledge_base.py; don't edit
+│   ├── nn_numpy.owl      # generated by tools/build_knowledge_base.py; don't edit
 │   ├── extensions.owl           # imports the generated file; put manual additions here
 │   └── nn-architecture.canvas   # the system architecture as an Obsidian canvas
 ├── models/                      # (empty) trained and serialized models
@@ -235,7 +235,7 @@ neural-network-from-scratch/
 │       ├── benchmarks/          # NumPy network vs. scikit-learn, TensorFlow, PyTorch
 │       ├── comparisons/         # loss-curve comparison plots
 │       └── eda/                 # exploratory and preprocessing plots
-├── nn_from_scratch/             # the source package
+├── nn_numpy/             # the source package
 │   ├── config.py                # paths, default seed, output-file stamping
 │   ├── config_loader.py         # loads and validates the JSON configs
 │   ├── dataset.py               # downloads the raw datasets
@@ -274,7 +274,7 @@ See the [detailed project documentation](docs/DETAILS.md) for the module-by-modu
 
 Watch the full pipeline run on YouTube: the training script preprocesses the data and trains the experiments, then the analysis script summarizes the results.
 
-[![Demo video: Neural Network from Scratch in NumPy](https://img.youtube.com/vi/FIBYV5jaxqo/hqdefault.jpg)](https://youtu.be/FIBYV5jaxqo)
+[![Demo video: Neural Network in NumPy](https://img.youtube.com/vi/FIBYV5jaxqo/hqdefault.jpg)](https://youtu.be/FIBYV5jaxqo)
 
 *The recording predates the latest changes. It shows the original 48-run grid, accuracy / MAE in the console output, and the old folder layout (`main.py`, `src/`). Current results are in [Results](#results).*
 

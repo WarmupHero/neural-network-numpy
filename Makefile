@@ -2,8 +2,8 @@
 # GLOBALS                                                                       #
 #################################################################################
 
-PROJECT_NAME = neural-network-from-scratch
-PACKAGE = nn_from_scratch
+PROJECT_NAME = neural-network-numpy
+PACKAGE = nn_numpy
 
 # Use the project's virtual environment when it exists, otherwise the Python on PATH.
 ifeq ($(OS),Windows_NT)

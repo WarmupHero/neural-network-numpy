@@ -1,5 +1,5 @@
 {
-  "description": "Library models compared with the from-scratch NumPy network. Each model's grid is tried in full on every seed's split; the configuration with the lowest validation metric is selected and its test metric reported. Seeds and splits come from the main experiment configs.",
+  "description": "Library models compared with the NumPy network. Each model's grid is tried in full on every seed's split; the configuration with the lowest validation metric is selected and its test metric reported. Seeds and splits come from the main experiment configs.",
   "sklearn": {
     "classification": {
       "logistic_regression": {

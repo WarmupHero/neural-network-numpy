@@ -1,7 +1,7 @@
 """
 Comparison plots and short written analyses built from the experiment results.
 
-Input: a full results JSON written by nn_from_scratch.modeling.train
+Input: a full results JSON written by nn_numpy.modeling.train
 (``reports/main_results_full_<stamp>.json``): a list with one dictionary per
 training run, holding its settings (problem, architecture, optimizer,
 learning rate, batch size, seed) and its loss histories and test metric.
@@ -13,7 +13,7 @@ Output (each file name gets the run stamp):
 - in ``reports/comparisons/``: two text files (depth and learning-rate analyses) that say which run
   converged faster and which reached the lower final losses.
 
-Run it with ``python -m nn_from_scratch.comparisons [results.json]``.
+Run it with ``python -m nn_numpy.comparisons [results.json]``.
 """
 
 import json
@@ -33,7 +33,7 @@ import numpy as np
 # COMPARISONS_FIGURES_DIR / COMPARISONS_TEXT_DIR are the output folders.
 # RUN_STAMP / stamped_filename give every output file a unique name, and
 # resolve_results_path finds the results JSON produced by the experiment sweep.
-from nn_from_scratch.config import (
+from nn_numpy.config import (
     COMPARISONS_FIGURES_DIR,
     COMPARISONS_TEXT_DIR,
     RANDOM_SEED,

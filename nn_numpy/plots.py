@@ -2,7 +2,7 @@
 Exploratory data analysis (EDA) plots for the preprocessing step.
 
 Input: pandas DataFrames (and one scaled NumPy array) passed in by
-nn_from_scratch.features, always taken from the training split.
+nn_numpy.features, always taken from the training split.
 
 Output: PNG files in ``reports/figures/eda/``, each with the run
 stamp in its name, optionally also shown on screen.
@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
-from nn_from_scratch.config import PREPROCESSING_GRAPHS_DIR, stamped_filename
+from nn_numpy.config import PREPROCESSING_GRAPHS_DIR, stamped_filename
 
 
 class Visualizer:
@@ -27,7 +27,7 @@ class Visualizer:
     optionally displays them depending on SHOW_EDA.
 
     Every saved file name gets the run stamp inserted before its
-    extension (see nn_from_scratch.config.stamped_filename), so plots from earlier
+    extension (see nn_numpy.config.stamped_filename), so plots from earlier
     runs are never overwritten.
 
     Attributes

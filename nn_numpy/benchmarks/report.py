@@ -1,5 +1,5 @@
 """
-Compare the from-scratch NumPy network with the library models.
+Compare the NumPy network with the library models.
 
 Input:
 - the newest ``reports/main_results_full_<stamp>.json`` (the NumPy network)
@@ -15,7 +15,7 @@ Every model is treated the same way: on each seed, the configuration with
 the lowest validation metric is selected, and its test metric is reported.
 Results are averaged over seeds (mean ± sample standard deviation).
 
-Run it with ``python -m nn_from_scratch.benchmarks.report`` or
+Run it with ``python -m nn_numpy.benchmarks.report`` or
 ``make benchmark-report``.
 """
 
@@ -30,7 +30,7 @@ from typing import Any
 
 import matplotlib.pyplot as plt
 
-from nn_from_scratch.config import (
+from nn_numpy.config import (
     BENCHMARK_FIGURES_DIR,
     REPORT_DIR,
     RUN_STAMP,
@@ -141,7 +141,7 @@ def is_diverged(run: dict[str, Any]) -> bool:
     Notes
     -----
     Processing:
-    1. Same rule as nn_from_scratch.analysis.is_diverged: diverged runs are
+    1. Same rule as nn_numpy.analysis.is_diverged: diverged runs are
        never selected.
     """
     return bool(run.get("diverged")) or not math.isfinite(run["best_val_loss"])
@@ -631,7 +631,7 @@ def plot_problem(problem_name: str, rows: list[dict[str, Any]]) -> str:
     ax.set_yticklabels(labels)
     ax.set_xscale("log")
     ax.set_xlabel(f"Test {metric} (mean ± std over seeds; lower is better)")
-    ax.set_title(f"{problem_name.capitalize()}: from-scratch NumPy network vs. library models")
+    ax.set_title(f"{problem_name.capitalize()}: NumPy network vs. library models")
     ax.grid(axis="x", alpha=0.3)
     fig.tight_layout()
 
@@ -681,14 +681,14 @@ def main(numpy_results_path: str | None = None) -> None:
     library_paths = {lib: path for lib, path in library_paths.items() if path}
     if not library_paths:
         raise FileNotFoundError(
-            "No library results found. Run python -m nn_from_scratch.benchmarks.run first."
+            "No library results found. Run python -m nn_numpy.benchmarks.run first."
         )
     library_results = {lib: load_json(path) for lib, path in library_paths.items()}
 
     print(f"Run stamp: {RUN_STAMP}")
     lines = ["LIBRARY COMPARISON", "==================", ""]
     lines.append(
-        "The from-scratch NumPy network is compared with library models trained on exactly "
+        "The NumPy network is compared with library models trained on exactly "
         "the same train / validation / test splits (same seeds), scored with the same NumPy "
         "metric functions. For every model, the configuration with the lowest validation "
         "metric is selected on each seed and its test metric is reported; the test set is "

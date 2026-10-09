@@ -1,5 +1,5 @@
 """
-Neural network from scratch in NumPy.
+Neural network in plain NumPy.
 
 The project's source package, laid out as in Cookiecutter Data Science:
 

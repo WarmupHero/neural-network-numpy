@@ -27,7 +27,7 @@ import sys
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT_DIR)
 
-from nn_from_scratch.config import REPORT_DIR, STAMP_SUFFIX_PATTERN, latest_stamped_outputs
+from nn_numpy.config import REPORT_DIR, STAMP_SUFFIX_PATTERN, latest_stamped_outputs
 
 # Documentation files whose stamped output references are kept current.
 DOC_FILES = ["README.md", os.path.join("docs", "DETAILS.md")]

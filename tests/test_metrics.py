@@ -1,12 +1,12 @@
 """
-Tests for the secondary evaluation metrics in nn_from_scratch.nn.metrics:
+Tests for the secondary evaluation metrics in nn_numpy.nn.metrics:
 accuracy (classification) and R² (regression).
 """
 
 import numpy as np
 import pytest
 
-from nn_from_scratch.nn.metrics import accuracy, r2_score
+from nn_numpy.nn.metrics import accuracy, r2_score
 
 
 def test_accuracy_thresholds_probabilities_at_one_half():

@@ -1,12 +1,12 @@
 """
 Data preparation for the two problems: load, clean, split, explore, scale.
 
-Input: the CSV files in ``data/raw/`` written by nn_from_scratch.dataset
+Input: the CSV files in ``data/raw/`` written by nn_numpy.dataset
 (``banknote_auth.csv`` and ``energy_efficiency.csv``).
 
 Output: NumPy arrays ``X_train, y_train, X_val, y_val, X_test, y_test``
 ready for the network, plus (optionally) EDA plots saved through
-nn_from_scratch.plots.Visualizer.
+nn_numpy.plots.Visualizer.
 
 The split is 60 / 20 / 20 (train / validation / test). Feature scaling is
 always fit on the training split only and then applied to validation and
@@ -21,13 +21,13 @@ import pandas as pd
 # Import shared project settings:
 # - DATASETS_DIR: folder where the CSV files are stored
 # - RANDOM_SEED: fixed seed for reproducibility
-from nn_from_scratch.config import DATASETS_DIR, RANDOM_SEED
+from nn_numpy.config import DATASETS_DIR, RANDOM_SEED
 
 # Import plotting utilities for EDA
-from nn_from_scratch.plots import Visualizer
+from nn_numpy.plots import Visualizer
 
 # Import our custom standard scaler
-from nn_from_scratch.scalers import StandardScaler
+from nn_numpy.scalers import StandardScaler
 
 
 def train_val_test_split(

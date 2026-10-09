@@ -5,10 +5,10 @@ Smoke tests for the optimizers and the training loop on tiny synthetic problems.
 import numpy as np
 import pytest
 
-from nn_from_scratch.modeling.trainer import Trainer
-from nn_from_scratch.nn.losses import get_loss
-from nn_from_scratch.nn.network import NeuralNetwork
-from nn_from_scratch.nn.optimizers import get_optimizer
+from nn_numpy.modeling.trainer import Trainer
+from nn_numpy.nn.losses import get_loss
+from nn_numpy.nn.network import NeuralNetwork
+from nn_numpy.nn.optimizers import get_optimizer
 
 
 def make_classification_data(n=200, seed=0):

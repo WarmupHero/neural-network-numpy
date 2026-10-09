@@ -7,12 +7,12 @@ early-stopping checkpoints, config validation).
 import numpy as np
 import pytest
 
-from nn_from_scratch.config_loader import ConfigLoader
-from nn_from_scratch.modeling.trainer import Trainer
-from nn_from_scratch.nn.layers import Dense
-from nn_from_scratch.nn.losses import get_loss
-from nn_from_scratch.nn.network import NeuralNetwork
-from nn_from_scratch.nn.optimizers import get_optimizer
+from nn_numpy.config_loader import ConfigLoader
+from nn_numpy.modeling.trainer import Trainer
+from nn_numpy.nn.layers import Dense
+from nn_numpy.nn.losses import get_loss
+from nn_numpy.nn.network import NeuralNetwork
+from nn_numpy.nn.optimizers import get_optimizer
 
 # ------------------------------------------------------------------
 # Bias term

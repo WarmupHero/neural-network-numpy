@@ -31,8 +31,8 @@ import numpy as np
 import torch
 from torch import nn
 
-from nn_from_scratch.benchmarks.data import load_problem_config
-from nn_from_scratch.nn.metrics import (
+from nn_numpy.benchmarks.data import load_problem_config
+from nn_numpy.nn.metrics import (
     accuracy,
     binary_cross_entropy,
     mean_squared_error,
@@ -382,7 +382,7 @@ def run_model(
         float) and "batch_size" (list of int).
     splits : tuple of numpy.ndarray
         (X_train, y_train, X_val, y_val, X_test, y_test) from
-        nn_from_scratch.benchmarks.data.load_splits.
+        nn_numpy.benchmarks.data.load_splits.
     seed : int
         The split's seed, also used to seed PyTorch.
     baseline : float

@@ -176,10 +176,10 @@ def test_reasoner_infers_the_pipeline_order(inferred):
     upstream of the benchmark report, and the benchmark report must not be
     upstream of the config.
     """
-    train = NNFS["nn_from_scratch.modeling.train"]
-    assert (train, NNFS.feeds, NNFS["nn_from_scratch.analysis"]) in inferred
+    train = NNFS["nn_numpy.modeling.train"]
+    assert (train, NNFS.feeds, NNFS["nn_numpy.analysis"]) in inferred
     assert (NNFS.ClassificationConfig, NNFS.upstreamOf, NNFS.BenchmarkReport) in inferred
-    assert (NNFS["nn_from_scratch.nn.layers"], NNFS.upstreamOf, NNFS.MainResultsJSON) in inferred
+    assert (NNFS["nn_numpy.nn.layers"], NNFS.upstreamOf, NNFS.MainResultsJSON) in inferred
     assert (NNFS.BenchmarkReport, NNFS.upstreamOf, NNFS.ClassificationConfig) not in inferred
 
 
@@ -189,29 +189,29 @@ def test_reasoner_infers_stage_membership_and_roles(inferred):
 
     Notes
     -----
-    layers.py asserts only partOf nn_from_scratch.nn; the chain
+    layers.py asserts only partOf nn_numpy.nn; the chain
     partOf ∘ belongsToStage must place it in the network-library stage.
     train.py reads nothing itself but writes results and is run by make
     train, so it is a Producer and an EntryPoint but not a PipelineStep;
     benchmarks/report.py reads and writes, so it is a PipelineStep. The
     Keras wrapper needs TensorFlow, an optional library.
     """
-    layers = NNFS["nn_from_scratch.nn.layers"]
+    layers = NNFS["nn_numpy.nn.layers"]
     assert (layers, NNFS.belongsToStage, NNFS.NetworkLibraryStage) in inferred
     assert (layers, RDF.type, NNFS.NetworkLibraryStageComponent) in inferred
     assert (layers, RDF.type, NNFS.TestedModule) in inferred
-    train = NNFS["nn_from_scratch.modeling.train"]
+    train = NNFS["nn_numpy.modeling.train"]
     assert (train, RDF.type, NNFS.Producer) in inferred
     assert (train, RDF.type, NNFS.EntryPoint) in inferred
     assert (train, RDF.type, NNFS.PipelineStep) not in inferred
-    report = NNFS["nn_from_scratch.benchmarks.report"]
+    report = NNFS["nn_numpy.benchmarks.report"]
     assert (report, RDF.type, NNFS.PipelineStep) in inferred
     assert (
-        NNFS["nn_from_scratch.benchmarks.keras_models"],
+        NNFS["nn_numpy.benchmarks.keras_models"],
         RDF.type,
         NNFS.OptionalModule,
     ) in inferred
-    assert (NNFS["nn_from_scratch.nn.network"], RDF.type, NNFS.OptionalModule) not in inferred
+    assert (NNFS["nn_numpy.nn.network"], RDF.type, NNFS.OptionalModule) not in inferred
     assert (NNFS.MainResultsJSON, RDF.type, NNFS.StampedArtifact) in inferred
     assert (NNFS.ClassificationConfig, RDF.type, NNFS.StampedArtifact) not in inferred
 
@@ -240,3 +240,54 @@ def test_reasoner_infers_architecture_families(inferred):
         RDF.type,
         NNFS.FrameworkReimplementation,
     ) not in inferred
+
+
+def test_property_characteristics_hold_and_respect_owl_dl(graph, inferred):
+    """
+    Functional and inverse-functional properties are used consistently and only on simple properties.
+
+    Notes
+    -----
+    OWL 2 DL forbids functional / inverse-functional characteristics on
+    non-simple properties: transitive ones, ones defined by a property
+    chain, and ones with such a sub-property. Every subject of a functional
+    property, and every object of an inverse-functional one, must have at
+    most one partner, in the asserted and in the inferred graph; otherwise
+    the reasoner would merge distinct individuals (owl:sameAs). Every
+    property with an inverse must be transitive exactly when its inverse
+    is.
+    """
+    non_simple = set(graph.subjects(RDF.type, OWL.TransitiveProperty)) | set(
+        graph.subjects(OWL.propertyChainAxiom, None)
+    )
+    changed = True
+    while changed:
+        before = len(non_simple)
+        non_simple |= {q for p, q in graph.subject_objects(RDFS.subPropertyOf) if p in non_simple}
+        non_simple |= {q for p, q in graph.subject_objects(OWL.inverseOf) if p in non_simple}
+        non_simple |= {p for p, q in graph.subject_objects(OWL.inverseOf) if q in non_simple}
+        changed = len(non_simple) != before
+
+    functional = set(graph.subjects(RDF.type, OWL.FunctionalProperty))
+    inverse_functional = set(graph.subjects(RDF.type, OWL.InverseFunctionalProperty))
+    object_properties = set(graph.subjects(RDF.type, OWL.ObjectProperty))
+    assert (functional | inverse_functional) & object_properties & non_simple == set()
+    assert len(functional & object_properties) >= 5 and len(inverse_functional) >= 5
+
+    for g in (graph, inferred):
+        for prop in functional & object_properties:
+            for subject in set(g.subjects(prop, None)):
+                assert len(set(g.objects(subject, prop))) == 1, (prop, subject)
+        for prop in inverse_functional:
+            for obj in set(g.objects(None, prop)):
+                assert len(set(g.subjects(prop, obj))) == 1, (prop, obj)
+    named = [
+        (a, b)
+        for a, b in inferred.subject_objects(OWL.sameAs)
+        if a != b and str(a).startswith(str(NNFS)) and str(b).startswith(str(NNFS))
+    ]
+    assert named == []
+
+    transitive = set(graph.subjects(RDF.type, OWL.TransitiveProperty))
+    for p, q in graph.subject_objects(OWL.inverseOf):
+        assert (p in transitive) == (q in transitive), (p, q)

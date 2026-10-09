@@ -1,8 +1,8 @@
 """
-Comparisons of the from-scratch NumPy network with standard ML libraries.
+Comparisons of the NumPy network with standard ML libraries.
 
-The from-scratch implementation in ``nn_from_scratch.nn`` and
-``nn_from_scratch.modeling`` uses NumPy only. This subpackage trains models
+The NumPy implementation in ``nn_numpy.nn`` and
+``nn_numpy.modeling`` uses NumPy only. This subpackage trains models
 from other libraries on exactly the same data splits and scores them with
 the same metric functions, so the results can be compared directly.
 

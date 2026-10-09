@@ -14,7 +14,7 @@ import os
 
 import pandas as pd
 
-from nn_from_scratch.config import DATASETS_DIR
+from nn_numpy.config import DATASETS_DIR
 
 
 class Fetch:
@@ -41,7 +41,7 @@ class Fetch:
         Parameters
         ----------
         None
-            Uses the module-level constant ``DATASETS_DIR`` from nn_from_scratch.config.
+            Uses the module-level constant ``DATASETS_DIR`` from nn_numpy.config.
 
         Returns
         -------

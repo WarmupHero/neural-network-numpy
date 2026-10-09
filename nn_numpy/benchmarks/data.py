@@ -17,8 +17,8 @@ from typing import Any
 
 import numpy as np
 
-from nn_from_scratch.config_loader import ConfigLoader
-from nn_from_scratch.modeling.train import (
+from nn_numpy.config_loader import ConfigLoader
+from nn_numpy.modeling.train import (
     CONFIG_FILES,
     PREPROCESSORS,
     constant_prediction_baseline,

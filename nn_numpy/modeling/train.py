@@ -11,7 +11,7 @@ learning rate and batch size listed in the config.
 
 Output: a console summary table, plus two files in reports/ whose names
 carry the run stamp: a compact CSV summary and a full JSON file with every
-run's settings, metrics and training histories (read by nn_from_scratch/analysis.py and
+run's settings, metrics and training histories (read by nn_numpy/analysis.py and
 the plotting scripts).
 """
 
@@ -23,20 +23,20 @@ from typing import Any
 
 import numpy as np
 
-from nn_from_scratch.config import RANDOM_SEED, REPORT_DIR, RUN_STAMP, stamped_filename
-from nn_from_scratch.config_loader import ConfigLoader
-from nn_from_scratch.dataset import Fetch
-from nn_from_scratch.features import PreprocessBanknote, PreprocessEnergy
-from nn_from_scratch.modeling.trainer import Trainer
-from nn_from_scratch.nn.losses import get_loss
-from nn_from_scratch.nn.metrics import (
+from nn_numpy.config import RANDOM_SEED, REPORT_DIR, RUN_STAMP, stamped_filename
+from nn_numpy.config_loader import ConfigLoader
+from nn_numpy.dataset import Fetch
+from nn_numpy.features import PreprocessBanknote, PreprocessEnergy
+from nn_numpy.modeling.trainer import Trainer
+from nn_numpy.nn.losses import get_loss
+from nn_numpy.nn.metrics import (
     accuracy,
     binary_cross_entropy,
     mean_squared_error,
     r2_score,
 )
-from nn_from_scratch.nn.network import NeuralNetwork
-from nn_from_scratch.nn.optimizers import get_optimizer
+from nn_numpy.nn.network import NeuralNetwork
+from nn_numpy.nn.optimizers import get_optimizer
 
 # Toggle this to True if you want features.py to generate EDA plots.
 # Leaving it False makes the full experiment sweep faster and quieter.
@@ -52,7 +52,7 @@ CONFIG_FILES = {
 PREPROCESSORS = {"classification": PreprocessBanknote, "regression": PreprocessEnergy}
 
 # Experiment outputs (the summary CSV and the full JSON results) are saved
-# in REPORT_DIR, i.e. reports/, imported from nn_from_scratch.config.
+# in REPORT_DIR, i.e. reports/, imported from nn_numpy.config.
 # Create the reports directory if it does not already exist.
 os.makedirs(REPORT_DIR, exist_ok=True)
 
@@ -334,7 +334,7 @@ def run_single_experiment(
 
     # An easier-to-read secondary test metric: accuracy for classification,
     # R² for regression. These use the same NumPy functions as the library
-    # comparisons in nn_from_scratch.benchmarks.
+    # comparisons in nn_numpy.benchmarks.
     test_predictions = trainer.predict(X_test)
     if experiment_config["task_type"] == "classification":
         secondary_name, secondary_value = "test_accuracy", accuracy(y_test, test_predictions)
@@ -543,7 +543,7 @@ def main() -> None:
     ----------
     None
         Uses the module-level CONFIG_FILES, PREPROCESSORS, SHOW_EDA and
-        REPORT_DIR, and the run stamp from nn_from_scratch.config.
+        REPORT_DIR, and the run stamp from nn_numpy.config.
 
     Returns
     -------

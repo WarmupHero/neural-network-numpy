@@ -3,7 +3,7 @@
 		{
 			"id": "title",
 			"type": "text",
-			"text": "# neural-network-from-scratch — system architecture\n\nA feed-forward neural network in **NumPy only**, trained on two UCI tasks (banknote classification, heating-load regression) over 9 architectures × 3 optimizers × 2 learning rates × 2 batch sizes × 5 seeds = **1,080 runs**, then compared with scikit-learn, TensorFlow (Keras) and PyTorch on the same splits.\n\n**Flow:** left → right. Colored groups are stages; arrows show what feeds what. Every output file is stamped `name_YYYYMMDD-HHMMSS.ext`.",
+			"text": "# neural-network-numpy — system architecture\n\nA feed-forward neural network in **NumPy only**, trained on two UCI tasks (banknote classification, heating-load regression) over 9 architectures × 3 optimizers × 2 learning rates × 2 batch sizes × 5 seeds = **1,080 runs**, then compared with scikit-learn, TensorFlow (Keras) and PyTorch on the same splits.\n\n**Flow:** left → right. Colored groups are stages; arrows show what feeds what. Every output file is stamped `name_YYYYMMDD-HHMMSS.ext`.",
 			"x": 0,
 			"y": -1190,
 			"width": 1800,
@@ -225,7 +225,7 @@
 		{
 			"id": "g_bench",
 			"type": "group",
-			"label": "Library comparison — nn_from_scratch/benchmarks (optional: scikit-learn, TensorFlow, PyTorch)",
+			"label": "Library comparison — nn_numpy/benchmarks (optional: scikit-learn, TensorFlow, PyTorch)",
 			"x": 1080,
 			"y": 2040,
 			"width": 5040,
@@ -271,7 +271,7 @@
 		{
 			"id": "brun",
 			"type": "text",
-			"text": "### benchmarks/run.py\n`python -m nn_from_scratch.benchmarks.run [sklearn|tensorflow|pytorch]` — every model × grid × seed, selected on validation, scored with `nn/metrics.py`",
+			"text": "### benchmarks/run.py\n`python -m nn_numpy.benchmarks.run [sklearn|tensorflow|pytorch]` — every model × grid × seed, selected on validation, scored with `nn/metrics.py`",
 			"x": 2196,
 			"y": 2142,
 			"width": 460,

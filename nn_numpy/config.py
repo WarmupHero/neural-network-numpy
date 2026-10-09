@@ -16,7 +16,7 @@ import os
 import re
 
 # Paths are calculated from where this file lives: the package folder
-# (nn_from_scratch/) sits directly inside the project root.
+# (nn_numpy/) sits directly inside the project root.
 PACKAGE_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.dirname(PACKAGE_DIR)
 
@@ -130,7 +130,7 @@ def latest_stamped_file(directory: str, basename: str, ext: str) -> str:
     if not candidates:
         raise FileNotFoundError(
             f"No file matching {basename}_<YYYYMMDD-HHMMSS>{ext} found in "
-            f"{directory}. Run python -m nn_from_scratch.modeling.train first to produce one."
+            f"{directory}. Run python -m nn_numpy.modeling.train first to produce one."
         )
 
     return max(candidates, key=os.path.basename)

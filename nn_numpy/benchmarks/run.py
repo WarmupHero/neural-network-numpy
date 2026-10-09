@@ -7,7 +7,7 @@ data in ``data/raw/``.
 Output: ``reports/benchmark_<library>_results_<stamp>.json``, one record per
 model configuration, problem and seed.
 
-Run it with ``python -m nn_from_scratch.benchmarks.run [library ...]`` or
+Run it with ``python -m nn_numpy.benchmarks.run [library ...]`` or
 ``make benchmarks``. Without arguments every library in the config is run.
 """
 
@@ -18,8 +18,8 @@ import sys
 import time
 from typing import Any
 
-from nn_from_scratch.benchmarks.data import load_splits, problem_seeds
-from nn_from_scratch.config import REPORT_DIR, ROOT_DIR, RUN_STAMP, stamped_filename
+from nn_numpy.benchmarks.data import load_splits, problem_seeds
+from nn_numpy.config import REPORT_DIR, ROOT_DIR, RUN_STAMP, stamped_filename
 
 # Location of the benchmark configuration.
 BENCHMARK_CONFIG_PATH = os.path.join(ROOT_DIR, "configs", "benchmark_experiments.json")
@@ -88,15 +88,15 @@ def get_runner(library: str) -> Callable[..., list[dict[str, Any]]]:
        library doesn't require the others to be installed.
     """
     if library == "sklearn":
-        from nn_from_scratch.benchmarks.sklearn_models import run_model
+        from nn_numpy.benchmarks.sklearn_models import run_model
 
         return run_model
     if library == "tensorflow":
-        from nn_from_scratch.benchmarks.keras_models import run_model
+        from nn_numpy.benchmarks.keras_models import run_model
 
         return run_model
     if library == "pytorch":
-        from nn_from_scratch.benchmarks.torch_models import run_model
+        from nn_numpy.benchmarks.torch_models import run_model
 
         return run_model
     raise ValueError(f"Unsupported library: {library}")

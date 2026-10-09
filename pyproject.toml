@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "nn_from_scratch"
+name = "nn_numpy"
 version = "0.2.0"
 description = "A feed-forward neural network built with NumPy only, benchmarked on UCI classification and regression tasks."
 readme = "README.md"
@@ -27,7 +27,7 @@ dev = [
     "rdflib==7.6.0",
     "owlrl==7.6.2",
 ]
-# Libraries the from-scratch network is compared against (nn_from_scratch.benchmarks).
+# Libraries the NumPy network is compared against (nn_numpy.benchmarks).
 # Install with  pip install -e ".[benchmarks]"  (or  make benchmark-requirements).
 # scipy is pinned because newer releases require NumPy 2, which would replace
 # the project's pinned NumPy 1.26.4.
@@ -39,7 +39,7 @@ benchmarks = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["nn_from_scratch*"]
+include = ["nn_numpy*"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
@@ -47,8 +47,8 @@ testpaths = ["tests"]
 
 [tool.ruff]
 line-length = 99
-src = ["nn_from_scratch"]
-include = ["pyproject.toml", "nn_from_scratch/**/*.py", "tests/**/*.py", "tools/**/*.py"]
+src = ["nn_numpy"]
+include = ["pyproject.toml", "nn_numpy/**/*.py", "tests/**/*.py", "tools/**/*.py"]
 
 [tool.ruff.lint]
 # Ruff's default rules (pyflakes and pycodestyle errors) plus import sorting,
@@ -63,5 +63,5 @@ ignore = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["nn_from_scratch"]
+known-first-party = ["nn_numpy"]
 force-sort-within-sections = true

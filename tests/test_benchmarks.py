@@ -1,5 +1,5 @@
 """
-Tests for the library comparison (nn_from_scratch.benchmarks): identical
+Tests for the library comparison (nn_numpy.benchmarks): identical
 data splits, the scikit-learn wrappers, and the report's model selection.
 
 Tests that need scikit-learn are skipped when it is not installed (it is an
@@ -11,9 +11,9 @@ import math
 import numpy as np
 import pytest
 
-from nn_from_scratch.benchmarks import report
-from nn_from_scratch.benchmarks.data import load_splits
-from nn_from_scratch.modeling.train import PREPROCESSORS, constant_prediction_baseline
+from nn_numpy.benchmarks import report
+from nn_numpy.benchmarks.data import load_splits
+from nn_numpy.modeling.train import PREPROCESSORS, constant_prediction_baseline
 
 # ------------------------------------------------------------------
 # Data: the comparison must use the main pipeline's exact splits
@@ -190,7 +190,7 @@ def test_expand_grid_handles_lists_of_grids_and_tuples():
     the [32, 32] hidden-layer list becomes the tuple scikit-learn expects.
     """
     pytest.importorskip("sklearn")
-    from nn_from_scratch.benchmarks.sklearn_models import expand_grid
+    from nn_numpy.benchmarks.sklearn_models import expand_grid
 
     grid = [
         {"hidden_layer_sizes": [[32]], "alpha": [0.1, 1.0]},
@@ -230,7 +230,7 @@ def test_run_model_returns_one_scored_record_per_config(problem_name, model_name
     must beat a trivial level on this easy synthetic problem.
     """
     pytest.importorskip("sklearn")
-    from nn_from_scratch.benchmarks.sklearn_models import expand_grid, run_model
+    from nn_numpy.benchmarks.sklearn_models import expand_grid, run_model
 
     records = run_model(
         problem_name, model_name, grid, make_splits(problem_name), seed=7, baseline=0.5
@@ -254,7 +254,7 @@ def test_runs_are_reproducible_with_the_same_seed():
     must produce the same test metric.
     """
     pytest.importorskip("sklearn")
-    from nn_from_scratch.benchmarks.sklearn_models import run_model
+    from nn_numpy.benchmarks.sklearn_models import run_model
 
     splits = make_splits("classification")
     first = run_model("classification", "random_forest", {"n_estimators": [20]}, splits, 3, 0.7)
@@ -271,7 +271,7 @@ def test_unknown_model_name_raises():
     "ridge" is a regression model, so asking for it as a classifier fails.
     """
     pytest.importorskip("sklearn")
-    from nn_from_scratch.benchmarks.sklearn_models import build_model
+    from nn_numpy.benchmarks.sklearn_models import build_model
 
     with pytest.raises(ValueError):
         build_model("classification", "ridge", {}, seed=0)
@@ -296,8 +296,8 @@ def test_keras_network_mirrors_the_architecture_config():
     followed by the output Dense -> Activation.
     """
     pytest.importorskip("tensorflow")
-    from nn_from_scratch.benchmarks.data import load_problem_config
-    from nn_from_scratch.benchmarks.keras_models import build_network
+    from nn_numpy.benchmarks.data import load_problem_config
+    from nn_numpy.benchmarks.keras_models import build_network
 
     config = load_problem_config("regression")
     model = build_network(config["architectures"]["A2-bn"], config["input_dimension"], seed=0)
@@ -321,7 +321,7 @@ def test_keras_optimizers(name):
     "momentum" must be SGD with momentum 0.9; unknown names are rejected.
     """
     pytest.importorskip("tensorflow")
-    from nn_from_scratch.benchmarks.keras_models import build_optimizer
+    from nn_numpy.benchmarks.keras_models import build_optimizer
 
     optimizer = build_optimizer(name, 0.01)
     expected = {"sgd": "SGD", "momentum": "SGD", "adam": "Adam"}[name]
@@ -351,7 +351,7 @@ def test_keras_run_model_records_every_combination(problem_name, n_features):
     run's settings.
     """
     pytest.importorskip("tensorflow")
-    from nn_from_scratch.benchmarks.keras_models import run_model
+    from nn_numpy.benchmarks.keras_models import run_model
 
     splits = make_splits(problem_name, n_features=n_features)
     grid = {"optimizer": ["adam"], "learning_rate": [0.01], "batch_size": [16, 32]}
@@ -375,7 +375,7 @@ def test_keras_runs_are_reproducible():
     operations make weight initialization and shuffling repeatable.
     """
     pytest.importorskip("tensorflow")
-    from nn_from_scratch.benchmarks.keras_models import run_model
+    from nn_numpy.benchmarks.keras_models import run_model
 
     splits = make_splits("classification", n_features=4)
     grid = {"optimizer": ["sgd"], "learning_rate": [0.1], "batch_size": [16]}
@@ -406,8 +406,8 @@ def test_torch_network_mirrors_the_architecture_config():
     the output Linear -> Identity (linear output for regression).
     """
     pytest.importorskip("torch")
-    from nn_from_scratch.benchmarks.data import load_problem_config
-    from nn_from_scratch.benchmarks.torch_models import build_network
+    from nn_numpy.benchmarks.data import load_problem_config
+    from nn_numpy.benchmarks.torch_models import build_network
 
     config = load_problem_config("regression")
     model = build_network(config["architectures"]["A2-bn"], config["input_dimension"], seed=0)
@@ -432,7 +432,7 @@ def test_torch_optimizers(name):
     "momentum" must be SGD with momentum 0.9; unknown names are rejected.
     """
     torch = pytest.importorskip("torch")
-    from nn_from_scratch.benchmarks.torch_models import build_optimizer
+    from nn_numpy.benchmarks.torch_models import build_optimizer
 
     parameters = [torch.nn.Parameter(torch.zeros(2))]
     optimizer = build_optimizer(name, parameters, 0.01)
@@ -464,7 +464,7 @@ def test_torch_run_model_records_every_combination(problem_name, n_features):
     run's settings.
     """
     pytest.importorskip("torch")
-    from nn_from_scratch.benchmarks.torch_models import run_model
+    from nn_numpy.benchmarks.torch_models import run_model
 
     splits = make_splits(problem_name, n_features=n_features)
     grid = {"optimizer": ["adam"], "learning_rate": [0.01], "batch_size": [16, 32]}
@@ -488,7 +488,7 @@ def test_torch_runs_are_reproducible():
     the shuffling, and deterministic algorithms fix the arithmetic.
     """
     pytest.importorskip("torch")
-    from nn_from_scratch.benchmarks.torch_models import run_model
+    from nn_numpy.benchmarks.torch_models import run_model
 
     splits = make_splits("classification", n_features=4)
     grid = {"optimizer": ["sgd"], "learning_rate": [0.1], "batch_size": [16]}
@@ -511,7 +511,7 @@ def test_torch_early_stopping_waits_for_the_guard_and_restores_the_best_epoch():
     7. The restored model must give the first epoch's validation loss.
     """
     pytest.importorskip("torch")
-    from nn_from_scratch.benchmarks.torch_models import run_model
+    from nn_numpy.benchmarks.torch_models import run_model
 
     splits = make_splits("regression", n_features=8)
     grid = {"optimizer": ["adam"], "learning_rate": [0.01], "batch_size": [16]}
@@ -537,7 +537,7 @@ def test_torch_divergence_is_flagged_and_never_selected():
     have a NaN validation metric so model selection skips it.
     """
     pytest.importorskip("torch")
-    from nn_from_scratch.benchmarks.torch_models import run_model
+    from nn_numpy.benchmarks.torch_models import run_model
 
     splits = make_splits("regression", n_features=8)
     grid = {"optimizer": ["sgd"], "learning_rate": [1e3], "batch_size": [16]}

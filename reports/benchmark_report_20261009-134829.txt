@@ -1,7 +1,7 @@
 LIBRARY COMPARISON
 ==================
 
-The from-scratch NumPy network is compared with library models trained on exactly the same train / validation / test splits (same seeds), scored with the same NumPy metric functions. For every model, the configuration with the lowest validation metric is selected on each seed and its test metric is reported; the test set is never used for selection. 'Error removed' is 1 - test / constant-prediction baseline. 'Fit time' is the training time of the selected configuration on one seed (one CPU run each; the NumPy network trains up to 100 epochs with early stopping).
+The NumPy network is compared with library models trained on exactly the same train / validation / test splits (same seeds), scored with the same NumPy metric functions. For every model, the configuration with the lowest validation metric is selected on each seed and its test metric is reported; the test set is never used for selection. 'Error removed' is 1 - test / constant-prediction baseline. 'Fit time' is the training time of the selected configuration on one seed (one CPU run each; the NumPy network trains up to 100 epochs with early stopping).
 
 NumPy network results: main_results_full_20261008-220824.json
 scikit-learn results: benchmark_sklearn_results_20261007-165640.json
