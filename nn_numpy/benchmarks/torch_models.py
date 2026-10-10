@@ -31,7 +31,7 @@ import numpy as np
 import torch
 from torch import nn
 
-from nn_numpy.benchmarks.data import load_problem_config
+from nn_numpy.benchmarks.data import load_problem_config, with_dropout
 from nn_numpy.nn.metrics import (
     accuracy,
     binary_cross_entropy,
@@ -158,7 +158,12 @@ class MuonWithAdam:
     including Muon's weight decay of 0.1.
     """
 
-    def __init__(self, parameters: Iterable[nn.Parameter], learning_rate: float) -> None:
+    def __init__(
+        self,
+        parameters: Iterable[nn.Parameter],
+        learning_rate: float,
+        weight_decay: float | None = None,
+    ) -> None:
         """
         Split the parameters by dimension and create both optimizers.
 
@@ -168,6 +173,9 @@ class MuonWithAdam:
             The model's parameters.
         learning_rate : float
             Step size for both optimizers.
+        weight_decay : float or None, default=None
+            Weight decay for both optimizers. None keeps PyTorch's defaults
+            (0.1 for Muon, none for Adam).
 
         Returns
         -------
@@ -184,8 +192,9 @@ class MuonWithAdam:
         parameters = list(parameters)
         matrices = [p for p in parameters if p.ndim == 2]
         others = [p for p in parameters if p.ndim != 2]
-        self.muon = torch.optim.Muon(matrices, lr=learning_rate)
-        self.adam = torch.optim.Adam(others, lr=learning_rate) if others else None
+        decay = {} if weight_decay is None else {"weight_decay": weight_decay}
+        self.muon = torch.optim.Muon(matrices, lr=learning_rate, **decay)
+        self.adam = torch.optim.Adam(others, lr=learning_rate, **decay) if others else None
 
     def zero_grad(self) -> None:
         """
@@ -214,7 +223,10 @@ class MuonWithAdam:
 
 
 def build_optimizer(
-    name: str, parameters: Iterable[nn.Parameter], learning_rate: float
+    name: str,
+    parameters: Iterable[nn.Parameter],
+    learning_rate: float,
+    weight_decay: float | None = None,
 ) -> torch.optim.Optimizer | MuonWithAdam:
     """
     Create a torch.optim optimizer.
@@ -227,6 +239,10 @@ def build_optimizer(
         The model's parameters.
     learning_rate : float
         Step size.
+    weight_decay : float or None, default=None
+        Weight decay passed to the optimizer (an L2 penalty for SGD and
+        Adam, decoupled for Muon). None keeps PyTorch's default (none, or
+        0.1 for Muon); used by hyperparameter tuning.
 
     Returns
     -------
@@ -252,14 +268,15 @@ def build_optimizer(
     two ways: weight decay 0.1 (the NumPy network has none) and bfloat16
     Newton-Schulz (the NumPy network uses float64).
     """
+    decay = {} if weight_decay is None else {"weight_decay": weight_decay}
     if name == "sgd":
-        return torch.optim.SGD(parameters, lr=learning_rate)
+        return torch.optim.SGD(parameters, lr=learning_rate, **decay)
     if name == "momentum":
-        return torch.optim.SGD(parameters, lr=learning_rate, momentum=0.9)
+        return torch.optim.SGD(parameters, lr=learning_rate, momentum=0.9, **decay)
     if name == "adam":
-        return torch.optim.Adam(parameters, lr=learning_rate)
+        return torch.optim.Adam(parameters, lr=learning_rate, **decay)
     if name == "muon":
-        return MuonWithAdam(parameters, learning_rate)
+        return MuonWithAdam(parameters, learning_rate, weight_decay)
     raise ValueError(f"Unsupported PyTorch optimizer: {name}")
 
 
@@ -504,9 +521,13 @@ def run_model(
     records = []
 
     for params in expand_grid(grid):
-        model = build_network(layer_configs, config["input_dimension"], seed)
+        layers = with_dropout(layer_configs, params.get("dropout"))
+        model = build_network(layers, config["input_dimension"], seed)
         optimizer = build_optimizer(
-            params["optimizer"], model.parameters(), params["learning_rate"]
+            params["optimizer"],
+            model.parameters(),
+            params["learning_rate"],
+            params.get("weight_decay"),
         )
         loss_fn = nn.BCELoss() if problem_name == "classification" else nn.MSELoss()
 

@@ -34,7 +34,7 @@ os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "3")
 import keras
 import tensorflow as tf
 
-from nn_numpy.benchmarks.data import load_problem_config
+from nn_numpy.benchmarks.data import load_problem_config, with_dropout
 from nn_numpy.nn.metrics import (
     accuracy,
     binary_cross_entropy,
@@ -126,7 +126,9 @@ def build_network(
     return keras.Model(inputs, x)
 
 
-def build_optimizer(name: str, learning_rate: float) -> keras.optimizers.Optimizer:
+def build_optimizer(
+    name: str, learning_rate: float, weight_decay: float | None = None
+) -> keras.optimizers.Optimizer:
     """
     Create a Keras optimizer.
 
@@ -136,6 +138,10 @@ def build_optimizer(name: str, learning_rate: float) -> keras.optimizers.Optimiz
         "sgd", "momentum", "adam" or "muon".
     learning_rate : float
         Step size.
+    weight_decay : float or None, default=None
+        Decoupled weight decay passed to the optimizer (for Muon, to both its
+        Muon and AdamW parts). None keeps Keras's default (none for SGD and
+        Adam, 0.004 for Muon); used by hyperparameter tuning.
 
     Returns
     -------
@@ -161,14 +167,17 @@ def build_optimizer(name: str, learning_rate: float) -> keras.optimizers.Optimiz
     scaled by 0.2 * sqrt(max(fan_in, fan_out)) instead of
     sqrt(max(1, fan_out / fan_in)).
     """
+    decay = {} if weight_decay is None else {"weight_decay": weight_decay}
     if name == "sgd":
-        return keras.optimizers.SGD(learning_rate=learning_rate)
+        return keras.optimizers.SGD(learning_rate=learning_rate, **decay)
     if name == "momentum":
-        return keras.optimizers.SGD(learning_rate=learning_rate, momentum=0.9)
+        return keras.optimizers.SGD(learning_rate=learning_rate, momentum=0.9, **decay)
     if name == "adam":
-        return keras.optimizers.Adam(learning_rate=learning_rate)
+        return keras.optimizers.Adam(learning_rate=learning_rate, **decay)
     if name == "muon":
-        return keras.optimizers.Muon(learning_rate=learning_rate)
+        if weight_decay is not None:
+            decay["adam_weight_decay"] = weight_decay
+        return keras.optimizers.Muon(learning_rate=learning_rate, **decay)
     raise ValueError(f"Unsupported Keras optimizer: {name}")
 
 
@@ -233,7 +242,10 @@ def run_model(
         Architecture name from the main config, e.g. "A2-bn".
     grid : dict of str to list
         Values for "optimizer" (list of str), "learning_rate" (list of
-        float) and "batch_size" (list of int).
+        float) and "batch_size" (list of int), and optionally
+        "weight_decay" (list of float) and "dropout" (list of float, the
+        rate after every hidden layer). Without them, Keras's default weight
+        decay and the architecture's own dropout are used.
     splits : tuple of numpy.ndarray
         (X_train, y_train, X_val, y_val, X_test, y_test) from
         nn_numpy.benchmarks.data.load_splits.
@@ -283,10 +295,12 @@ def run_model(
     records = []
 
     for params in expand_grid(grid):
-        model = build_network(layer_configs, config["input_dimension"], seed)
-        model.compile(
-            optimizer=build_optimizer(params["optimizer"], params["learning_rate"]), loss=loss
+        layers = with_dropout(layer_configs, params.get("dropout"))
+        model = build_network(layers, config["input_dimension"], seed)
+        optimizer = build_optimizer(
+            params["optimizer"], params["learning_rate"], params.get("weight_decay")
         )
+        model.compile(optimizer=optimizer, loss=loss)
 
         early_stopping = keras.callbacks.EarlyStopping(
             monitor="val_loss",

@@ -118,3 +118,41 @@ def load_splits(problem_name: str, seed: int) -> tuple[tuple[np.ndarray, ...], f
         )
 
     return splits, constant_prediction_baseline(problem_name, splits)
+
+
+def with_dropout(
+    layer_configs: list[dict[str, Any]], dropout: float | None
+) -> list[dict[str, Any]]:
+    """
+    Return an architecture with a given dropout rate after every hidden layer.
+
+    Parameters
+    ----------
+    layer_configs : list of dict
+        The architecture's layers from the main config (see load_problem_config).
+    dropout : float or None
+        Dropout rate in [0, 1) for every hidden layer. None returns the
+        architecture unchanged.
+
+    Returns
+    -------
+    list of dict
+        A copy of layer_configs in which every layer except the output layer
+        has "dropout" set to the given rate (0 removes dropout). The output
+        layer never gets dropout.
+
+    Notes
+    -----
+    Processing:
+    1. Return layer_configs as is when dropout is None.
+    2. Otherwise copy each layer dict and set "dropout" on all but the last.
+
+    Used by hyperparameter tuning, which searches the dropout rate of the
+    library models without changing the architecture definitions.
+    """
+    if dropout is None:
+        return layer_configs
+    layers = [dict(layer) for layer in layer_configs]
+    for layer in layers[:-1]:
+        layer["dropout"] = dropout
+    return layers

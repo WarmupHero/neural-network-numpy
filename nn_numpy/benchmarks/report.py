@@ -39,14 +39,18 @@ from nn_numpy.config import (
     stamped_filename,
 )
 
-# Libraries whose results the report looks for, in display order.
-LIBRARIES = ["sklearn", "tensorflow", "pytorch"]
+# Libraries whose results the report looks for, in display order. The
+# "_tuned" entries are the Optuna-tuned framework models
+# (nn_numpy.benchmarks.tuning); they are optional.
+LIBRARIES = ["sklearn", "tensorflow", "tensorflow_tuned", "pytorch", "pytorch_tuned"]
 
 # Display names for libraries and models.
 LIBRARY_LABELS = {
     "sklearn": "scikit-learn",
     "tensorflow": "TensorFlow (Keras)",
+    "tensorflow_tuned": "TensorFlow (Keras), tuned",
     "pytorch": "PyTorch",
+    "pytorch_tuned": "PyTorch, tuned",
 }
 
 # Libraries that rebuild the NumPy network's own architectures (as opposed
@@ -229,7 +233,9 @@ def describe_config(run: dict[str, Any]) -> str:
     -------
     str
         For a NumPy run, e.g. "A1 · adabelief · LR 0.1 · bs 16", and a
-        framework run in the same form, e.g. "A1 · adam · LR 0.1 · bs 16".
+        framework run in the same form, e.g. "A1 · adam · LR 0.1 · bs 16";
+        a tuned framework run adds its weight decay and dropout, e.g.
+        "A1 · adam · LR 0.0123 · bs 32 · wd 1.2e-05 · dropout 0.10".
         For a scikit-learn run, its hyperparameters, e.g. "C=10,
         gamma=scale".
 
@@ -249,6 +255,11 @@ def describe_config(run: dict[str, Any]) -> str:
         )
     if "optimizer" in run["params"]:
         p = run["params"]
+        if "weight_decay" in p:
+            return (
+                f"{run['model']} · {p['optimizer']} · LR {p['learning_rate']:.3g} · "
+                f"bs {p['batch_size']} · wd {p['weight_decay']:.1e} · dropout {p['dropout']:.2f}"
+            )
         return (
             f"{run['model']} · {p['optimizer']} · LR {p['learning_rate']} · bs {p['batch_size']}"
         )
@@ -531,6 +542,74 @@ def format_architecture_table(
     return "\n".join(lines)
 
 
+def format_tuning_table(
+    problem_name: str,
+    framework: str,
+    untuned_runs: list[dict[str, Any]],
+    tuned_runs: list[dict[str, Any]],
+) -> str:
+    """
+    Compare a framework's grid-selected models with its Optuna-tuned ones.
+
+    Parameters
+    ----------
+    problem_name : str
+        "classification" or "regression".
+    framework : str
+        Framework library name, e.g. "tensorflow".
+    untuned_runs : list of dict
+        The framework's grid runs for this problem.
+    tuned_runs : list of dict
+        The framework's tuned runs for this problem: one per architecture
+        and seed, all of an architecture sharing one tuned configuration.
+
+    Returns
+    -------
+    str
+        A table with one row per tuned architecture: the test metric (mean
+        ± std over seeds) of the grid-selected and the tuned model, on how
+        many seeds tuning gave the lower test metric, how many tuned runs
+        diverged, and the tuned configuration.
+
+    Notes
+    -----
+    Processing, for each architecture:
+    1. Select the grid model per seed on validation (as everywhere else);
+       the tuned model has one run per seed (diverged runs are skipped).
+    2. Compare the two seed by seed and describe the tuned configuration.
+
+    The tuned configuration was chosen on the tuning seed's validation set
+    only, so these test scores are unbiased by the search.
+    """
+    metric, _, _ = PROBLEM_METRICS[problem_name]
+    digits = 5 if problem_name == "classification" else 4
+    label = LIBRARY_LABELS.get(framework, framework)
+    title = f"{label}: grid vs. Optuna-tuned — {problem_name} (test {metric})"
+    lines = [title, "-" * len(title)]
+    lines.append(
+        f"{'Architecture':<14}{'Grid':<24}{'Tuned':<24}{'Tuned better':<14}"
+        f"{'Diverged':<10}Tuned configuration"
+    )
+    for arch in dict.fromkeys(r["model"] for r in tuned_runs):
+        grid_sel = select_per_seed([r for r in untuned_runs if r["model"] == arch], "val_metric")
+        arch_tuned = [r for r in tuned_runs if r["model"] == arch]
+        tuned_sel = select_per_seed(arch_tuned, "val_metric")
+        tuned_by_seed = {r["seed"]: r for r in tuned_sel}
+        pairs = [(g, tuned_by_seed[g["seed"]]) for g in grid_sel if g["seed"] in tuned_by_seed]
+        wins = sum(t["test_metric"] < g["test_metric"] for g, t in pairs)
+        diverged = sum(bool(r.get("diverged")) for r in arch_tuned)
+        lines.append(
+            f"{arch:<14}"
+            f"{mean_pm_std([r['test_metric'] for r in grid_sel], digits):<24}"
+            f"{mean_pm_std([r['test_metric'] for r in tuned_sel], digits):<24}"
+            f"{f'{wins}/{len(pairs)} seeds':<14}"
+            f"{f'{diverged}/{len(arch_tuned)}':<10}"
+            f"{describe_config(arch_tuned[0])}"
+        )
+    lines.append("")
+    return "\n".join(lines)
+
+
 def plot_learning_curves(
     framework: str, curves: dict[str, tuple[dict[str, Any], dict[str, Any]]]
 ) -> str:
@@ -727,6 +806,14 @@ def main(numpy_results_path: str | None = None) -> None:
                 r for r in selections[framework] if r["seed"] == numpy_first["seed"]
             )
             framework_curves[problem_name] = (numpy_first, frame_first)
+        for framework in FRAMEWORKS:
+            tuned = f"{framework}_tuned"
+            if framework in library_runs and tuned in library_runs:
+                lines.append(
+                    format_tuning_table(
+                        problem_name, framework, library_runs[framework], library_runs[tuned]
+                    )
+                )
         plot_problem(problem_name, rows)
 
     for framework, framework_curves in curves.items():

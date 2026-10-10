@@ -1,0 +1,15 @@
+{
+  "description": "Hyperparameter tuning of the TensorFlow (Keras) and PyTorch models with Optuna. For each library, problem and architecture, n_trials configurations are drawn from the search space by a seeded TPE sampler and scored on the validation set of tuning_seed's split only. The best configuration is then trained and tested once on every seed's split. Training settings (epochs, early stopping) come from each library's section in benchmark_experiments.json.",
+  "libraries": ["tensorflow", "pytorch"],
+  "architectures": ["A1", "A2", "A2-bias", "A2-bn"],
+  "tuning_seed": 42,
+  "sampler_seed": 0,
+  "n_trials": 50,
+  "search_space": {
+    "optimizer": ["sgd", "momentum", "adam", "muon"],
+    "learning_rate": {"low": 0.0001, "high": 0.3, "log": true},
+    "batch_size": [8, 16, 32, 64, 128],
+    "weight_decay": {"low": 0.000001, "high": 0.01, "log": true},
+    "dropout": {"low": 0.0, "high": 0.3, "log": false}
+  }
+}

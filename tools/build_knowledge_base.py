@@ -124,6 +124,13 @@ ARTIFACTS = {
         "InputsStage",
         "The library models compared with the network: scikit-learn hyperparameter grids per task, and the architectures, grid and training settings for TensorFlow and PyTorch.",
     ),
+    "TuningConfig": (
+        "ConfigFile",
+        "configs/tuning_experiments.json",
+        False,
+        "InputsStage",
+        "Hyperparameter tuning of the TensorFlow and PyTorch models with Optuna: the libraries and architectures, the tuning seed, the TPE sampler's seed, the number of trials and the search space (optimizer, learning rate, batch size, weight decay, dropout).",
+    ),
     "BanknoteDataset": (
         "Dataset",
         "data/raw/banknote_auth.csv",
@@ -186,6 +193,20 @@ ARTIFACTS = {
         True,
         "BenchmarkStage",
         "One file per library (sklearn, tensorflow, pytorch) with one record per model configuration, task and seed: validation, test and training metrics, training time and, for the frameworks, the epochs run and loss histories. Written by benchmarks/run.py (make benchmarks) on exactly the network's splits.",
+    ),
+    "TunedResultsJSON": (
+        "ResultsFile",
+        "reports/benchmark_<library>_tuned_results_<stamp>.json",
+        True,
+        "BenchmarkStage",
+        "One file per framework (tensorflow_tuned, pytorch_tuned) in the benchmark results' record format: one record per architecture, task and seed, all using the configuration Optuna tuned on the tuning seed's validation set. Written by benchmarks/tuning.py (make tune); read by benchmarks/report.py as two more libraries.",
+    ),
+    "TuningTrialsJSON": (
+        "ResultsFile",
+        "reports/tuning_<library>_trials_<stamp>.json",
+        True,
+        "BenchmarkStage",
+        "Every Optuna trial of one framework: the hyperparameters drawn, and the validation, test and training metrics on the tuning seed's split. Written by benchmarks/tuning.py (make tune).",
     ),
     "BenchmarkReport": (
         "Report",
@@ -262,8 +283,12 @@ DATA_FLOW = {
     "nn_numpy.comparisons": (["MainResultsJSON"], ["ComparisonFigures", "ComparisonTexts"]),
     "nn_numpy.analysis": (["MainResultsJSON"], ["AnalysisReport"]),
     "nn_numpy.benchmarks.run": (["BenchmarkConfig"], ["BenchmarkResultsJSON"]),
+    "nn_numpy.benchmarks.tuning": (
+        ["TuningConfig", "BenchmarkConfig"],
+        ["TunedResultsJSON", "TuningTrialsJSON"],
+    ),
     "nn_numpy.benchmarks.report": (
-        ["MainResultsJSON", "BenchmarkResultsJSON"],
+        ["MainResultsJSON", "BenchmarkResultsJSON", "TunedResultsJSON"],
         ["BenchmarkReport", "BenchmarkFigures"],
     ),
     "tools.make_help": (["Makefile"], []),

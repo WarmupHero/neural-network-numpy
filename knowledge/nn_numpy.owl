@@ -1732,6 +1732,30 @@
     <rdfs:label>Training stage</rdfs:label>
     <rdfs:comment>Training: the experiment sweep and the training loop of the NumPy network.</rdfs:comment>
   </owl:NamedIndividual>
+  <owl:NamedIndividual rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#TunedResultsJSON">
+    <rdf:type rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#ResultsFile"/>
+    <rdfs:label>reports/benchmark_&lt;library&gt;_tuned_results_&lt;stamp&gt;.json</rdfs:label>
+    <rdfs:comment>One file per framework (tensorflow_tuned, pytorch_tuned) in the benchmark results' record format: one record per architecture, task and seed, all using the configuration Optuna tuned on the tuning seed's validation set. Written by benchmarks/tuning.py (make tune); read by benchmarks/report.py as two more libraries.</rdfs:comment>
+    <nnfs:belongsToStage rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#BenchmarkStage"/>
+    <nnfs:filePattern>reports/benchmark_&lt;library&gt;_tuned_results_&lt;stamp&gt;.json</nnfs:filePattern>
+    <nnfs:isStamped rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</nnfs:isStamped>
+  </owl:NamedIndividual>
+  <owl:NamedIndividual rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#TuningConfig">
+    <rdf:type rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#ConfigFile"/>
+    <rdfs:label>configs/tuning_experiments.json</rdfs:label>
+    <rdfs:comment>Hyperparameter tuning of the TensorFlow and PyTorch models with Optuna: the libraries and architectures, the tuning seed, the TPE sampler's seed, the number of trials and the search space (optimizer, learning rate, batch size, weight decay, dropout).</rdfs:comment>
+    <nnfs:belongsToStage rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#InputsStage"/>
+    <nnfs:isStamped rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">false</nnfs:isStamped>
+    <nnfs:path>configs/tuning_experiments.json</nnfs:path>
+  </owl:NamedIndividual>
+  <owl:NamedIndividual rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#TuningTrialsJSON">
+    <rdf:type rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#ResultsFile"/>
+    <rdfs:label>reports/tuning_&lt;library&gt;_trials_&lt;stamp&gt;.json</rdfs:label>
+    <rdfs:comment>Every Optuna trial of one framework: the hyperparameters drawn, and the validation, test and training metrics on the tuning seed's split. Written by benchmarks/tuning.py (make tune).</rdfs:comment>
+    <nnfs:belongsToStage rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#BenchmarkStage"/>
+    <nnfs:filePattern>reports/tuning_&lt;library&gt;_trials_&lt;stamp&gt;.json</nnfs:filePattern>
+    <nnfs:isStamped rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean">true</nnfs:isStamped>
+  </owl:NamedIndividual>
   <owl:NamedIndividual rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#XavierInitialization">
     <rdf:type rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Initialization"/>
     <rdfs:label>Xavier initialization</rdfs:label>
@@ -1841,6 +1865,13 @@
     <nnfs:belongsToStage rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#InfrastructureStage"/>
     <nnfs:runs rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#nn_numpy.modeling.train"/>
   </owl:NamedIndividual>
+  <owl:NamedIndividual rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#make_tune">
+    <rdf:type rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#MakeTarget"/>
+    <rdfs:label>make tune</rdfs:label>
+    <rdfs:comment>Tune the TensorFlow and PyTorch models with Optuna (search on validation, test on every seed)</rdfs:comment>
+    <nnfs:belongsToStage rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#InfrastructureStage"/>
+    <nnfs:runs rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#nn_numpy.benchmarks.tuning"/>
+  </owl:NamedIndividual>
   <owl:NamedIndividual rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#matplotlib">
     <rdf:type rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#CoreLibrary"/>
     <rdfs:label>matplotlib</rdfs:label>
@@ -1906,6 +1937,7 @@
     <nnfs:path>nn_numpy/benchmarks/report.py</nnfs:path>
     <nnfs:reads rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#BenchmarkResultsJSON"/>
     <nnfs:reads rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#MainResultsJSON"/>
+    <nnfs:reads rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#TunedResultsJSON"/>
     <nnfs:requiresLibrary rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#matplotlib"/>
     <nnfs:writes rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#BenchmarkFigures"/>
     <nnfs:writes rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#BenchmarkReport"/>
@@ -1947,6 +1979,21 @@
     <nnfs:path>nn_numpy/benchmarks/torch_models.py</nnfs:path>
     <nnfs:requiresLibrary rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#numpy"/>
     <nnfs:requiresLibrary rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#torch"/>
+  </owl:NamedIndividual>
+  <owl:NamedIndividual rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#nn_numpy.benchmarks.tuning">
+    <rdf:type rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Module"/>
+    <rdfs:label>nn_numpy/benchmarks/tuning.py</rdfs:label>
+    <rdfs:comment>Tune the TensorFlow (Keras) and PyTorch models' hyperparameters with Optuna.</rdfs:comment>
+    <nnfs:imports rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#nn_numpy.benchmarks.data"/>
+    <nnfs:imports rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#nn_numpy.benchmarks.run"/>
+    <nnfs:imports rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#nn_numpy.config"/>
+    <nnfs:partOf rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#nn_numpy.benchmarks"/>
+    <nnfs:path>nn_numpy/benchmarks/tuning.py</nnfs:path>
+    <nnfs:reads rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#BenchmarkConfig"/>
+    <nnfs:reads rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#TuningConfig"/>
+    <nnfs:requiresLibrary rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#optuna"/>
+    <nnfs:writes rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#TunedResultsJSON"/>
+    <nnfs:writes rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#TuningTrialsJSON"/>
   </owl:NamedIndividual>
   <owl:NamedIndividual rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#nn_numpy.comparisons">
     <rdf:type rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Module"/>
@@ -2180,6 +2227,12 @@
     <rdfs:comment>numpy ==1.26.4</rdfs:comment>
     <nnfs:version>==1.26.4</nnfs:version>
   </owl:NamedIndividual>
+  <owl:NamedIndividual rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#optuna">
+    <rdf:type rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#OptionalLibrary"/>
+    <rdfs:label>optuna</rdfs:label>
+    <rdfs:comment>optuna ==5.0.0</rdfs:comment>
+    <nnfs:version>==5.0.0</nnfs:version>
+  </owl:NamedIndividual>
   <owl:NamedIndividual rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#owlrl">
     <rdf:type rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#DevelopmentLibrary"/>
     <rdfs:label>owlrl</rdfs:label>
@@ -2405,7 +2458,7 @@
     <nnfs:belongsToStage rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#InfrastructureStage"/>
     <nnfs:canvasNodeId>tests</nnfs:canvasNodeId>
     <nnfs:path>tests/</nnfs:path>
-    <nnfs:testCount rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">115</nnfs:testCount>
+    <nnfs:testCount rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">126</nnfs:testCount>
   </owl:NamedIndividual>
   <owl:NamedIndividual rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#tests.test_batchnorm">
     <rdf:type rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#TestModule"/>
@@ -2611,6 +2664,25 @@
     <nnfs:path>tests/test_training.py</nnfs:path>
     <nnfs:requiresLibrary rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#numpy"/>
     <nnfs:requiresLibrary rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#pytest"/>
+  </owl:NamedIndividual>
+  <owl:NamedIndividual rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#tests.test_tuning">
+    <rdf:type rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#TestModule"/>
+    <rdfs:label>tests/test_tuning.py</rdfs:label>
+    <rdfs:comment>Tests for the Optuna hyperparameter tuning of the framework models.</rdfs:comment>
+    <nnfs:covers rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#nn_numpy.benchmarks.data"/>
+    <nnfs:covers rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#nn_numpy.benchmarks.keras_models"/>
+    <nnfs:covers rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#nn_numpy.benchmarks.report"/>
+    <nnfs:covers rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#nn_numpy.benchmarks.torch_models"/>
+    <nnfs:covers rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#nn_numpy.benchmarks.tuning"/>
+    <nnfs:imports rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#nn_numpy.benchmarks.data"/>
+    <nnfs:imports rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#nn_numpy.benchmarks.keras_models"/>
+    <nnfs:imports rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#nn_numpy.benchmarks.report"/>
+    <nnfs:imports rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#nn_numpy.benchmarks.torch_models"/>
+    <nnfs:imports rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#nn_numpy.benchmarks.tuning"/>
+    <nnfs:partOf rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#tests"/>
+    <nnfs:path>tests/test_tuning.py</nnfs:path>
+    <nnfs:requiresLibrary rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#pytest"/>
+    <nnfs:requiresLibrary rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#torch"/>
   </owl:NamedIndividual>
   <owl:NamedIndividual rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#tests.test_utils">
     <rdf:type rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#TestModule"/>

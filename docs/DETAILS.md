@@ -58,7 +58,8 @@ The same quantity is used for training and for evaluation, so the reported metri
 | `nn_numpy/comparisons.py` | Optimizer, depth, and learning-rate comparison plots with short text analyses | newest `reports/main_results_full_*.json` (or a path given as the first argument) | `reports/figures/comparisons/*_<stamp>.png`, `reports/comparisons/*_<stamp>.txt` |
 | `nn_numpy/analysis.py` | Aggregate analysis across all runs | newest `reports/main_results_full_*.json` (or a path given as the first argument) | `reports/analysis_<stamp>.txt` |
 | `nn_numpy/benchmarks/run.py` | Trains the library models (scikit-learn, TensorFlow, PyTorch) on the same splits; see [section 4](#4-library-comparison) | `configs/benchmark_experiments.json`, `data/raw/*.csv` | `reports/benchmark_<library>_results_<stamp>.json` |
-| `nn_numpy/benchmarks/report.py` | Compares the NumPy network with the library models | newest NumPy and library results | `reports/benchmark_report_<stamp>.txt`, `reports/figures/benchmarks/*.png` |
+| `nn_numpy/benchmarks/tuning.py` | Tunes the Keras and PyTorch models with Optuna on seed 42's validation set, then tests the best configuration on every seed; see [Hyperparameter tuning](#hyperparameter-tuning-optuna) | `configs/tuning_experiments.json`, `configs/benchmark_experiments.json`, `data/raw/*.csv` | `reports/benchmark_<library>_tuned_results_<stamp>.json`, `reports/tuning_<library>_trials_<stamp>.json` |
+| `nn_numpy/benchmarks/report.py` | Compares the NumPy network with the library models, grid-selected and tuned | newest NumPy and library results | `reports/benchmark_report_<stamp>.txt`, `reports/figures/benchmarks/*.png` |
 
 `nn_numpy/modeling/train.py` has a `SHOW_EDA` flag (default `False`). Set it to `True` to display the preprocessing plots interactively while the pipeline runs. The plots are saved to `reports/figures/eda/` either way.
 
@@ -130,6 +131,7 @@ make format         # ruff check --fix and ruff format (rewrites files)
 - `tests/test_muon.py` checks the Muon optimizer: Newton–Schulz pushes the singular values towards 1 and keeps the singular vectors, the first step follows the update rule exactly (with and without Nesterov), biases and batch-norm parameters follow AdaBelief exactly, and three steps agree with PyTorch's `torch.optim.Muon` (skipped without PyTorch).
 - `tests/test_utils.py` checks the run-stamp helpers used for output file names.
 - `tests/test_metrics.py` checks the accuracy and R² metrics.
+- `tests/test_tuning.py` checks the tuning: the config validation, that each trial draws one value per hyperparameter, that dropout reaches every hidden layer and weight decay reaches each framework's optimizers (both parts of Muon), that a short tuning run picks the trial with the lowest validation metric and evaluates it on every seed, and the report's grid-vs-tuned table.
 - `tests/test_benchmarks.py` checks that the library comparison uses exactly the main pipeline's splits, the model selection and summaries in the report, the scikit-learn wrappers, and the Keras and PyTorch models (layer structure, optimizers including Muon, training records, reproducibility; for PyTorch also the hand-written early stopping, divergence detection, and the split of parameters between Muon and Adam). Library tests are skipped automatically when that library isn't installed.
 - `tests/test_seeds.py` checks that the split and the weight initialization follow the seed, the constant-prediction baselines, the `seeds` config validation, and the multi-seed analysis helpers (model selection by validation loss, error removed, mean ± std).
 - `tests/test_knowledge_base.py` checks the generated OWL knowledge base: it reads back to the same graph and is written identically twice, no IRI has two kinds and nothing references an undeclared name, every assertion respects its property's domain and range, and the OWL RL reasoner infers the pipeline order, stage membership, module roles and architecture families (see [section 5](#5-knowledge-base)).
@@ -449,10 +451,11 @@ The `nn_numpy.benchmarks` subpackage compares the NumPy network with standard li
 ```bash
 make benchmark-requirements   # pip install -e ".[dev,benchmarks]"
 make benchmarks               # python -m nn_numpy.benchmarks.run
+make tune                     # python -m nn_numpy.benchmarks.tuning (optional, about 1.5 hours)
 make benchmark-report         # python -m nn_numpy.benchmarks.report
 ```
 
-`scipy` is pinned in the `benchmarks` group because newer SciPy releases require NumPy 2, which would replace the project's pinned NumPy 1.26.4. TensorFlow 2.21 works with NumPy 1.26.4 and runs on the CPU on Windows (it no longer supports GPUs on native Windows). PyTorch 2.14 also works with NumPy 1.26.4; on Windows and macOS the PyPI wheel is CPU-only, while on Linux it includes CUDA (a much larger download; `pip install torch --index-url https://download.pytorch.org/whl/cpu` installs the CPU build instead). `make benchmarks` runs every library; `python -m nn_numpy.benchmarks.run pytorch` runs one.
+The `benchmarks` group also installs Optuna 5.0 for the tuning. `scipy` is pinned in the group because newer SciPy releases require NumPy 2, which would replace the project's pinned NumPy 1.26.4. TensorFlow 2.21 works with NumPy 1.26.4 and runs on the CPU on Windows (it no longer supports GPUs on native Windows). PyTorch 2.14 also works with NumPy 1.26.4; on Windows and macOS the PyPI wheel is CPU-only, while on Linux it includes CUDA (a much larger download; `pip install torch --index-url https://download.pytorch.org/whl/cpu` installs the CPU build instead). `make benchmarks` runs every library; `python -m nn_numpy.benchmarks.run pytorch` runs one.
 
 ### What is compared
 
@@ -501,6 +504,33 @@ Runs are seeded with `keras.utils.set_random_seed` and TensorFlow's deterministi
 
 Runs are seeded with `torch.manual_seed` (weights) and a seeded generator (shuffling), with `torch.use_deterministic_algorithms(True)`. A seed gives the same result on the same machine; the number of CPU threads PyTorch uses can change the last digits, and through them the epoch early stopping picks, so results on another machine may differ slightly.
 
+### Hyperparameter tuning (Optuna)
+
+The grid above is small and was designed around the NumPy network, so `benchmarks/tuning.py` also tunes the Keras and PyTorch models with [Optuna](https://optuna.org/). This tests whether tuned frameworks change the picture. The NumPy network itself is not tuned beyond its grid.
+
+| Setting | Value (`configs/tuning_experiments.json`) |
+|---|---|
+| Architectures | A1, A2, A2-bias, A2-bn, per task |
+| Search space | optimizer ∈ {SGD, momentum, Adam, Muon}; learning rate 1e-4–0.3 (log scale); batch size ∈ {8, 16, 32, 64, 128}; weight decay 1e-6–1e-2 (log scale); dropout 0–0.3 after every hidden layer |
+| Sampler | TPE, seeded (`sampler_seed` 0), so the search is reproducible |
+| Budget | 50 trials per framework, task and architecture |
+| Search data | the validation set of seed 42's split only |
+| Training | each framework's settings in `benchmark_experiments.json` (100 epochs, the same early stopping) |
+
+For each framework, task and architecture:
+1. Optuna draws 50 configurations. Each is trained on seed 42's training set and scored on its validation set. A diverged run scores infinity, so it is never chosen.
+2. The configuration with the lowest validation metric is trained and tested once on every seed's split, exactly like a grid configuration.
+
+The test set never guides the search, so the tuned test scores are as unbiased as the grid's. Seed 42's validation set does guide it, so on that seed the tuned models had a mild advantage in selection. The other four seeds are fully out of sample.
+
+Weight decay uses each library's own form: decoupled in Keras's optimizers and in both libraries' Muon, and an L2 penalty in PyTorch's SGD and Adam. Without tuning, the libraries' defaults apply (no weight decay, except Muon's).
+
+```bash
+make tune                     # python -m nn_numpy.benchmarks.tuning [tensorflow|pytorch]
+```
+
+The tuned models are saved like another library (`reports/benchmark_<library>_tuned_results_<stamp>.json`), so the comparison report lists them next to the grid-selected ones. It adds one table per framework and task comparing grid and tuned versions of each architecture, with the tuned configuration. Every trial is kept in `reports/tuning_<library>_trials_<stamp>.json`.
+
 ### How the comparison is kept fair
 
 - **Same data.** `benchmarks/data.py` calls the main pipeline's own preprocessing for each seed in the main configs, so every library sees exactly the same train / validation / test split and scaling. A test checks this element by element.
@@ -514,6 +544,7 @@ Training time is the wall-clock time of the selected configuration's fit, on one
 
 - `reports/benchmark_<library>_results_<stamp>.json`: one record per configuration, problem and seed (validation, test and training metrics, secondary metric, training time; for scikit-learn whether training converged; for the frameworks the epochs run, best epoch, whether training diverged and the loss histories).
 - `reports/benchmark_report_<stamp>.txt`: per task, the test metric, secondary metric, error removed and training time (mean ± std over seeds) for the NumPy network and every library model, the configuration chosen most often, a seed-by-seed head-to-head between the NumPy network (all architectures) and each library's best model, and, per framework, an architecture-by-architecture table (NumPy vs. framework version of A1, A2, A2-bias, A2-bn, with diverged-run counts).
+- `reports/benchmark_<library>_tuned_results_<stamp>.json` and `reports/tuning_<library>_trials_<stamp>.json`: the tuned framework models on every seed, and every tuning trial (see [Hyperparameter tuning](#hyperparameter-tuning-optuna)). With them, the report also lists the tuned models and compares grid and tuned versions architecture by architecture.
 - `reports/figures/benchmarks/benchmark_<task>_<stamp>.png`: the test metric per model as a bar chart (log scale).
 - `reports/figures/benchmarks/benchmark_curves_<framework>_<stamp>.png`: the validation-loss curves of the NumPy network's and the framework's selected models on the first seed, for both tasks.
 

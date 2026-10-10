@@ -36,6 +36,8 @@ benchmarks = [
     "scipy==1.17.1",
     "tensorflow==2.21.0",
     "torch==2.14.1",
+    # Hyperparameter tuning of the framework models (nn_numpy.benchmarks.tuning).
+    "optuna==5.0.0",
 ]
 
 [tool.setuptools.packages.find]

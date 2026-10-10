@@ -65,6 +65,11 @@ benchmark-requirements:
 benchmarks:
 	$(PYTHON_INTERPRETER) -m $(PACKAGE).benchmarks.run
 
+## Tune the TensorFlow and PyTorch models with Optuna (search on validation, test on every seed)
+.PHONY: tune
+tune:
+	$(PYTHON_INTERPRETER) -m $(PACKAGE).benchmarks.tuning
+
 ## Write the comparison report and figures (network vs. libraries)
 .PHONY: benchmark-report
 benchmark-report: export MPLBACKEND = Agg

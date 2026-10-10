@@ -21,10 +21,10 @@ Each task is benchmarked across a grid of 9 architectures × 4 optimizers × 2 l
 - **Weight initialization.** He, Xavier, and a fixed-scale normal initialization, selectable per layer.
 - **Four optimizers.** SGD, SGD with momentum, [AdaBelief](https://arxiv.org/abs/2010.07468) with bias correction, and [Muon](https://kellerjordan.github.io/posts/muon/). Muon orthogonalizes each weight matrix's Nesterov momentum with Newton–Schulz iterations and hands biases and batch-norm parameters to AdaBelief; a test checks it against PyTorch's `torch.optim.Muon`. Every optimizer updates every parameter of every layer: weights, biases, and batch norm's scale and shift.
 - **Training loop.** Mini-batching with per-epoch shuffling, validation tracking, early stopping with patience and `min_delta`, restoration of the best model (including batch-norm statistics), optional global-norm gradient clipping, and detection of runs whose loss diverges. Each run records why it ended (early stopping, epoch limit or divergence) and whether it was starting to overfit.
-- **Verified correctness.** Every analytic gradient (activations, losses, batch norm in both modes, and whole networks with and without bias and batch norm) is checked against central finite differences with `pytest`. The suite has 182 tests in total.
+- **Verified correctness.** Every analytic gradient (activations, losses, batch norm in both modes, and whole networks with and without bias and batch norm) is checked against central finite differences with `pytest`. The suite has 195 tests in total.
 - **Multi-seed results.** Every configuration runs with 5 seeds, and each seed changes the data split, the initial weights, the dropout masks and the shuffling. Results are reported as mean ± standard deviation, so they don't rest on one lucky draw.
 - **Leak-free preprocessing, also in NumPy.** Duplicates are removed, the data gets a 60 / 20 / 20 train / validation / test split (stratified by class for classification), and the standard scaler is fit on the training split only.
-- **Compared with standard practice.** Five scikit-learn models per task, and the same architectures rebuilt in TensorFlow (Keras) and PyTorch, are trained on the same splits and selected by the same validation rule. This puts the NumPy network's results in context.
+- **Compared with standard practice.** Five scikit-learn models per task, and the same architectures rebuilt in TensorFlow (Keras) and PyTorch, are trained on the same splits and selected by the same validation rule. The framework models are also tuned with Optuna. This puts the NumPy network's results in context.
 - **Knowledge base.** The repository itself is described as an OWL ontology in [`knowledge/`](knowledge/), generated from the configs, the sources and the Makefile. Opened in Protégé, its reasoner infers the pipeline order, each module's stage and role, and the architecture families from the asserted nodes and edges; see [Knowledge base](#knowledge-base).
 - **Config-driven experiments.** Architectures (including bias, initialization, batch norm and dropout per layer), optimizers, learning rates, batch sizes, seeds and early-stopping settings are defined in JSON. One command runs the whole sweep.
 
@@ -105,17 +105,19 @@ The table also lists each framework's best model; the next section compares the 
 |---|---|---|---|---|
 | **NumPy NN, A1 / A2** | 0.0017 ± 0.0021 | 100% | 0.34 ± 0.04 | 0.997 |
 | **NumPy NN, all 9 architectures** | 0.041 ± 0.092 | 99.85% | 0.34 ± 0.04 | 0.997 |
-| scikit-learn MLP | **0.00033 ± 0.00023** | 100% | 0.54 ± 0.17 | 0.995 |
+| scikit-learn MLP | 0.00033 ± 0.00023 | 100% | 0.54 ± 0.17 | 0.995 |
 | scikit-learn SVM / SVR (RBF) | 0.0036 ± 0.0008 | 100% | 0.39 ± 0.11 | 0.996 |
 | scikit-learn gradient boosting | 0.024 ± 0.030 | 99.5% | **0.18 ± 0.04** | **0.998** |
 | scikit-learn random forest | 0.038 ± 0.009 | 99.4% | 0.27 ± 0.06 | 0.997 |
 | scikit-learn logistic / ridge regression | 0.011 ± 0.010 | 99.6% | 9.21 ± 0.96 | 0.908 |
 | TensorFlow (Keras), best of A1 / A2 / A2-bias / A2-bn | 0.0020 ± 0.0027 | 99.85% | 0.36 ± 0.04 | 0.996 |
 | PyTorch, best of A1 / A2 / A2-bias / A2-bn | 0.0056 ± 0.0077 | 99.85% | 0.42 ± 0.15 | 0.996 |
+| TensorFlow (Keras), Optuna-tuned, best of the four | **0.00014 ± 0.00024** | 100% | 0.38 ± 0.09 | 0.996 |
+| PyTorch, Optuna-tuned, best of the four | 0.0066 ± 0.0124 | 99.85% | 0.36 ± 0.04 | 0.996 |
 
 Mean ± standard deviation over 5 seeds, selecting from every optimizer, Muon included. Lower BCE / MSE is better, and higher accuracy / R² is better.
 
-- **Classification: one overconfident Muon pick decides the averages.** On 4 of 5 seeds the NumPy network's selected model has a lower test BCE than scikit-learn's best (its MLP, chosen on every seed). On seed 42, validation picks the overconfident Muon network described in [Key findings](#key-findings), whose two confident mistakes give a BCE of 0.205. That lifts the NumPy network's mean to 0.041, and the MLP has the lowest mean. Without Muon, the NumPy network's result is 0.00009 ± 0.00013, the lowest of any model. The best model of every library, and the SVM, classify 99.85–100% of the test set correctly; the BCE differences are mostly about how confident the predictions are.
+- **Classification: one overconfident Muon pick decides the averages.** On 4 of 5 seeds the NumPy network's selected model has a lower test BCE than scikit-learn's best (its MLP, chosen on every seed). On seed 42, validation picks the overconfident Muon network described in [Key findings](#key-findings), whose two confident mistakes give a BCE of 0.205. That lifts the NumPy network's mean to 0.041; the tuned Keras model (0.00014) and the MLP (0.00033) have the lowest means. Without Muon, the NumPy network's result is 0.00009 ± 0.00013, the lowest of any model. The best model of every library, and the SVM, classify 99.85–100% of the test set correctly; the BCE differences are mostly about how confident the predictions are.
 - **Regression: tree ensembles win.** Gradient boosting has about half the network's error (MSE 0.18 vs. 0.34) and beats it on all 5 seeds; random forest (0.27) also does better. Tree models suit this dataset, whose 8 building features each take only 2 to 12 distinct values.
 - **The NumPy network beats scikit-learn's own neural network on regression.** Its MSE of 0.34, helped by Muon on 3 of 5 seeds, is below scikit-learn's MLP (0.54) and SVR (0.39).
 - **Training cost is comparable.** The selected configurations train in about 0.4–0.5 s for the NumPy network and from a few milliseconds to 1.7 s for the scikit-learn models, per seed, on one CPU.
@@ -144,24 +146,53 @@ Each cell is the best configuration per seed (selected on validation), mean ± s
 - **The frameworks are slower on data this small.** A selected model takes 0.4–0.5 s to train in the NumPy network, 0.9–7.3 s in PyTorch, and 4–9 s in Keras. With a few hundred training samples, each step is tiny, and per-step framework overhead dominates; Keras's `fit()` adds the most. The 640 runs took 27 minutes in PyTorch and 98 in Keras on one CPU; the NumPy network's 1,440 runs take about 16.
 
 <p align="center">
-  <img src="reports/figures/benchmarks/benchmark_classification_20261010-203057.png" width="48%" alt="Classification test BCE: NumPy network vs. scikit-learn, Keras and PyTorch models">
-  <img src="reports/figures/benchmarks/benchmark_regression_20261010-203057.png" width="48%" alt="Regression test MSE: NumPy network vs. scikit-learn, Keras and PyTorch models">
+  <img src="reports/figures/benchmarks/benchmark_classification_20261011-000331.png" width="48%" alt="Classification test BCE: NumPy network vs. scikit-learn, Keras and PyTorch models">
+  <img src="reports/figures/benchmarks/benchmark_regression_20261011-000331.png" width="48%" alt="Regression test MSE: NumPy network vs. scikit-learn, Keras and PyTorch models">
 </p>
 <p align="center">
-  <img src="reports/figures/benchmarks/benchmark_curves_tensorflow_20261010-203057.png" width="85%" alt="Validation loss of the selected NumPy and Keras models, seed 42">
+  <img src="reports/figures/benchmarks/benchmark_curves_tensorflow_20261011-000331.png" width="85%" alt="Validation loss of the selected NumPy and Keras models, seed 42">
 </p>
 <p align="center">
-  <img src="reports/figures/benchmarks/benchmark_curves_pytorch_20261010-203057.png" width="85%" alt="Validation loss of the selected NumPy and PyTorch models, seed 42">
+  <img src="reports/figures/benchmarks/benchmark_curves_pytorch_20261011-000331.png" width="85%" alt="Validation loss of the selected NumPy and PyTorch models, seed 42">
 </p>
 
-The bar charts include every library model and each framework architecture. The curves show the selected NumPy and framework models on seed 42. The full tables, the configuration each model selected most often and the seed-by-seed head-to-heads are in [`benchmark_report_20261010-203057.txt`](reports/benchmark_report_20261010-203057.txt).
+The bar charts include every library model and each framework architecture. The curves show the selected NumPy and framework models on seed 42. The full tables, the configuration each model selected most often and the seed-by-seed head-to-heads are in [`benchmark_report_20261011-000331.txt`](reports/benchmark_report_20261011-000331.txt).
+
+### Tuned frameworks (Optuna)
+
+The grid above was designed around the NumPy network, so the Keras and PyTorch models were also tuned with [Optuna](https://optuna.org/). The NumPy network keeps its grid.
+- **Search space:** optimizer (SGD, momentum, Adam, Muon), learning rate, batch size, weight decay and dropout.
+- **Budget:** 50 trials per framework, task and architecture.
+- **Search data:** seed 42's validation set only.
+- **Evaluation:** the best configuration is trained and tested once on every seed's split.
+
+The method is in [`docs/DETAILS.md`](docs/DETAILS.md#hyperparameter-tuning-optuna).
+
+| Architecture | Classification BCE: Keras grid → tuned | PyTorch grid → tuned | Regression MSE: Keras grid → tuned | PyTorch grid → tuned |
+|---|---|---|---|---|
+| `A1` | 0.0013 → 0.0034 | 0.0064 → **0.0033** | 0.35 → 0.80 | 0.63 → 0.86 |
+| `A2` | 0.0059 → **0.0047** | 0.0071 → **0.0050** | 1.54 → 2.04 | 2.68 → **0.60** |
+| `A2-bias` | 0.0020 → 0.0062 | 0.0056 → 0.040 | 0.51 → **0.38** | 0.42 → **0.36** |
+| `A2-bn` | 0.00020 → 0.0015 | 0.00007 → 0.0009 | 1.59 → 3.33 | 1.64 → **1.18** |
+
+Mean test metric over 5 seeds; bold where tuning lowered the mean.
+
+- **Tuning often doesn't beat the per-seed grid.** The tuned model has the lower test error in only 31 of the 80 architecture-and-seed comparisons: 12 of 40 in Keras and 19 of 40 in PyTorch. The grid picks the best of its 16 configurations on each seed's own validation set. The tuned configuration is chosen once, on seed 42's, and must then work on every split. With validation sets of 270 and 154 samples, the 50-trial search partly fits seed 42's validation set.
+- **It helps most where the grid was unstable.** PyTorch's deep `A2` on regression improves from an MSE of 2.68 to 0.60, on all 5 seeds, with a tuned Muon configuration at LR 0.008. On regression, `A2-bias` improves in both frameworks too.
+- **Optuna rediscovers the grid's lessons.** It chooses Muon for the deep `A2` / `A2-bias` networks in 7 of 8 cases and Adam for `A1` and `A2-bn` in all 8. Dropout is nearly always close to 0 (below 0.05 in 13 of 16 cases), consistent with the finding that almost nothing here overfits. No tuned run diverged.
+- **The NumPy network still holds up against the tuned frameworks.**
+  - On regression, the tuned best models reach an MSE of 0.38 (Keras) and 0.36 (PyTorch), against the NumPy network's 0.34. The NumPy network wins 3 of 5 seeds against each.
+  - On classification, tuned Keras has the lowest test BCE of any model (0.00014 ± 0.00024) and beats the NumPy network on 3 of 5 seeds. Tuned PyTorch (0.0066) loses to it on 4 of 5.
 
 ### Limitations
 
 These comparisons show that a NumPy network can match standard libraries on these two tasks. They don't show that it's better in general.
 
 - **Small, nearly solved datasets.** The test sets have 270 and 154 samples, and the best neural networks reach about 100% accuracy and an R² of about 0.995. Most differences between neural networks are within the variation across the 5 seeds, and no significance tests were run.
-- **Not equally tuned.** The grid (learning rates, batch sizes, early stopping) and the architectures were designed around the NumPy network. The frameworks run with their default initialization, optimizers and batch-norm settings, without per-framework tuning such as learning-rate schedules or weight decay.
+- **Tuning is limited.** The grid (learning rates, batch sizes, early stopping) and the architectures were designed around the NumPy network.
+  - The frameworks were additionally tuned with Optuna, but only over optimizer, learning rate, batch size, weight decay and dropout, with 50 trials on one seed's validation set.
+  - The frameworks keep their default initialization and batch-norm settings, and nothing used learning-rate schedules.
+  - The NumPy network itself was not tuned beyond its grid.
 - **Unequal search space.** The NumPy network's best model is selected from 9 architectures, while each framework's comes from 4. Choosing among more candidates is an advantage on its own.
 - **Different optimizers and precision.** The NumPy network uses AdaBelief, moving-average momentum and float64; the frameworks use Adam, classical momentum and float32. Muon is shared, but with each library's defaults: weight decay in Keras and PyTorch, a different step scaling in Keras, and bfloat16 Newton–Schulz in PyTorch.
 - **Timing is specific to this setup.** Times were measured on one CPU with small layers and batches, where each framework's per-step overhead dominates. On larger data, larger models or a GPU, the frameworks are much faster.
@@ -182,6 +213,7 @@ make all                          # train, plots and analysis in one go
 
 make benchmark-requirements       # optional: scikit-learn, TensorFlow, PyTorch
 make benchmarks                   # train the library models on the same splits (scikit-learn ~1 min, PyTorch ~27, TensorFlow ~100)
+make tune                         # optional: tune the Keras and PyTorch models with Optuna (~1.5 hours)
 make benchmark-report             # comparison report -> reports/benchmark_report_<stamp>.txt
 
 make knowledge-base               # OWL ontology of the repo -> knowledge/nn_numpy.owl (open in Protégé)
@@ -205,8 +237,9 @@ python -m nn_numpy.comparisons      # comparison plots
 python -m nn_numpy.analysis         # analysis report
 python -m pytest                           # tests
 
-pip install -e ".[benchmarks]"             # optional: scikit-learn, TensorFlow, PyTorch
+pip install -e ".[benchmarks]"             # optional: scikit-learn, TensorFlow, PyTorch, Optuna
 python -m nn_numpy.benchmarks.run   # library comparison (or one: ... run sklearn / tensorflow / pytorch)
+python -m nn_numpy.benchmarks.tuning  # optional: Optuna tuning (or one: ... tuning tensorflow / pytorch)
 python -m nn_numpy.benchmarks.report
 ```
 
@@ -223,7 +256,7 @@ neural-network-numpy/
 ├── Makefile                     # make train / plots / analysis / test / lint / format / ...
 ├── pyproject.toml               # package metadata, dev tools, pytest and ruff settings
 ├── requirements.txt             # pinned runtime dependencies
-├── configs/                     # JSON experiment definitions (one per task) and the library comparison's models
+├── configs/                     # JSON experiment definitions (one per task), the library comparison's models and the tuning
 ├── data/
 │   ├── external/                # (empty) data from third-party sources
 │   ├── interim/                 # (empty) intermediate transformed data
@@ -260,6 +293,7 @@ neural-network-numpy/
 │   │   ├── keras_models.py      # the network's architectures rebuilt in Keras
 │   │   ├── torch_models.py      # ... and in PyTorch, with a hand-written training loop
 │   │   ├── run.py               # trains the library models
+│   │   ├── tuning.py            # tunes the Keras and PyTorch models with Optuna
 │   │   └── report.py            # comparison tables and figures
 │   ├── nn/                      # the neural-network library
 │   │   ├── layers.py            # Dense (bias, initialization), BatchNorm, Dropout
