@@ -224,6 +224,8 @@ make format                       # apply ruff's fixes and formatting
 make help                         # list every command
 ```
 
+`make train` trains the NumPy network. `make benchmarks` and `make tune` train only the comparison libraries: the libraries' fixed grids, and an Optuna search over the Keras and PyTorch models. `make benchmark-report` trains nothing; it compares the results. [`docs/DETAILS.md`](docs/DETAILS.md#which-command-trains-what) has a table of which command trains what.
+
 `make` isn't installed on Windows by default. Install it with `winget install ezwinports.make`, then open a new terminal. Without `make`, run the same steps directly:
 
 ```bash
@@ -253,7 +255,7 @@ Older runs stay on your disk, but only the newest version of each output is comm
 
 ```
 neural-network-numpy/
-├── Makefile                     # make train / plots / analysis / test / lint / format / ...
+├── Makefile                     # make train / plots / analysis / benchmarks / tune / benchmark-report / test / lint / ...
 ├── pyproject.toml               # package metadata, dev tools, pytest and ruff settings
 ├── requirements.txt             # pinned runtime dependencies
 ├── configs/                     # JSON experiment definitions (one per task), the library comparison's models and the tuning

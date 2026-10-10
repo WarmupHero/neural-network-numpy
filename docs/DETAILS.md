@@ -116,6 +116,19 @@ Steps 2 and 3 read the newest `reports/main_results_full_*.json` and fail if non
 
 `make` is not installed on Windows by default: install it with `winget install ezwinports.make` and open a new terminal.
 
+#### Which command trains what
+
+Three commands train models, and they train different ones. Only `make train` trains the NumPy network; `make benchmarks` and `make tune` train the comparison libraries.
+
+| Command | Trains | How | Writes | Purpose |
+|---|---|---|---|---|
+| `make train` | **The NumPy network** | The fixed grid: 9 architectures × 4 optimizers × 2 learning rates × 2 batch sizes × 5 seeds = 1,440 runs (about 16 min) | `reports/main_results_full_<stamp>.json`, `main_summary_<stamp>.csv` | The main results and key findings |
+| `make benchmarks` | **scikit-learn, Keras and PyTorch** | Each library's fixed grid in `configs/benchmark_experiments.json`, on every seed (about 2 h, mostly TensorFlow) | `reports/benchmark_<library>_results_<stamp>.json` | The standard library comparison |
+| `make tune` *(optional)* | **Keras and PyTorch** | An Optuna search: 50 trials per framework, task and architecture on seed 42's validation set, then the best configuration on every seed (about 1.5 h) | `reports/benchmark_<library>_tuned_results_<stamp>.json`, `tuning_<library>_trials_<stamp>.json` | Whether tuned frameworks change the comparison |
+| `make benchmark-report` | Nothing | Reads the newest results of all of the above | `reports/benchmark_report_<stamp>.txt`, `reports/figures/benchmarks/` | The comparison report and figures |
+
+`make plots` and `make analysis` also train nothing: they read the newest `make train` results. The comparison report works without `make tune`; it then leaves out the tuned rows and tables. See [Library comparison](#4-library-comparison) and [Hyperparameter tuning](#hyperparameter-tuning-optuna) for details.
+
 ### Tests
 
 ```bash
