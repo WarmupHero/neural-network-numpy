@@ -136,16 +136,93 @@ def build_network(
     return nn.Sequential(*modules)
 
 
+class MuonWithAdam:
+    """
+    PyTorch's Muon for the weight matrices, paired with Adam for the rest.
+
+    Attributes
+    ----------
+    muon : torch.optim.Muon
+        Optimizer for every 2-D parameter (the nn.Linear weights).
+    adam : torch.optim.Adam or None
+        Optimizer for every other parameter (biases, batch-norm weight and
+        bias), with the same learning rate; None when the model has only
+        weight matrices (the bias-free A1 and A2).
+
+    Notes
+    -----
+    torch.optim.Muon only accepts 2-D parameters, and PyTorch's
+    documentation pairs it with an Adam-type optimizer for the others. The
+    training loop only calls zero_grad() and step(), so this small wrapper
+    is all it needs. Both optimizers keep PyTorch's defaults otherwise,
+    including Muon's weight decay of 0.1.
+    """
+
+    def __init__(self, parameters: Iterable[nn.Parameter], learning_rate: float) -> None:
+        """
+        Split the parameters by dimension and create both optimizers.
+
+        Parameters
+        ----------
+        parameters : iterable of torch.nn.Parameter
+            The model's parameters.
+        learning_rate : float
+            Step size for both optimizers.
+
+        Returns
+        -------
+        None
+            Sets self.muon and self.adam.
+
+        Notes
+        -----
+        Processing:
+        1. Put 2-D parameters in the Muon group and the rest in the Adam group.
+        2. Create torch.optim.Muon on its group, and torch.optim.Adam only if
+           its group is not empty (PyTorch rejects an empty parameter list).
+        """
+        parameters = list(parameters)
+        matrices = [p for p in parameters if p.ndim == 2]
+        others = [p for p in parameters if p.ndim != 2]
+        self.muon = torch.optim.Muon(matrices, lr=learning_rate)
+        self.adam = torch.optim.Adam(others, lr=learning_rate) if others else None
+
+    def zero_grad(self) -> None:
+        """
+        Clear the gradients of every parameter.
+
+        Returns
+        -------
+        None
+        """
+        self.muon.zero_grad()
+        if self.adam is not None:
+            self.adam.zero_grad()
+
+    def step(self) -> None:
+        """
+        Take one optimizer step on every parameter.
+
+        Returns
+        -------
+        None
+            The parameters are updated in place.
+        """
+        self.muon.step()
+        if self.adam is not None:
+            self.adam.step()
+
+
 def build_optimizer(
     name: str, parameters: Iterable[nn.Parameter], learning_rate: float
-) -> torch.optim.Optimizer:
+) -> torch.optim.Optimizer | MuonWithAdam:
     """
     Create a torch.optim optimizer.
 
     Parameters
     ----------
     name : str
-        "sgd", "momentum" or "adam".
+        "sgd", "momentum", "adam" or "muon".
     parameters : iterable of torch.nn.Parameter
         The model's parameters.
     learning_rate : float
@@ -153,13 +230,14 @@ def build_optimizer(
 
     Returns
     -------
-    torch.optim.Optimizer
-        SGD, SGD with momentum 0.9, or Adam (PyTorch defaults otherwise).
+    torch.optim.Optimizer or MuonWithAdam
+        SGD, SGD with momentum 0.9, Adam, or Muon paired with Adam (PyTorch
+        defaults otherwise).
 
     Raises
     ------
     ValueError
-        If the name is not one of the three.
+        If the name is not one of the four.
 
     Notes
     -----
@@ -170,7 +248,9 @@ def build_optimizer(
     NumPy network uses an exponential moving average v = 0.9 * v + 0.1 * g,
     so its effective steps are about 10 times smaller for the same learning
     rate. Adam is PyTorch's closest built-in to the NumPy network's
-    AdaBelief.
+    AdaBelief. For Muon, PyTorch's defaults differ from the NumPy network in
+    two ways: weight decay 0.1 (the NumPy network has none) and bfloat16
+    Newton-Schulz (the NumPy network uses float64).
     """
     if name == "sgd":
         return torch.optim.SGD(parameters, lr=learning_rate)
@@ -178,6 +258,8 @@ def build_optimizer(
         return torch.optim.SGD(parameters, lr=learning_rate, momentum=0.9)
     if name == "adam":
         return torch.optim.Adam(parameters, lr=learning_rate)
+    if name == "muon":
+        return MuonWithAdam(parameters, learning_rate)
     raise ValueError(f"Unsupported PyTorch optimizer: {name}")
 
 

@@ -133,19 +133,19 @@ def build_optimizer(name: str, learning_rate: float) -> keras.optimizers.Optimiz
     Parameters
     ----------
     name : str
-        "sgd", "momentum" or "adam".
+        "sgd", "momentum", "adam" or "muon".
     learning_rate : float
         Step size.
 
     Returns
     -------
     keras.optimizers.Optimizer
-        SGD, SGD with momentum 0.9, or Adam (Keras defaults otherwise).
+        SGD, SGD with momentum 0.9, Adam, or Muon (Keras defaults otherwise).
 
     Raises
     ------
     ValueError
-        If the name is not one of the three.
+        If the name is not one of the four.
 
     Notes
     -----
@@ -155,7 +155,11 @@ def build_optimizer(name: str, learning_rate: float) -> keras.optimizers.Optimiz
     Keras's momentum uses v = 0.9 * v - lr * g, while the NumPy network uses
     an exponential moving average v = 0.9 * v + 0.1 * g, so its effective
     steps are about 10 times smaller for the same learning rate. Adam is
-    Keras's closest built-in to the NumPy network's AdaBelief.
+    Keras's closest built-in to the NumPy network's AdaBelief. Keras's Muon
+    applies Muon to every 2-D variable and AdamW to the rest by itself. Its
+    defaults differ from the NumPy network: weight decay 0.004, and a step
+    scaled by 0.2 * sqrt(max(fan_in, fan_out)) instead of
+    sqrt(max(1, fan_out / fan_in)).
     """
     if name == "sgd":
         return keras.optimizers.SGD(learning_rate=learning_rate)
@@ -163,6 +167,8 @@ def build_optimizer(name: str, learning_rate: float) -> keras.optimizers.Optimiz
         return keras.optimizers.SGD(learning_rate=learning_rate, momentum=0.9)
     if name == "adam":
         return keras.optimizers.Adam(learning_rate=learning_rate)
+    if name == "muon":
+        return keras.optimizers.Muon(learning_rate=learning_rate)
     raise ValueError(f"Unsupported Keras optimizer: {name}")
 
 

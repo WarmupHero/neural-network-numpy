@@ -219,7 +219,8 @@
     "optimizers": [
       "sgd",
       "momentum",
-      "adabelief"
+      "adabelief",
+      "muon"
     ],
     "learning_rates": [
       0.1,

@@ -129,6 +129,62 @@ A1-dropout      12       7.581079     7.931374     0.350296     1/12
 A2-bn           10       3.129326     3.506865     0.377539                    
 A2-bn-dropout   10       7.870193     8.363493     0.493301     0/10           
 
+Muon — Orthogonalized Momentum
+------------------------------
+Muon keeps a Nesterov momentum buffer (0.95) for every Dense weight matrix and replaces the step direction with an approximately orthogonal matrix (5 Newton-Schulz steps), so every direction of the matrix gets a step of similar size. Biases and batch-norm parameters use AdaBelief. These runs are not included in the other sections; the tables below compare all four optimizers on the same runs.
+
+Optimizer Summary with Muon — Classification (BCE), A1 / A2, seed 42
+--------------------------------------------------------------------
+Group          Runs    Avg Conv Epoch    Avg Best Epoch    Avg Best Val Loss   
+sgd            8       57.12             93.00             0.353005            
+momentum       8       53.88             89.00             0.353303            
+adabelief      8       66.88             60.75             0.021827            
+muon           8       66.12             57.38             0.082556            
+
+Optimizer x Learning Rate Across Seeds with Muon — Classification (BCE), A1 / A2, average test metric
+-----------------------------------------------------------------------------------------------------
+Optimizer   LR 0.1                    LR 0.001                  
+sgd         0.01866 ± 0.00719         0.68075 ± 0.00396         
+momentum    0.01909 ± 0.00732         0.68080 ± 0.00397         
+adabelief   0.01965 ± 0.02023         0.01259 ± 0.00727         
+muon        0.05050 ± 0.06348         0.12927 ± 0.00910         
+
+Selected Model per Seed with Muon — Classification (BCE), all architectures and optimizers
+------------------------------------------------------------------------------------------
+Seed  Selected run                                    Test        Baseline    Error removed 
+42    A2-bias · muon · LR 0.1 · bs 64                 0.20481     0.68851     70.25%        
+43    A2-bn-dropout · adabelief · LR 0.1 · bs 64      0.00000     0.68851     100.00%       
+44    A2-bias · muon · LR 0.1 · bs 64                 0.00000     0.68851     100.00%       
+45    A2-bias-he · muon · LR 0.1 · bs 64              0.00000     0.68851     100.00%       
+46    A2-bn · muon · LR 0.1 · bs 64                   0.00004     0.68851     99.99%        
+Mean                                                  0.04097 ± 0.09159       94.05 ± 13.30 %
+
+Optimizer Summary with Muon — Regression (MSE), A1 / A2, seed 42
+----------------------------------------------------------------
+Group          Runs    Avg Conv Epoch    Avg Best Epoch    Avg Best Val Loss   
+sgd            8       65.75             58.38             162.851861          
+momentum       8       76.50             72.50             162.087696          
+adabelief      8       80.00             76.88             5.678145            
+muon           8       76.25             71.12             176.402044          
+
+Optimizer x Learning Rate Across Seeds with Muon — Regression (MSE), A1 / A2, average test metric
+-------------------------------------------------------------------------------------------------
+Optimizer   LR 0.1                    LR 0.001                  
+sgd         164.4172 ± 146.0043       9.0609 ± 1.5860           
+momentum    222.2508 ± 129.1809       9.2543 ± 1.4142           
+adabelief   2.0712 ± 0.8030           8.7694 ± 1.1469           
+muon        2.3241 ± 0.2056           340.4568 ± 13.9786        
+
+Selected Model per Seed with Muon — Regression (MSE), all architectures and optimizers
+--------------------------------------------------------------------------------------
+Seed  Selected run                                    Test        Baseline    Error removed 
+42    A1 · adabelief · LR 0.1 · bs 16                 0.3745      101.4335    99.63%        
+43    A1 · muon · LR 0.1 · bs 16                      0.3115      103.4031    99.70%        
+44    A1 · muon · LR 0.1 · bs 64                      0.3417      101.0386    99.66%        
+45    A1 · muon · LR 0.1 · bs 64                      0.2965      106.1618    99.72%        
+46    A1 · adabelief · LR 0.1 · bs 16                 0.3983      90.8421     99.56%        
+Mean                                                  0.3445 ± 0.0424         99.65 ± 0.06 %
+
 Multi-Seed Results
 ==================
 Every configuration was run with 5 seeds (42, 43, 44, 45, 46). Each seed changes the train / validation / test split, the weight initialization, the dropout masks and the shuffling. All sections above use seed 42 only; this section reports mean ± sample standard deviation across seeds.
@@ -217,7 +273,7 @@ A2-bias        0.7010 ± 0.1849               66.6 ± 11.0           58.4 ± 12.
 A2-he          1.7521 ± 0.5916               61.4 ± 6.8            52.9 ± 7.4            14/60                    6/60      
 A2-bias-he     0.6841 ± 0.4320               73.8 ± 5.4            68.7 ± 6.4            9/60                     10/60     
 A2-bn          1.4385 ± 0.2801               53.8 ± 4.9            43.5 ± 5.8            0/60                     10/60     
-A2-clip        4.4835 ± 2.4139               58.5 ± 5.8            48.3 ± 7.9            2/60                     0/60      
+A2-clip        4.5013 ± 2.4067               58.5 ± 5.7            48.3 ± 7.8            2/60                     0/60      
 A1-dropout     3.5496 ± 0.6041               75.1 ± 6.1            67.7 ± 8.2            0/60                     0/60      
 A2-bn-dropout  6.0162 ± 1.7577               43.1 ± 8.3            31.3 ± 9.0            1/60                     9/60      
 
@@ -230,7 +286,7 @@ A2-bias        34 / 14 / 12              6 of 34               0.1931 ± 0.1080
 A2-he          35 / 19 / 6               3 of 35               0.5284 ± 0.5976                     
 A2-bias-he     24 / 26 / 10              4 of 24               0.2426 ± 0.2889                     
 A2-bn          48 / 2 / 10               3 of 48               0.2009 ± 0.2934                     
-A2-clip        49 / 11 / 0               7 of 49               0.9132 ± 0.7524                     
+A2-clip        49 / 11 / 0               7 of 49               0.9153 ± 0.7508                     
 A1-dropout     37 / 23 / 0               1 of 37               0.6609 ± 0.3740                     
 A2-bn-dropout  50 / 1 / 9                3 of 50               0.9743 ± 0.6927                     
 

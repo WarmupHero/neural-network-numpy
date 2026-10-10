@@ -1510,6 +1510,7 @@
     <nnfs:hasLearningRate rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#LearningRate_0_1"/>
     <nnfs:hasOptimizer rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#AdaBelief"/>
     <nnfs:hasOptimizer rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#MomentumSGD"/>
+    <nnfs:hasOptimizer rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Muon"/>
     <nnfs:hasOptimizer rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#SGD"/>
     <nnfs:hasSeed rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Seed_42"/>
     <nnfs:hasSeed rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Seed_43"/>
@@ -1518,7 +1519,7 @@
     <nnfs:hasSeed rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Seed_46"/>
     <nnfs:onTask rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#ClassificationTask"/>
     <nnfs:onTask rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#RegressionTask"/>
-    <nnfs:runCount rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">1080</nnfs:runCount>
+    <nnfs:runCount rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">1440</nnfs:runCount>
   </owl:NamedIndividual>
   <owl:NamedIndividual rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#GlobalNormClipping">
     <rdf:type rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#GradientClipping"/>
@@ -1595,6 +1596,11 @@
     <rdf:type rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Optimizer"/>
     <rdfs:label>SGD with momentum</rdfs:label>
     <rdfs:comment>Keeps a moving average of the gradients (v = 0.9 v + 0.1 g) and steps along it.</rdfs:comment>
+  </owl:NamedIndividual>
+  <owl:NamedIndividual rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#Muon">
+    <rdf:type rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Optimizer"/>
+    <rdfs:label>Muon</rdfs:label>
+    <rdfs:comment>Orthogonalizes the Nesterov momentum of each weight matrix with Newton-Schulz iterations, so every direction gets a similar step; biases and batch-norm parameters use AdaBelief.</rdfs:comment>
   </owl:NamedIndividual>
   <owl:NamedIndividual rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#NetworkLibraryStage">
     <rdf:type rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Stage"/>
@@ -2136,6 +2142,7 @@
     <nnfs:canvasNodeId>optim</nnfs:canvasNodeId>
     <nnfs:implements rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#AdaBelief"/>
     <nnfs:implements rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#MomentumSGD"/>
+    <nnfs:implements rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#Muon"/>
     <nnfs:implements rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#SGD"/>
     <nnfs:imports rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#nn_numpy.nn.layers"/>
     <nnfs:partOf rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#nn_numpy.nn"/>
@@ -2398,7 +2405,7 @@
     <nnfs:belongsToStage rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#InfrastructureStage"/>
     <nnfs:canvasNodeId>tests</nnfs:canvasNodeId>
     <nnfs:path>tests/</nnfs:path>
-    <nnfs:testCount rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">105</nnfs:testCount>
+    <nnfs:testCount rdf:datatype="http://www.w3.org/2001/XMLSchema#integer">115</nnfs:testCount>
   </owl:NamedIndividual>
   <owl:NamedIndividual rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#tests.test_batchnorm">
     <rdf:type rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#TestModule"/>
@@ -2539,6 +2546,19 @@
     <nnfs:imports rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#nn_numpy.nn.metrics"/>
     <nnfs:partOf rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#tests"/>
     <nnfs:path>tests/test_metrics.py</nnfs:path>
+    <nnfs:requiresLibrary rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#numpy"/>
+    <nnfs:requiresLibrary rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#pytest"/>
+  </owl:NamedIndividual>
+  <owl:NamedIndividual rdf:about="https://github.com/WarmupHero/neural-network-numpy/ontology#tests.test_muon">
+    <rdf:type rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#TestModule"/>
+    <rdfs:label>tests/test_muon.py</rdfs:label>
+    <rdfs:comment>Tests for the Muon optimizer and its Newton-Schulz orthogonalization.</rdfs:comment>
+    <nnfs:covers rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#nn_numpy.nn.layers"/>
+    <nnfs:covers rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#nn_numpy.nn.optimizers"/>
+    <nnfs:imports rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#nn_numpy.nn.layers"/>
+    <nnfs:imports rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#nn_numpy.nn.optimizers"/>
+    <nnfs:partOf rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#tests"/>
+    <nnfs:path>tests/test_muon.py</nnfs:path>
     <nnfs:requiresLibrary rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#numpy"/>
     <nnfs:requiresLibrary rdf:resource="https://github.com/WarmupHero/neural-network-numpy/ontology#pytest"/>
   </owl:NamedIndividual>

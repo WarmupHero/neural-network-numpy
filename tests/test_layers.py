@@ -155,7 +155,7 @@ def test_unknown_init_raises():
 # ------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("optimizer_name", ["sgd", "momentum", "adabelief"])
+@pytest.mark.parametrize("optimizer_name", ["sgd", "momentum", "adabelief", "muon"])
 def test_optimizer_updates_weights_and_bias(optimizer_name):
     """
     Every optimizer updates both the weights and the bias of a Dense layer.
@@ -163,7 +163,7 @@ def test_optimizer_updates_weights_and_bias(optimizer_name):
     Parameters
     ----------
     optimizer_name : str
-        Optimizer under test: "sgd", "momentum" or "adabelief".
+        Optimizer under test: "sgd", "momentum", "adabelief" or "muon".
 
     Notes
     -----

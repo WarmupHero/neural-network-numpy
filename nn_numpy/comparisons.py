@@ -48,6 +48,9 @@ PLOTS_DIR = COMPARISONS_FIGURES_DIR
 # Folder where the short text analyses are saved (reports/comparisons/).
 TEXT_DIR = COMPARISONS_TEXT_DIR
 
+# Top-to-bottom order of the optimizers in the optimizer-comparison figures.
+OPTIMIZER_ORDER = ["sgd", "momentum", "adabelief", "muon"]
+
 # Create the output folders if they do not already exist.
 os.makedirs(PLOTS_DIR, exist_ok=True)
 os.makedirs(TEXT_DIR, exist_ok=True)
@@ -843,14 +846,14 @@ def filter_optimizer_runs(
     Returns
     -------
     list of dict
-        The matching records, sorted SGD, Momentum, AdaBelief. Normally
-        three; the caller checks the count.
+        The matching records, sorted SGD, Momentum, AdaBelief, Muon.
+        Normally one per optimizer; the caller checks the count.
 
     Raises
     ------
     KeyError
         If a matching record has an optimizer other than "sgd",
-        "momentum" or "adabelief" (it has no sort position).
+        "momentum", "adabelief" or "muon" (it has no sort position).
 
     Notes
     -----
@@ -873,10 +876,10 @@ def filter_optimizer_runs(
     ]
 
     # Sort optimizers into a consistent top-to-bottom order for plotting.
-    optimizer_order = {"sgd": 0, "momentum": 1, "adabelief": 2}
+    optimizer_order = {name: i for i, name in enumerate(OPTIMIZER_ORDER)}
     filtered.sort(key=lambda x: optimizer_order[x["optimizer"]])
 
-    # Return the three matched optimizer runs.
+    # Return the matched optimizer runs, one per optimizer.
     return filtered
 
 
@@ -889,7 +892,7 @@ def plot_optimizer_comparison(
     filename: str,
 ) -> None:
     """
-    Create one figure comparing SGD, Momentum, and AdaBelief
+    Create one figure comparing SGD, Momentum, AdaBelief and Muon
     under one matched parameter setting.
 
     Parameters
@@ -901,9 +904,9 @@ def plot_optimizer_comparison(
     architecture : str
         Architecture code, e.g. "A1" or "A2".
     learning_rate : float
-        Learning rate shared by the three runs.
+        Learning rate shared by the runs.
     batch_size : int
-        Batch size shared by the three runs.
+        Batch size shared by the runs.
     filename : str
         Bare PNG file name; the run stamp is added when saving.
 
@@ -915,20 +918,19 @@ def plot_optimizer_comparison(
     Raises
     ------
     ValueError
-        If the filter does not find exactly three runs.
+        If the filter does not find exactly one run per optimizer.
 
     Notes
     -----
     Processing:
     1. Select the matching runs with ``filter_optimizer_runs`` and check
-       there are three.
-    2. Create three stacked subplots sharing the x-axis, one per
-       optimizer, each with train/validation loss curves and the
+       there is one per optimizer in OPTIMIZER_ORDER.
+    2. Create one stacked subplot per optimizer, sharing the x-axis, each with train/validation loss curves and the
        convergence-metrics box.
     3. Apply shared epoch ticks, label the x-axis, add an overall title.
     4. Save and show the figure.
     """
-    # Select the three runs for this optimizer comparison.
+    # Select the runs for this optimizer comparison.
     selected_runs = filter_optimizer_runs(
         results=results,
         problem_name=problem_name,
@@ -937,15 +939,16 @@ def plot_optimizer_comparison(
         batch_size=batch_size,
     )
 
-    # Sanity check: the optimizer comparison expects exactly 3 optimizer runs.
-    if len(selected_runs) != 3:
+    # Sanity check: the optimizer comparison expects one run per optimizer.
+    expected_runs = len(OPTIMIZER_ORDER)
+    if len(selected_runs) != expected_runs:
         raise ValueError(
-            f"Expected 3 optimizer runs, found {len(selected_runs)} "
+            f"Expected {expected_runs} optimizer runs, found {len(selected_runs)} "
             f"for {problem_name}, {architecture}, lr={learning_rate}, batch={batch_size}"
         )
 
-    # Create a figure with 3 vertical subplots, one per optimizer.
-    fig, axes = plt.subplots(3, 1, figsize=(12, 12), sharex=True)
+    # Create a figure with one vertical subplot per optimizer.
+    fig, axes = plt.subplots(expected_runs, 1, figsize=(12, 4 * expected_runs), sharex=True)
 
     # Plot each optimizer run on its own subplot.
     for ax, run in zip(axes, selected_runs):
@@ -1593,7 +1596,7 @@ def main(results_path: str | None = None) -> None:
     #   A2-bias, A2-he, A2-bias-he, A2-bn, A1-dropout, A2-bn-dropout)
     # - learning_rate: 0.1 or 0.001
     # - batch_size: 16 or 64
-    # - optimizer: sgd, momentum, or adabelief
+    # - optimizer: sgd, momentum, adabelief or muon
     # --------------------------------------------------
     # Optimizer comparison
     # --------------------------------------------------

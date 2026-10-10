@@ -197,7 +197,7 @@ def run_single_experiment(
     architecture_name : str
         Name of the selected architecture from the config, e.g. "A1".
     optimizer_name : str
-        Name of the optimizer to use, e.g. "sgd", "momentum" or "adabelief".
+        Name of the optimizer to use, e.g. "sgd", "momentum", "adabelief" or "muon".
     learning_rate : float
         Learning rate for the optimizer.
     batch_size : int

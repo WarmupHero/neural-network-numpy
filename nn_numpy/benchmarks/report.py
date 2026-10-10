@@ -498,8 +498,8 @@ def format_architecture_table(
     2. Compare the two seed by seed.
     3. Count diverged runs on each side.
 
-    The NumPy grid uses SGD / momentum / AdaBelief, the frameworks SGD /
-    momentum / Adam, each as implemented by that library.
+    The NumPy grid uses SGD / momentum / AdaBelief / Muon, the frameworks
+    SGD / momentum / Adam / Muon, each as implemented by that library.
     """
     metric, _, _ = PROBLEM_METRICS[problem_name]
     digits = 5 if problem_name == "classification" else 4

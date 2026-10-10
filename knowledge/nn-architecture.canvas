@@ -3,7 +3,7 @@
 		{
 			"id": "title",
 			"type": "text",
-			"text": "# neural-network-numpy — system architecture\n\nA feed-forward neural network in **NumPy only**, trained on two UCI tasks (banknote classification, heating-load regression) over 9 architectures × 3 optimizers × 2 learning rates × 2 batch sizes × 5 seeds = **1,080 runs**, then compared with scikit-learn, TensorFlow (Keras) and PyTorch on the same splits.\n\n**Flow:** left → right. Colored groups are stages; arrows show what feeds what. Every output file is stamped `name_YYYYMMDD-HHMMSS.ext`.",
+			"text": "# neural-network-numpy — system architecture\n\nA feed-forward neural network in **NumPy only**, trained on two UCI tasks (banknote classification, heating-load regression) over 9 architectures × 4 optimizers × 2 learning rates × 2 batch sizes × 5 seeds = **1,440 runs**, then compared with scikit-learn, TensorFlow (Keras) and PyTorch on the same splits.\n\n**Flow:** left → right. Colored groups are stages; arrows show what feeds what. Every output file is stamped `name_YYYYMMDD-HHMMSS.ext`.",
 			"x": 0,
 			"y": -1190,
 			"width": 1800,
@@ -151,7 +151,7 @@
 		{
 			"id": "optim",
 			"type": "text",
-			"text": "### optimizers.py\nSGD · momentum (moving average) · **AdaBelief** — update every parameter of every layer",
+			"text": "### optimizers.py\nSGD · momentum (moving average) · **AdaBelief** · **Muon** (orthogonalized momentum) — update every parameter of every layer",
 			"x": 2232,
 			"y": 884,
 			"width": 440,
@@ -179,7 +179,7 @@
 		{
 			"id": "results",
 			"type": "text",
-			"text": "### reports/main_results_full_<stamp>.json\nOne record per run (1,080): settings, test / train / baseline metrics, best epoch, stop reason, loss + gradient-norm histories, fit time",
+			"text": "### reports/main_results_full_<stamp>.json\nOne record per run (1,440): settings, test / train / baseline metrics, best epoch, stop reason, loss + gradient-norm histories, fit time",
 			"x": 4212,
 			"y": 510,
 			"width": 440,
@@ -334,7 +334,7 @@
 		{
 			"id": "tests",
 			"type": "text",
-			"text": "### tests/ (pytest, 162 tests)\nFinite-difference gradient checks, layers, batch norm, dropout, clipping, splits, seeds, training, stop reasons, benchmarks",
+			"text": "### tests/ (pytest, 182 tests)\nFinite-difference gradient checks, layers, batch norm, dropout, Muon, clipping, splits, seeds, training, stop reasons, benchmarks",
 			"x": 5148,
 			"y": 3264,
 			"width": 520,

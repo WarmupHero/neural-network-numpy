@@ -17,7 +17,7 @@ from nn_numpy.nn.layers import BatchNorm
 from nn_numpy.nn.losses import BCELoss, MSELoss
 from nn_numpy.nn.metrics import binary_cross_entropy, mean_squared_error
 from nn_numpy.nn.network import NeuralNetwork
-from nn_numpy.nn.optimizers import SGD, AdaBelief, MomentumSGD
+from nn_numpy.nn.optimizers import SGD, AdaBelief, MomentumSGD, Muon
 
 
 class Trainer:
@@ -43,7 +43,7 @@ class Trainer:
         The model being trained.
     loss_fn : MSELoss or BCELoss
         Loss object used for training and for the reported loss values.
-    optimizer : SGD or MomentumSGD or AdaBelief
+    optimizer : SGD or MomentumSGD or AdaBelief or Muon
         Optimizer with an `update(layer)` method (see nn_numpy.nn.optimizers).
     task_type : str
         "classification" or "regression" (lower-cased).
@@ -57,7 +57,7 @@ class Trainer:
         self,
         network: NeuralNetwork,
         loss_fn: MSELoss | BCELoss,
-        optimizer: SGD | MomentumSGD | AdaBelief,
+        optimizer: SGD | MomentumSGD | AdaBelief | Muon,
         task_type: str,
         early_stopping: bool = False,
         patience: int = 10,
@@ -77,7 +77,7 @@ class Trainer:
             Loss function object (from nn_numpy.nn.losses) with:
             - forward(y_true, y_pred) -> float, the scalar loss
             - backward(y_true, y_pred) -> numpy.ndarray, dL/dy_pred
-        optimizer : SGD or MomentumSGD or AdaBelief
+        optimizer : SGD or MomentumSGD or AdaBelief or Muon
             Optimizer object (from nn_numpy.nn.optimizers) with an update(layer)
             method that changes the layer's parameters in place.
         task_type : str

@@ -83,6 +83,7 @@ def build_classifier():
         ("sgd", 0.5),
         ("momentum", 0.5),
         ("adabelief", 0.01),
+        ("muon", 0.05),
     ],
 )
 def test_optimizer_reduces_loss(optimizer_name, learning_rate):
@@ -92,10 +93,10 @@ def test_optimizer_reduces_loss(optimizer_name, learning_rate):
     Parameters
     ----------
     optimizer_name : str
-        Optimizer under test: "sgd", "momentum" or "adabelief".
+        Optimizer under test: "sgd", "momentum", "adabelief" or "muon".
     learning_rate : float
         Learning rate for that optimizer (0.5 for SGD and momentum, 0.01
-        for AdaBelief).
+        for AdaBelief, 0.05 for Muon).
 
     Notes
     -----

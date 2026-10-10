@@ -36,8 +36,13 @@ from nn_numpy.config import (
 # inserted before the extension so earlier reports are never overwritten.
 OUTPUT_PATH = os.path.join(REPORT_DIR, stamped_filename("analysis.txt"))
 
-# Preferred display order for optimizer summaries in tables.
+# Preferred display order for optimizer summaries in tables. These are the
+# baseline optimizers: every section except "Muon" uses only their runs, so
+# adding an optimizer to the configs does not change those numbers.
 OPTIMIZER_ORDER = ["sgd", "momentum", "adabelief"]
+
+# Optimizers compared in the Muon section: the baseline ones plus Muon.
+MUON_SECTION_OPTIMIZERS = OPTIMIZER_ORDER + ["muon"]
 
 # Preferred display order for architecture summaries in tables.
 # These are the baseline architectures: the depth comparison and all
@@ -1298,7 +1303,10 @@ def format_stopping_seed_table(title: str, problem_runs: list[dict[str, Any]], d
 
 
 def format_optimizer_lr_seed_table(
-    title: str, problem_runs: list[dict[str, Any]], digits: int
+    title: str,
+    problem_runs: list[dict[str, Any]],
+    digits: int,
+    optimizers: list[str] | None = None,
 ) -> str:
     """
     Format an optimizer x learning-rate table of test metrics across seeds.
@@ -1312,13 +1320,15 @@ def format_optimizer_lr_seed_table(
         "optimizer", "learning_rate" and "test_metric".
     digits : int
         Decimal places used for the test metric.
+    optimizers : list of str or None, default=None
+        Optimizers to show, one row each, in this order. None means
+        OPTIMIZER_ORDER.
 
     Returns
     -------
     str
-        A formatted multi-line string: one row per optimizer in
-        OPTIMIZER_ORDER, one column per learning rate (largest first), and a
-        trailing blank line.
+        A formatted multi-line string: one row per optimizer, one column per
+        learning rate (largest first), and a trailing blank line.
 
     Notes
     -----
@@ -1337,7 +1347,7 @@ def format_optimizer_lr_seed_table(
     lines = [title, "-" * len(title)]
     lines.append(f"{'Optimizer':<12}" + "".join(f"{f'LR {lr}':<26}" for lr in learning_rates))
 
-    for optimizer in OPTIMIZER_ORDER:
+    for optimizer in optimizers or OPTIMIZER_ORDER:
         row = f"{optimizer:<12}"
         for lr in learning_rates:
             cell_runs = [
@@ -1518,6 +1528,102 @@ def build_multi_seed_section(results: list[dict[str, Any]]) -> str:
     return "\n".join(lines)
 
 
+def build_muon_section(results: list[dict[str, Any]]) -> str:
+    """
+    Build the Muon section: how Muon compares with the baseline optimizers.
+
+    Parameters
+    ----------
+    results : list of dict
+        Runs from every seed, architecture and optimizer, with derived
+        metrics added. Each needs "problem_name", "architecture",
+        "optimizer", "learning_rate", "batch", "seed" and the metrics used
+        by the summary tables.
+
+    Returns
+    -------
+    str
+        The section as a multi-line string, or "" when no run uses Muon.
+
+    Notes
+    -----
+    Processing:
+    1. Return "" if there are no Muon runs.
+    2. Write the section title and a short explanation.
+    3. For each problem:
+       a. summarize the first seed's non-diverged A1 / A2 runs by optimizer,
+          Muon included, and note how many runs diverged;
+       b. add the optimizer x learning-rate table across seeds;
+       c. add the selected model per seed over every architecture and
+          optimizer, so a Muon run can win.
+
+    The other sections use the baseline optimizers only, so their numbers
+    stay comparable with earlier results files.
+    """
+    if not any(r["optimizer"] == "muon" for r in results):
+        return ""
+
+    lines = ["Muon — Orthogonalized Momentum", "------------------------------"]
+    lines.append(
+        "Muon keeps a Nesterov momentum buffer (0.95) for every Dense weight matrix and "
+        "replaces the step direction with an approximately orthogonal matrix (5 Newton-Schulz "
+        "steps), so every direction of the matrix gets a step of similar size. Biases and "
+        "batch-norm parameters use AdaBelief. These runs are not included in the other "
+        "sections; the tables below compare all four optimizers on the same runs."
+    )
+    lines.append("")
+
+    seed_runs = [r for r in results if r.get("seed", RANDOM_SEED) == RANDOM_SEED]
+    for problem_name, loss_name, digits in [
+        ("classification", "BCE", 5),
+        ("regression", "MSE", 4),
+    ]:
+        label = problem_name.capitalize()
+        baseline_runs = [
+            r
+            for r in filter_by_problem(seed_runs, problem_name)
+            if r["architecture"] in ARCHITECTURE_ORDER
+        ]
+        finite_runs = [r for r in baseline_runs if not is_diverged(r)]
+        summary = {
+            name: summarize_task_group(runs)
+            for name, runs in group_by_key(finite_runs, "optimizer").items()
+        }
+        lines.append(
+            format_task_table(
+                f"Optimizer Summary with Muon — {label} ({loss_name}), A1 / A2, seed {RANDOM_SEED}",
+                summary,
+                MUON_SECTION_OPTIMIZERS,
+            )
+        )
+        diverged = len(baseline_runs) - len(finite_runs)
+        if diverged:
+            lines.append(f"Diverged runs excluded from the table above: {diverged}")
+            lines.append("")
+
+        problem_runs = filter_by_problem(results, problem_name)
+        if len({r.get("seed", RANDOM_SEED) for r in problem_runs}) > 1:
+            lines.append(
+                format_optimizer_lr_seed_table(
+                    f"Optimizer x Learning Rate Across Seeds with Muon — {label} ({loss_name}), A1 / A2, average test metric",
+                    problem_runs,
+                    digits,
+                    MUON_SECTION_OPTIMIZERS,
+                )
+            )
+        if problem_runs and "baseline_test_metric" in problem_runs[0]:
+            lines.append(
+                format_selected_model_table(
+                    f"Selected Model per Seed with Muon — {label} ({loss_name}), all architectures and optimizers",
+                    problem_runs,
+                    list({r["architecture"] for r in problem_runs}),
+                    digits,
+                )
+            )
+
+    return "\n".join(lines)
+
+
 def main(results_path: str | None = None) -> None:
     """
     Build the aggregate analysis report and write it to disk.
@@ -1576,8 +1682,11 @@ def main(results_path: str | None = None) -> None:
     # Every section except "Multi-Seed Results" uses the first seed only
     # (RANDOM_SEED, 42), so their numbers stay comparable with single-seed
     # results files. Older files have no "seed" field: they are one seed.
-    multi_seed_results = all_results
-    all_results = [r for r in all_results if r.get("seed", RANDOM_SEED) == RANDOM_SEED]
+    # Every section except "Muon" uses the baseline optimizers only, so
+    # adding Muon to the configs does not change their numbers.
+    every_optimizer_results = all_results
+    multi_seed_results = [r for r in all_results if r["optimizer"] in OPTIMIZER_ORDER]
+    all_results = [r for r in multi_seed_results if r.get("seed", RANDOM_SEED) == RANDOM_SEED]
 
     # The main sections use the baseline architectures only (A1, A2).
     # Normalization is min-max over the runs it is given, so it must also
@@ -1843,6 +1952,11 @@ def main(results_path: str | None = None) -> None:
                     filter_by_problem(all_results, problem_name),
                 )
             )
+
+    # Add the Muon section when the results contain Muon runs.
+    muon_section = build_muon_section(every_optimizer_results)
+    if muon_section:
+        lines.append(muon_section)
 
     # Add the multi-seed section when the results contain more than one seed.
     if len({r.get("seed", RANDOM_SEED) for r in multi_seed_results}) > 1:

@@ -54,7 +54,12 @@ IMPORT_NAMES = {
 }
 
 # Optimizer names in the configs -> ontology individuals.
-OPTIMIZER_NAMES = {"sgd": "SGD", "momentum": "MomentumSGD", "adabelief": "AdaBelief"}
+OPTIMIZER_NAMES = {
+    "sgd": "SGD",
+    "momentum": "MomentumSGD",
+    "adabelief": "AdaBelief",
+    "muon": "Muon",
+}
 
 # Stage of every root-level module, artifact and make target; modules in
 # sub-packages inherit their package's stage through a property chain.
@@ -278,7 +283,7 @@ DATA_FLOW = {
 
 # What each module implements, by local name of the domain individual.
 IMPLEMENTS = {
-    "nn_numpy.nn.optimizers": ["SGD", "MomentumSGD", "AdaBelief"],
+    "nn_numpy.nn.optimizers": ["SGD", "MomentumSGD", "AdaBelief", "Muon"],
     "nn_numpy.nn.layers": [
         "DenseLayer",
         "BatchNormLayer",
@@ -433,6 +438,11 @@ DOMAIN = {
         "Optimizer",
         "AdaBelief",
         "Adaptive optimizer that scales steps by the variance of the gradient from its moving average, with bias correction.",
+    ),
+    "Muon": (
+        "Optimizer",
+        "Muon",
+        "Orthogonalizes the Nesterov momentum of each weight matrix with Newton-Schulz iterations, so every direction gets a similar step; biases and batch-norm parameters use AdaBelief.",
     ),
     "ClassificationTask": (
         "Task",

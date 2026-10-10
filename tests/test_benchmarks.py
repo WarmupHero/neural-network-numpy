@@ -306,7 +306,7 @@ def test_keras_network_mirrors_the_architecture_config():
     assert all(not layer.use_bias for layer in model.layers if type(layer).__name__ == "Dense")
 
 
-@pytest.mark.parametrize("name", ["sgd", "momentum", "adam"])
+@pytest.mark.parametrize("name", ["sgd", "momentum", "adam", "muon"])
 def test_keras_optimizers(name):
     """
     build_optimizer returns the matching Keras optimizer.
@@ -324,7 +324,7 @@ def test_keras_optimizers(name):
     from nn_numpy.benchmarks.keras_models import build_optimizer
 
     optimizer = build_optimizer(name, 0.01)
-    expected = {"sgd": "SGD", "momentum": "SGD", "adam": "Adam"}[name]
+    expected = {"sgd": "SGD", "momentum": "SGD", "adam": "Adam", "muon": "Muon"}[name]
     assert type(optimizer).__name__ == expected
     if name == "momentum":
         assert optimizer.momentum == pytest.approx(0.9)
@@ -417,6 +417,31 @@ def test_torch_network_mirrors_the_architecture_config():
     assert model[0].in_features == config["input_dimension"]
 
 
+def test_torch_muon_handles_a_bias_free_model():
+    """
+    "muon" works for a model with weight matrices only (A1, no bias, no batch norm).
+
+    Notes
+    -----
+    Every parameter goes to Muon, no Adam is created, and one step still
+    updates every weight.
+    """
+    torch = pytest.importorskip("torch")
+    from nn_numpy.benchmarks.data import load_problem_config
+    from nn_numpy.benchmarks.torch_models import build_network, build_optimizer
+
+    config = load_problem_config("classification")
+    model = build_network(config["architectures"]["A1"], config["input_dimension"], seed=0)
+    optimizer = build_optimizer("muon", model.parameters(), 0.01)
+
+    assert optimizer.adam is None
+    before = [p.detach().clone() for p in model.parameters()]
+    optimizer.zero_grad()
+    model(torch.randn(16, config["input_dimension"])).mean().backward()
+    optimizer.step()
+    assert all(not torch.equal(b, p) for b, p in zip(before, model.parameters(), strict=True))
+
+
 @pytest.mark.parametrize("name", ["sgd", "momentum", "adam"])
 def test_torch_optimizers(name):
     """
@@ -443,6 +468,39 @@ def test_torch_optimizers(name):
         assert optimizer.defaults["momentum"] == pytest.approx(0.9)
     with pytest.raises(ValueError):
         build_optimizer("adabelief", parameters, 0.01)
+
+
+def test_torch_muon_pairs_matrices_with_muon_and_the_rest_with_adam():
+    """
+    "muon" gives 2-D weights to torch.optim.Muon and other parameters to Adam.
+
+    Notes
+    -----
+    The A2-bn architecture has Linear weights (2-D) and batch-norm weights
+    and biases (1-D). Each parameter must sit in exactly one optimizer, and
+    one step must update both groups.
+    """
+    torch = pytest.importorskip("torch")
+    from nn_numpy.benchmarks.data import load_problem_config
+    from nn_numpy.benchmarks.torch_models import build_network, build_optimizer
+
+    config = load_problem_config("regression")
+    model = build_network(config["architectures"]["A2-bn"], config["input_dimension"], seed=0)
+    optimizer = build_optimizer("muon", model.parameters(), 0.01)
+
+    muon_params = {id(p) for group in optimizer.muon.param_groups for p in group["params"]}
+    adam_params = {id(p) for group in optimizer.adam.param_groups for p in group["params"]}
+    assert muon_params.isdisjoint(adam_params)
+    assert muon_params | adam_params == {id(p) for p in model.parameters()}
+    assert all(p.ndim == 2 for p in model.parameters() if id(p) in muon_params)
+    assert all(p.ndim == 1 for p in model.parameters() if id(p) in adam_params)
+
+    before = [p.detach().clone() for p in model.parameters()]
+    optimizer.zero_grad()
+    model(torch.randn(16, config["input_dimension"])).pow(2).mean().backward()
+    optimizer.step()
+    changed = [not torch.equal(b, p) for b, p in zip(before, model.parameters(), strict=True)]
+    assert all(changed)
 
 
 @pytest.mark.parametrize("problem_name, n_features", [("classification", 4), ("regression", 8)])

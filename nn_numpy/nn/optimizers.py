@@ -1,8 +1,8 @@
 """
 Optimizers that update layer parameters from their gradients.
 
-Three optimizers are provided: plain SGD, SGD with momentum, and
-AdaBelief. Each has update(layer), which reads layer.get_params() and
+Four optimizers are provided: plain SGD, SGD with momentum, AdaBelief
+and Muon. Each has update(layer), which reads layer.get_params() and
 layer.get_grads() and modifies the parameter arrays in place. Stateful
 optimizers keep their state per parameter, keyed by (id(layer), name).
 get_optimizer() builds an optimizer from a config string.
@@ -372,48 +372,276 @@ class AdaBelief:
 
         The original AdaBelief paper also adds epsilon inside the s
         update; this implementation adds it only in the denominator.
+        The per-parameter steps live in step_parameter, which Muon also
+        uses for the parameters it does not orthogonalize.
         """
         grads = layer.get_grads()
         for name, param in layer.get_params().items():
-            key = (id(layer), name)
+            self.step_parameter((id(layer), name), param, grads[name])
 
-            # Current gradient for this parameter
+    def step_parameter(self, key: tuple[int, str], param: np.ndarray, g: np.ndarray) -> None:
+        """
+        Apply one AdaBelief step to a single parameter.
+
+        Parameters
+        ----------
+        key : tuple of (int, str)
+            State key, (id(layer), parameter name).
+        param : numpy.ndarray
+            The parameter array, float64, updated in place.
+        g : numpy.ndarray
+            Its gradient, same shape as param, float64.
+
+        Returns
+        -------
+        None
+            param is modified in place and self.m, self.s and self.t are
+            updated for this key.
+
+        Notes
+        -----
+        Processing: steps 1-7 of update(), for this one parameter.
+        """
+        # If this is the first time the optimizer sees this parameter,
+        # initialize all internal state for it.
+        if key not in self.m:
+            self.m[key] = np.zeros_like(param)
+            self.s[key] = np.zeros_like(param)
+            self.t[key] = 0
+
+        # Increase the time step for this parameter
+        self.t[key] += 1
+        t = self.t[key]
+
+        # Update first moment estimate
+        # This is the exponential moving average of gradients
+        self.m[key] = self.beta1 * self.m[key] + (1 - self.beta1) * g
+
+        # Belief error:
+        # difference between current gradient and expected gradient
+        belief_error = g - self.m[key]
+
+        # Update second moment estimate using the squared belief error
+        self.s[key] = self.beta2 * self.s[key] + (1 - self.beta2) * (belief_error**2)
+
+        # Bias correction for the first moment
+        # Needed because the running average starts at zero
+        m_hat = self.m[key] / (1 - self.beta1**t)
+
+        # Bias correction for the second moment
+        s_hat = self.s[key] / (1 - self.beta2**t)
+
+        # Final AdaBelief update, in place
+        param -= self.learning_rate * m_hat / (np.sqrt(s_hat) + self.epsilon)
+
+
+def newton_schulz_orthogonalize(
+    matrix: np.ndarray, steps: int = 5, epsilon: float = 1e-7
+) -> np.ndarray:
+    """
+    Approximately orthogonalize a matrix with a quintic Newton-Schulz iteration.
+
+    Parameters
+    ----------
+    matrix : numpy.ndarray
+        2-D array of shape (rows, cols), float64, e.g. a momentum buffer
+        for a Dense layer's weights.
+    steps : int, default=5
+        Number of Newton-Schulz iterations.
+    epsilon : float, default=1e-7
+        Lower bound for the Frobenius norm used to scale the input, so an
+        all-zero matrix does not divide by zero.
+
+    Returns
+    -------
+    numpy.ndarray
+        Array of the same shape (rows, cols), float64. Its singular values
+        are pushed towards 1 (roughly into [0.7, 1.2]) while the singular
+        vectors are kept, i.e. approximately U V^T for the SVD
+        matrix = U S V^T.
+
+    Notes
+    -----
+    Processing:
+
+    1. Work on the wide orientation: transpose if rows > cols, so the Gram
+       matrix X X^T is the smaller of the two possible ones.
+    2. Divide by the Frobenius norm (at least epsilon), which bounds the
+       spectral norm by 1.
+    3. Repeat `steps` times, with (a, b, c) = (3.4445, -4.7750, 2.0315):
+       A = X X^T;  B = b * A + c * A A;  X = a * X + B X.
+       Each step maps every singular value s to a*s + b*s^3 + c*s^5.
+    4. Transpose back if step 1 transposed.
+
+    The coefficients are the ones used by Muon in PyTorch and Keras. They
+    maximize the slope at zero, so small singular values grow quickly; the
+    result oscillates around 1 instead of converging exactly to it, which
+    does not hurt training. Unlike PyTorch, which runs this in bfloat16,
+    the NumPy network runs it in float64.
+    """
+    a, b, c = 3.4445, -4.7750, 2.0315
+    transposed = matrix.shape[0] > matrix.shape[1]
+    x = matrix.T if transposed else matrix
+    x = x / max(np.linalg.norm(x), epsilon)
+    for _ in range(steps):
+        gram = x @ x.T
+        x = a * x + (b * gram + c * gram @ gram) @ x
+    return x.T if transposed else x
+
+
+class Muon:
+    """
+    Muon optimizer (MomentUm Orthogonalized by Newton-Schulz).
+
+    Attributes
+    ----------
+    learning_rate : float
+        Base step size; weight-matrix steps are scaled per shape (see Notes).
+    momentum : float
+        Momentum coefficient for the weight matrices.
+    nesterov : bool
+        Whether the step uses Nesterov momentum.
+    ns_steps : int
+        Number of Newton-Schulz iterations per step.
+    buffers : dict of tuple (int, str) to numpy.ndarray
+        One momentum buffer per weight matrix, keyed by (id(layer), name).
+    fallback : AdaBelief
+        Optimizer for every parameter that is not a Dense weight matrix
+        (biases, batch-norm gamma / beta), with the same learning rate.
+
+    Notes
+    -----
+    Update rule for a Dense layer's weights W of shape (fan_in, fan_out),
+    with gradient g:
+        buffer = momentum * buffer + (1 - momentum) * g
+        u = (1 - momentum) * g + momentum * buffer     (Nesterov; else u = buffer)
+        O = newton_schulz_orthogonalize(u)
+        W = W - learning_rate * sqrt(max(1, fan_out / fan_in)) * O
+
+    The orthogonalization gives every direction of the weight matrix a step
+    of similar size, instead of letting a few dominant directions take
+    almost the whole update. The shape factor is PyTorch's default
+    ("original") learning-rate adjustment, written for the NumPy network's
+    (fan_in, fan_out) layout; PyTorch stores weights as (fan_out, fan_in).
+
+    Muon is defined for weight matrices only. Like PyTorch and Keras, which
+    pair it with Adam / AdamW for the other parameters, this implementation
+    hands biases and batch-norm parameters to the project's own adaptive
+    optimizer, AdaBelief. Parameters are routed by name ("weights" goes to
+    Muon), because the NumPy network also stores biases as 2-D (1, n) arrays.
+    No weight decay is applied, as in the network's other optimizers.
+    """
+
+    def __init__(
+        self,
+        learning_rate: float = 0.02,
+        momentum: float = 0.95,
+        nesterov: bool = True,
+        ns_steps: int = 5,
+    ) -> None:
+        """
+        Initialize the Muon optimizer.
+
+        Parameters
+        ----------
+        learning_rate : float, default=0.02
+            Base step size, shared with the AdaBelief fallback.
+        momentum : float, default=0.95
+            Momentum coefficient for the weight matrices.
+        nesterov : bool, default=True
+            Use Nesterov momentum for the weight matrices.
+        ns_steps : int, default=5
+            Number of Newton-Schulz iterations per step.
+
+        Returns
+        -------
+        None
+            Sets the hyperparameters, an empty self.buffers dict and the
+            AdaBelief fallback.
+
+        Notes
+        -----
+        Processing:
+
+        1. Store the hyperparameters.
+        2. Create an empty buffer store; buffers are created lazily the
+           first time each weight matrix is updated.
+        3. Create the AdaBelief fallback with the same learning rate and
+           the project's fixed AdaBelief hyperparameters.
+        """
+        self.learning_rate = learning_rate
+        self.momentum = momentum
+        self.nesterov = nesterov
+        self.ns_steps = ns_steps
+        self.buffers = {}
+        self.fallback = AdaBelief(learning_rate=learning_rate)
+
+    def update(self, layer: Dense | BatchNorm) -> None:
+        """
+        Update every trainable parameter of a layer using Muon.
+
+        Parameters
+        ----------
+        layer : Dense or BatchNorm
+            A trainable layer exposing get_params() and get_grads(), which
+            return dicts of str to numpy.ndarray with matching keys and
+            shapes (float64).
+
+        Returns
+        -------
+        None
+            Each parameter array returned by layer.get_params() is
+            modified in place; self.buffers and the fallback's state are
+            updated.
+
+        Notes
+        -----
+        Processing:
+
+        1. If the layer has no "weights" (a BatchNorm layer), let the
+           AdaBelief fallback update it and stop.
+        2. For the weights, create a zero buffer on first use, then update
+           it: buffer = momentum * buffer + (1 - momentum) * g.
+        3. Form the step direction: with Nesterov,
+           u = (1 - momentum) * g + momentum * buffer; otherwise u = buffer.
+        4. Orthogonalize u with newton_schulz_orthogonalize.
+        5. Update the weights in place:
+           W -= learning_rate * sqrt(max(1, fan_out / fan_in)) * O.
+        6. Update every other parameter (the bias) with the fallback's
+           AdaBelief rule, using its own state.
+        """
+        params = layer.get_params()
+        if "weights" not in params:
+            self.fallback.update(layer)
+            return
+
+        grads = layer.get_grads()
+        for name, param in params.items():
             g = grads[name]
+            key = (id(layer), name)
+            if name != "weights":
+                self.fallback.step_parameter(key, param, g)
+                continue
 
-            # If this is the first time the optimizer sees this parameter,
-            # initialize all internal state for it.
-            if key not in self.m:
-                self.m[key] = np.zeros_like(param)
-                self.s[key] = np.zeros_like(param)
-                self.t[key] = 0
+            if key not in self.buffers:
+                self.buffers[key] = np.zeros_like(param)
 
-            # Increase the time step for this parameter
-            self.t[key] += 1
-            t = self.t[key]
+            # Momentum buffer: exponential moving average of the gradients
+            self.buffers[key] = self.momentum * self.buffers[key] + (1 - self.momentum) * g
 
-            # Update first moment estimate
-            # This is the exponential moving average of gradients
-            self.m[key] = self.beta1 * self.m[key] + (1 - self.beta1) * g
+            # Nesterov looks one step ahead along the momentum direction
+            if self.nesterov:
+                direction = (1 - self.momentum) * g + self.momentum * self.buffers[key]
+            else:
+                direction = self.buffers[key]
 
-            # Belief error:
-            # difference between current gradient and expected gradient
-            belief_error = g - self.m[key]
-
-            # Update second moment estimate using the squared belief error
-            self.s[key] = self.beta2 * self.s[key] + (1 - self.beta2) * (belief_error**2)
-
-            # Bias correction for the first moment
-            # Needed because the running average starts at zero
-            m_hat = self.m[key] / (1 - self.beta1**t)
-
-            # Bias correction for the second moment
-            s_hat = self.s[key] / (1 - self.beta2**t)
-
-            # Final AdaBelief update, in place
-            param -= self.learning_rate * m_hat / (np.sqrt(s_hat) + self.epsilon)
+            orthogonal = newton_schulz_orthogonalize(direction, steps=self.ns_steps)
+            fan_in, fan_out = param.shape
+            scale = np.sqrt(max(1.0, fan_out / fan_in))
+            param -= self.learning_rate * scale * orthogonal
 
 
-def get_optimizer(name: str, learning_rate: float) -> SGD | MomentumSGD | AdaBelief:
+def get_optimizer(name: str, learning_rate: float) -> SGD | MomentumSGD | AdaBelief | Muon:
     """
     Factory function that returns an optimizer object by name.
 
@@ -425,12 +653,13 @@ def get_optimizer(name: str, learning_rate: float) -> SGD | MomentumSGD | AdaBel
         - SGD: "sgd"
         - MomentumSGD: "momentum", "momentumsgd", "momentum_sgd"
         - AdaBelief: "adabelief"
+        - Muon: "muon"
     learning_rate : float
         Learning rate used by the optimizer.
 
     Returns
     -------
-    SGD or MomentumSGD or AdaBelief
+    SGD or MomentumSGD or AdaBelief or Muon
         A new instance of the requested optimizer.
 
     Raises
@@ -445,7 +674,8 @@ def get_optimizer(name: str, learning_rate: float) -> SGD | MomentumSGD | AdaBel
     1. Convert name to lowercase.
     2. Create the matching optimizer with the given learning rate and
        the project's fixed hyperparameters: beta = 0.9 for momentum;
-       beta1 = 0.9, beta2 = 0.999, epsilon = 1e-8 for AdaBelief.
+       beta1 = 0.9, beta2 = 0.999, epsilon = 1e-8 for AdaBelief;
+       momentum = 0.95 with Nesterov and 5 Newton-Schulz steps for Muon.
     3. Raise ValueError for any other name.
 
     This helper lets the rest of the project choose an optimizer
@@ -467,6 +697,11 @@ def get_optimizer(name: str, learning_rate: float) -> SGD | MomentumSGD | AdaBel
         # beta2 = 0.999
         # epsilon = 1e-8
         return AdaBelief(learning_rate=learning_rate, beta1=0.9, beta2=0.999, epsilon=1e-8)
+
+    elif name == "muon":
+        # Fixed Muon hyperparameters (PyTorch / Keras defaults):
+        # momentum = 0.95, Nesterov, 5 Newton-Schulz steps
+        return Muon(learning_rate=learning_rate, momentum=0.95, nesterov=True, ns_steps=5)
 
     else:
         raise ValueError(f"Unsupported optimizer: {name}")

@@ -51,7 +51,7 @@ The same quantity is used for training and for evaluation, so the reported metri
 | `nn_numpy/nn/activations.py` | ReLU, Sigmoid, Tanh, Linear (forward and backward) | – | – |
 | `nn_numpy/nn/network.py` | Builds the network from a config; full forward and backward passes | – | – |
 | `nn_numpy/nn/losses.py` | BCE and MSE (forward and gradient) | – | – |
-| `nn_numpy/nn/optimizers.py` | SGD, Momentum SGD, AdaBelief | – | – |
+| `nn_numpy/nn/optimizers.py` | SGD, Momentum SGD, AdaBelief, Muon (with its Newton–Schulz orthogonalization) | – | – |
 | `nn_numpy/nn/metrics.py` | Evaluation metrics: BCE (classification) and MSE (regression) | – | – |
 | `nn_numpy/modeling/trainer.py` | Mini-batch training loop, validation, early stopping, best-model restore, divergence detection, test evaluation; switches the network between training and evaluation mode | – | – |
 | `nn_numpy/modeling/train.py` | Orchestrates the full experiment grid (every config and seed) | everything above | `reports/main_results_full_<stamp>.json`, `reports/main_summary_<stamp>.csv` |
@@ -111,7 +111,7 @@ make analysis       # python -m nn_numpy.analysis
 make all
 ```
 
-Steps 2 and 3 read the newest `reports/main_results_full_*.json` and fail if none exists. To analyse a specific run instead, pass its path as the first argument, e.g. `python -m nn_numpy.analysis reports/main_results_full_20261008-220824.json`. The repository already includes a results file, so you can run them immediately. `make plots` sets `MPLBACKEND=Agg` so no plot windows open; set it yourself when running the Python command directly.
+Steps 2 and 3 read the newest `reports/main_results_full_*.json` and fail if none exists. To analyse a specific run instead, pass its path as the first argument, e.g. `python -m nn_numpy.analysis reports/main_results_full_20261010-175120.json`. The repository already includes a results file, so you can run them immediately. `make plots` sets `MPLBACKEND=Agg` so no plot windows open; set it yourself when running the Python command directly.
 
 `make` is not installed on Windows by default: install it with `winget install ezwinports.make` and open a new terminal.
 
@@ -127,9 +127,10 @@ make format         # ruff check --fix and ruff format (rewrites files)
 - `tests/test_layers.py` checks the Dense layer's bias (forward shift, batch-summed gradient), that each initialization scheme has the right standard deviation and that the default reproduces the original weights exactly, that every optimizer updates the bias as well as the weights, that early-stopping checkpoints restore the bias, and that the config loader rejects invalid `use_bias` / `init` values.
 - `tests/test_batchnorm.py` checks batch normalization: training mode normalizes over the batch and updates the running statistics; evaluation mode uses them and gives a single sample the same output alone as inside a batch; its gradients (input, gamma, beta) match finite differences in both modes. It also checks the network's `train()` / `eval()` switch, that checkpoints restore the running statistics, and that the trainer stops and flags a diverging run.
 - `tests/test_dropout.py` checks inverted dropout: in training mode it drops about `rate` of the values with a new mask per batch and scales the survivors so the expected value is unchanged; backward reuses the same mask; evaluation mode is the identity. It also checks that dropout sits after the activation, doesn't change the initial weights, is reproducible from the seed, and that the config loader rejects invalid rates and dropout on the output layer.
+- `tests/test_muon.py` checks the Muon optimizer: Newton–Schulz pushes the singular values towards 1 and keeps the singular vectors, the first step follows the update rule exactly (with and without Nesterov), biases and batch-norm parameters follow AdaBelief exactly, and three steps agree with PyTorch's `torch.optim.Muon` (skipped without PyTorch).
 - `tests/test_utils.py` checks the run-stamp helpers used for output file names.
 - `tests/test_metrics.py` checks the accuracy and R² metrics.
-- `tests/test_benchmarks.py` checks that the library comparison uses exactly the main pipeline's splits, the model selection and summaries in the report, the scikit-learn wrappers, and the Keras and PyTorch models (layer structure, optimizers, training records, reproducibility; for PyTorch also the hand-written early stopping and divergence detection). Library tests are skipped automatically when that library isn't installed.
+- `tests/test_benchmarks.py` checks that the library comparison uses exactly the main pipeline's splits, the model selection and summaries in the report, the scikit-learn wrappers, and the Keras and PyTorch models (layer structure, optimizers including Muon, training records, reproducibility; for PyTorch also the hand-written early stopping, divergence detection, and the split of parameters between Muon and Adam). Library tests are skipped automatically when that library isn't installed.
 - `tests/test_seeds.py` checks that the split and the weight initialization follow the seed, the constant-prediction baselines, the `seeds` config validation, and the multi-seed analysis helpers (model selection by validation loss, error removed, mean ± std).
 - `tests/test_knowledge_base.py` checks the generated OWL knowledge base: it reads back to the same graph and is written identically twice, no IRI has two kinds and nothing references an undeclared name, every assertion respects its property's domain and range, and the OWL RL reasoner infers the pipeline order, stage membership, module roles and architecture families (see [section 5](#5-knowledge-base)).
 - `tests/test_clipping.py` checks gradient clipping: the global gradient norm covers every parameter (weights, biases, batch norm's γ and β), clipping scales an over-long gradient to exactly the cap without changing its direction and leaves smaller ones untouched, a clipped SGD step moves the parameters by at most `lr × cap`, a run that diverges without clipping stays finite with it, and the config loader accepts the `max_grad_norm` option and rejects invalid ones.
@@ -203,7 +204,26 @@ Every run also records `grad_norm_history`: the largest gradient norm of any min
 
 Any cap prevents the overflow, but only caps of about 20 or less also keep the ReLUs alive. The regression gradients are large even in healthy deep runs (a median norm of 50–150), because the targets are unscaled (6–43), so a much smaller cap would bind on almost every batch. Clipping is a variant here, not the default: the other architectures and the library comparisons are trained without it.
 
-**Result on the full sweep (5 seeds).** On the 20 regression runs at LR 0.1 with SGD or momentum, `A2-clip` learns in 18 and collapses in 2, with no divergence; A2 diverged in 8 and collapsed in the other 12. No `A2-clip` run diverged anywhere. With momentum, the clipped runs reach a test MSE of 5–14; with plain SGD, each step is capped at LR × 20 = 2, and the runs end far behind (63–110, two no better than the mean). The cap also binds on healthy runs: A2's best regression result per seed goes from 1.79 ± 0.80 to 4.48 ± 2.41, because AdaBelief at LR 0.1 is slowed. On classification, 57 of 60 runs are identical to A2's; the 3 that differ are AdaBelief runs at LR 0.1 whose gradients spike (up to 270).
+**Result on the full sweep (5 seeds).** On the 20 regression runs at LR 0.1 with SGD or momentum, `A2-clip` learns in 18 and collapses in 2, with no divergence; A2 diverged in 8 and collapsed in the other 12. No `A2-clip` run diverged anywhere. With momentum, the clipped runs reach a test MSE of 5–14; with plain SGD, each step is capped at LR × 20 = 2, and the runs end far behind (63–110, two no better than the mean). The cap also binds on healthy runs: A2's best regression result per seed goes from 1.79 ± 0.80 to 4.50 ± 2.41, because AdaBelief at LR 0.1 is slowed. On classification, 57 of 60 runs are identical to A2's; the 3 that differ are AdaBelief runs at LR 0.1 whose gradients spike (up to 270).
+
+#### Muon
+
+Muon (`nn_numpy/nn/optimizers.py`, class `Muon`) is selected with `"muon"` in the optimizers list. For a Dense layer's weights W of shape (fan_in, fan_out) with gradient g, each step is:
+
+1. buffer = 0.95 · buffer + 0.05 · g
+2. u = 0.05 · g + 0.95 · buffer (Nesterov momentum)
+3. O = Newton–Schulz(u): five quintic iterations X ← a·X + (b·XXᵀ + c·(XXᵀ)²)·X with (a, b, c) = (3.4445, −4.7750, 2.0315), after scaling u to unit Frobenius norm
+4. W ← W − lr · √max(1, fan_out / fan_in) · O
+
+The iteration pushes every singular value of u towards 1 while keeping its singular vectors, so each direction of the weight matrix gets a step of similar size. The shape factor is PyTorch's default ("original") adjustment, written for the NumPy network's (fan_in, fan_out) layout.
+
+Muon is defined for weight matrices only, so the step size depends on the learning rate and not on the gradient's magnitude. Parameters are routed by name: `"weights"` go to Muon, and biases and batch norm's γ / β go to AdaBelief with the same learning rate. Name-based routing is needed because the NumPy network stores biases as (1, n) arrays. As in the other optimizers, there is no weight decay.
+
+`tests/test_muon.py` checks:
+- the singular values after Newton–Schulz, and that the singular vectors are kept
+- the exact first step
+- the routing to AdaBelief, including for batch norm
+- agreement with `torch.optim.Muon` over three steps, within 2e-3; PyTorch runs Newton–Schulz in bfloat16 and the NumPy network in float64
 
 #### Training and evaluation mode
 
@@ -231,7 +251,7 @@ Each run records `stop_reason`, one of:
 Each run also records `overfitting_epochs`: the number of consecutive epochs, ending at the stop, in which the training loss still improved by more than `min_delta` while the validation loss did not. That is the overfitting signature, so an early stop with `overfitting_epochs > 0` stopped because the model was starting to overfit, and one with 0 stopped on a plain plateau. It is 0 for runs that didn't end by early stopping. Because it uses `min_delta` (1e-4) as the size of a meaningful improvement, runs whose losses are already far below that can't show it; the generalization gap covers them.
 
 **Experiment sweep values**
-- `optimizers`: `sgd`, `momentum` (aliases `momentumsgd`, `momentum_sgd`), `adabelief`.
+- `optimizers`: `sgd`, `momentum` (aliases `momentumsgd`, `momentum_sgd`), `adabelief`, `muon`.
 - `learning_rates`: positive numbers, typically 0.1, 0.01, or 0.001.
 - `batch_sizes`: positive integers, bounded by the size of the training split.
 - `seeds` (optional, default `[42]`): the whole sweep is repeated once per seed. Each seed sets the train / validation / test split, the weight initialization, the dropout masks and the per-epoch shuffling. Both configs use `[42, 43, 44, 45, 46]`. Seed 42 reproduces the original single-seed results exactly, and EDA plots are only made for the first seed.
@@ -251,7 +271,7 @@ Each run also records `overfitting_epochs`: the number of consecutive epochs, en
 ### What the JSON does not control
 
 1. **Layer types.** Each layer has a `"type"` field, but only `dense` is implemented; batch norm is attached to a dense layer with `batch_norm`. Batch norm and dropout are attached to a dense layer with `batch_norm` and `dropout`. Convolutional or recurrent layers would need code changes first. (Optimizers and checkpoints already handle any number of parameters per layer, through `get_params()` / `get_grads()`, and non-trainable state through `get_buffers()`.)
-2. **Optimizer internals.** Only the learning rate comes from JSON. Momentum uses β = 0.9, and AdaBelief uses β₁ = 0.9, β₂ = 0.999, ε = 1e-8, all fixed in `nn_numpy/nn/optimizers.py` (`get_optimizer`).
+2. **Optimizer internals.** Only the learning rate comes from JSON. Momentum uses β = 0.9; AdaBelief uses β₁ = 0.9, β₂ = 0.999, ε = 1e-8; Muon uses Nesterov momentum 0.95 and 5 Newton–Schulz steps, with AdaBelief for biases and batch-norm parameters. All are fixed in `nn_numpy/nn/optimizers.py` (`get_optimizer`).
 3. **Evaluation metrics.** The task type determines them: BCE for classification and MSE for regression, matching the training losses.
 4. **The default random seed.** `RANDOM_SEED` in `nn_numpy/config.py` (42) is used when a config lists no `seeds`, and it's the seed that the single-seed analysis sections and the comparison plots use.
 5. **EDA display.** It's controlled by `SHOW_EDA` in `nn_numpy/modeling/train.py` (see above).
@@ -277,7 +297,7 @@ Each comparison holds every setting fixed except one:
 
 | Comparison | Fixed | Varies | Output |
 |---|---|---|---|
-| Optimizers | problem, architecture, learning rate, batch size | optimizer (SGD → Momentum → AdaBelief, one subplot each) | `optimizers_*_<stamp>.png` |
+| Optimizers | problem, architecture, learning rate, batch size | optimizer (SGD → Momentum → AdaBelief → Muon, one subplot each) | `optimizers_*_<stamp>.png` |
 | Network depth | problem, optimizer, learning rate, batch size | architecture (A1 vs A2) | `depth_*_<stamp>.png`, `depth_analysis_<stamp>.txt` |
 | Learning rate | problem, architecture, optimizer, batch size | learning rate (0.1 vs 0.001) | `learning_rate_*_<stamp>.png`, `learning_rate_analysis_<stamp>.txt` |
 | A2 variants | problem, optimizer, learning rate, batch size | A2 → A2-bias → A2-he → A2-bias-he → A2-bn → A2-clip, one subplot each, log-scale loss | `a2_variants_*_<stamp>.png` |
@@ -359,7 +379,16 @@ This puts each task's losses on a 0–1 scale before combining them. If every lo
 
 The "best" group is the one with the smallest value in the relevant field. For the depth question, the script compares A1 and A2 in the combined architecture summary, on both convergence epoch and normalized loss.
 
-All of the sections above use the baseline architectures (A1, A2) only, including the min-max normalization. Adding new architectures to the configs therefore leaves those numbers unchanged.
+All of the sections above use the baseline architectures (A1, A2) and the baseline optimizers (SGD, momentum, AdaBelief) only, including the min-max normalization. Adding new architectures or optimizers to the configs therefore leaves those numbers unchanged.
+
+#### Muon
+
+The Muon section compares all four optimizers on the same runs. For each task it shows:
+- a summary table of the first seed's A1 / A2 runs by optimizer, with diverged runs left out of the averages and counted below the table
+- the optimizer × learning-rate table of average test metrics across seeds
+- the model selected per seed when every architecture and optimizer, Muon included, is allowed
+
+The rest of the report, including the multi-seed section, uses the baseline optimizers only.
 
 #### A2 variants
 
@@ -437,7 +466,7 @@ Each scikit-learn model has a small hyperparameter grid in `configs/benchmark_ex
 
 #### TensorFlow (Keras)
 
-`benchmarks/keras_models.py` rebuilds A1, A2, A2-bias and A2-bn from the **same architecture definitions** in the main configs: the same units, activations, bias settings and batch-norm placement (Dense → BatchNormalization → Activation). Each is trained over the grid SGD / momentum / Adam × learning rate 0.1 / 0.001 × batch size 16 / 64, for up to 100 epochs, on every seed.
+`benchmarks/keras_models.py` rebuilds A1, A2, A2-bias and A2-bn from the **same architecture definitions** in the main configs: the same units, activations, bias settings and batch-norm placement (Dense → BatchNormalization → Activation). Each is trained over the grid SGD / momentum / Adam / Muon × learning rate 0.1 / 0.001 × batch size 16 / 64, for up to 100 epochs, on every seed.
 
 Everything else is what Keras provides, as a practitioner would use it:
 
@@ -446,6 +475,7 @@ Everything else is what Keras provides, as a practitioner would use it:
 | Weight initialization | N(0, 0.1²) | Glorot uniform |
 | Momentum | v = 0.9·v + 0.1·g (moving average) | v = 0.9·v − lr·g (classical), so about 10× larger steps |
 | Adaptive optimizer | AdaBelief | Adam (Keras has no AdaBelief) |
+| Muon | Nesterov 0.95, 5 Newton–Schulz steps in float64; step lr · √max(1, fan_out / fan_in); no weight decay; AdaBelief for biases and batch norm | `keras.optimizers.Muon`: the same momentum and Newton–Schulz coefficients; step lr · 0.2 · √max(fan_in, fan_out); weight decay 0.004; AdamW for every variable that isn't 2-D |
 | Batch norm | momentum 0.1 (= 0.9 decay), ε = 1e-5 | decay 0.99, ε = 1e-3 |
 | Precision | float64 | float32 |
 | Early stopping | tracks the best checkpoint from epoch 1; can't stop before epoch 20 | `EarlyStopping(start_from_epoch=20)`: ignores the first 20 epochs entirely, then the same patience 10 / `min_delta` 1e-4, restoring the best weights |
@@ -462,6 +492,7 @@ Runs are seeded with `keras.utils.set_random_seed` and TensorFlow's deterministi
 | Weight initialization | N(0, 0.1²) | `nn.Linear` default: U(−1/√fan_in, 1/√fan_in) (Kaiming uniform with a = √5) |
 | Momentum | v = 0.9·v + 0.1·g (moving average) | v = 0.9·v + g, step lr·v, so about 10× larger steps |
 | Adaptive optimizer | AdaBelief | Adam (PyTorch has no AdaBelief) |
+| Muon | Nesterov 0.95, 5 Newton–Schulz steps in float64; step lr · √max(1, fan_out / fan_in); no weight decay; AdaBelief for biases and batch norm | `torch.optim.Muon` for the 2-D weights: the same rule and step scaling, Newton–Schulz in bfloat16, weight decay 0.1; `Adam` for the 1-D parameters (biases, batch norm) |
 | Batch norm | momentum 0.1, ε = 1e-5 | `BatchNorm1d` default: momentum 0.1, ε = 1e-5 (the same) |
 | Precision | float64 | float32 |
 | Loss | BCE on clipped probabilities, MSE | `nn.BCELoss` on the sigmoid output (log clamped at −100), `nn.MSELoss` |

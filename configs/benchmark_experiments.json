@@ -71,7 +71,7 @@
   "tensorflow": {
     "architectures": ["A1", "A2", "A2-bias", "A2-bn"],
     "grid": {
-      "optimizer": ["sgd", "momentum", "adam"],
+      "optimizer": ["sgd", "momentum", "adam", "muon"],
       "learning_rate": [0.1, 0.001],
       "batch_size": [16, 64]
     },
@@ -87,7 +87,7 @@
   "pytorch": {
     "architectures": ["A1", "A2", "A2-bias", "A2-bn"],
     "grid": {
-      "optimizer": ["sgd", "momentum", "adam"],
+      "optimizer": ["sgd", "momentum", "adam", "muon"],
       "learning_rate": [0.1, 0.001],
       "batch_size": [16, 64]
     },
